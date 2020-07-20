@@ -1,0 +1,178 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"strings"
+
+	"github.com/mitchr/gossip/client"
+)
+
+// type tokenType int
+// type token struct {
+// 	tType tokenType
+// 	value string
+// }
+//
+// const (
+// 	// associated with tags
+// 	tags tokenType = iota
+// 	tag
+// 	key
+// 	escapedVal
+// 	vendor
+//
+// 	source
+// 	command
+//
+// 	// associated with parameters
+// 	parameters
+// 	nospcrlfcl
+// 	middle
+// 	trailing
+// )
+
+func Parse(msg []byte, c *client.Client) error {
+	// allow sending newline characters by themselves
+	if msg[0] == '\r' && msg[1] == '\n' {
+		return nil
+	}
+
+	// some clients like telnet might send an ASCII 4 (EOT, end of transaction) when closing, in which case they should be disconnected
+	if msg[0] == 4 {
+		return io.EOF
+	}
+
+	fmt.Println(len(msg), msg, string(msg))
+
+	// if message does not end with /r/n, reject
+	if msg[len(msg)-2] != '\r' && msg[len(msg)-1] != '\n' {
+		fmt.Println(msg[len(msg)-2], msg[len(msg)-1])
+		return errors.New("ill-formed message: need CRLF line ending")
+	} else {
+		// trim '\r\n' off end
+		msg = msg[:len(msg)-2]
+	}
+
+	pos := 0
+	splitByWhitespace := strings.Split(string(msg), " ")
+
+	switch splitByWhitespace[0][0] {
+	// first element was a tag
+	// second element could be source
+	case byte('@'):
+		parseTags(splitByWhitespace[pos])
+		if len(splitByWhitespace) == 1 {
+			return errors.New("message too short: missing source or command")
+		}
+		if splitByWhitespace[1][0] == ':' {
+			pos++
+			parseSource(splitByWhitespace[pos])
+		}
+	// first element was a source
+	case byte(':'):
+		parseSource(splitByWhitespace[pos])
+		pos++
+
+	// if there was no source or tags, then the source is assumed to just be the nicknam
+	default:
+		// client may not have a registered nickname at this point, so just call them 'you'?
+		if c.Nick == "" {
+			parseSource(":you")
+		} else {
+			parseSource(":" + c.Nick)
+		}
+	}
+
+	// determine command name
+	// if there are arguments, they will be handled now
+	err := parseCommand(splitByWhitespace[pos:], c)
+	if err != nil {
+		c.Write([]byte(err.Error()))
+	}
+	return nil
+}
+
+func parseTags(tags string) map[string]string {
+	// remove beginning '@'
+	tags = tags[1:len(tags)]
+
+	// split string by semicolor
+	splitBySemi := strings.Split(tags, ";")
+	var tagMap = make(map[string]string)
+	for i := 0; i < len(splitBySemi); i++ {
+		splitByEq := strings.Split(splitBySemi[i], "=")
+		// if key is given with no value
+		if len(splitByEq) == 1 {
+			tagMap[splitByEq[0]] = ""
+		} else {
+			tagMap[splitByEq[0]] = splitByEq[1]
+		}
+	}
+
+	fmt.Println(tagMap)
+	return tagMap
+}
+
+// returns nickname, user, and hostname of sender
+func parseSource(source string) (string, string, string) {
+	// trim ':' from beginning\
+	source = source[1:len(source)]
+	sourceInfo := strings.Split(source, "!")
+
+	nick := ""
+	user := ""
+	host := ""
+	loc := 0
+
+	// atleast there is a nick and a hostname
+	if len(sourceInfo) == 2 {
+		nick = sourceInfo[0]
+		loc = 1
+	}
+
+	// check if user is included in hostname
+	addr := strings.Split(sourceInfo[loc], "@")
+
+	// if len == 2, then both a user and host are provided
+	if len(addr) == 2 {
+		user = addr[0]
+		host = addr[1]
+	} else { // else just host was given
+		host = addr[0]
+	}
+
+	fmt.Println("nick: " + nick)
+	fmt.Println("user: " + user)
+	fmt.Println("host: " + host)
+
+	return nick, user, host
+}
+
+// we need to be able to access the client here somehow...
+func parseCommand(com []string, c *client.Client) error {
+	if len(com) == 0 {
+		return errors.New("missing command\r\n")
+	}
+
+	pos := 0
+	// first element is command
+	switch com[0] {
+	case "CAP":
+	case "NICK":
+		// look at next argument
+		pos++
+		if pos > len(com)-1 {
+			return errors.New("no nickname given\r\n")
+		}
+
+		c.Nick = com[1]
+
+		return errors.New("")
+	default:
+		return errors.New("unknown command\r\n")
+	}
+
+	return nil
+}
