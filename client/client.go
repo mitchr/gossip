@@ -16,9 +16,19 @@ type Client struct {
 
 	// list of channels that the client is connected to
 	chanList []string
-	// if user is a channel operator
-	chanOp bool
+
+	// the type of user the client is
+	// determines permissions and available commands
+	chanOp UserType
 }
+
+type UserType int
+
+const (
+	UNREGISTERED UserType = iota
+	REGISTERED
+	OPERATOR
+)
 
 func New(addr net.Addr, con net.Conn) *Client {
 	c := &Client{}
