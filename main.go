@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -48,17 +49,11 @@ func main() {
 			// fmt.Println(c.LocalAddr().Network(), c.LocalAddr().String())
 			// fmt.Println(c.RemoteAddr().Network(), c.RemoteAddr().String())
 
+			reader := bufio.NewReader(c)
 			for {
-				msgBuf := make([]byte, 512)
-				_, err := u.Read(msgBuf)
-
-				// trim empty space from buffer if not all of it was used
-				for i := len(msgBuf) - 1; i >= 0; i-- {
-					if msgBuf[i] != 0 {
-						msgBuf = msgBuf[:i+1]
-						break
-					}
-				}
+				// read until we encounter a newline
+				// really we should have \r\n, but we allow the parser to check that \r exists
+				msgBuf, err := reader.ReadBytes('\n')
 
 				if err != nil {
 					if err == io.EOF {
