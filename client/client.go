@@ -11,6 +11,8 @@ type Client struct {
 	Nick    string
 	address net.Addr
 	conn    net.Conn
+	// handle to the server the client is connected to
+	Server net.Listener
 
 	idleTimeout time.Time
 
@@ -30,17 +32,17 @@ const (
 	OPERATOR
 )
 
-func New(addr net.Addr, con net.Conn) *Client {
-	c := &Client{}
-	c.address = addr
-	c.conn = con
+func New(conn net.Conn, server net.Listener) *Client {
+	return &Client{
+		address: conn.RemoteAddr(),
+		Server:  server,
+		conn:    conn,
 
-	// when the connection begins, start a timeout that fires if the connection goes silent for x amount of time
-	// before capability negotiation, this timeout will be short
-	// after the user is established, give them more time
-	c.idleTimeout = time.Now().Add(10 * time.Second)
-
-	return c
+		// when the connection begins, start a timeout that fires if the connection goes silent for x amount of time
+		// before capability negotiation, this timeout will be short
+		// after the user is established, give them more time
+		idleTimeout: time.Now().Add(10 * time.Second),
+	}
 }
 
 // wrap Read/Write/Close for the connection
