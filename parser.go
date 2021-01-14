@@ -44,11 +44,12 @@ func Parse(msg []byte, c *client.Client) error {
 		return io.EOF
 	}
 
-	fmt.Println(len(msg), msg, string(msg))
+	// fmt.Printf("msg length: %v\nmsg bytes: %v\nmsg: %s\n", len(msg), msg, string(msg))
+	fmt.Println("msg:", string(msg))
 
-	// if message does not end with /r/n, reject
+	// if message does not end with \r\n, reject
 	if msg[len(msg)-2] != '\r' && msg[len(msg)-1] != '\n' {
-		fmt.Println(msg[len(msg)-2], msg[len(msg)-1])
+		// fmt.Println(msg[len(msg)-2], msg[len(msg)-1])
 		return errors.New("ill-formed message: need CRLF line ending")
 	} else {
 		// trim '\r\n' off end
@@ -90,6 +91,7 @@ func Parse(msg []byte, c *client.Client) error {
 	err := parseCommand(splitByWhitespace[pos:], c)
 	if err != nil {
 		c.Write([]byte(err.Error()))
+		fmt.Println("wrote error to client")
 	}
 	return nil
 }
@@ -168,11 +170,17 @@ func parseCommand(com []string, c *client.Client) error {
 		}
 
 		c.Nick = com[1]
+		fmt.Println("registered nick:", com[1])
 
-		return errors.New("")
+		return numericReply(c, 433, "Nickname is already in use")
+	case "USER":
 	default:
-		return errors.New("unknown command\r\n")
+		return numericReply(c, 421, fmt.Sprintf("Unknown command '%s'", com[0]))
 	}
 
 	return nil
+}
+
+func numericReply(c *client.Client, errCode int, errString string) error {
+	return fmt.Errorf(":%s %d %s :%s\r\n", c.Server.Addr().String(), errCode, c.Nick, errString)
 }
