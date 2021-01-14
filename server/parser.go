@@ -98,7 +98,7 @@ func Parse(msg []byte, c *client.Client) error {
 
 func parseTags(tags string) map[string]string {
 	// remove beginning '@'
-	tags = tags[1:len(tags)]
+	tags = tags[1:]
 
 	// split string by semicolor
 	splitBySemi := strings.Split(tags, ";")
@@ -120,7 +120,7 @@ func parseTags(tags string) map[string]string {
 // returns nickname, user, and hostname of sender
 func parseSource(source string) (string, string, string) {
 	// trim ':' from beginning\
-	source = source[1:len(source)]
+	source = source[1:]
 	sourceInfo := strings.Split(source, "!")
 
 	nick := ""
