@@ -11,11 +11,11 @@ import (
 )
 
 type Server struct {
-	listener net.Listener
-	clients  *client.List
+	Listener net.Listener
+	Clients  *client.List
 }
 
-// should defer s.Close() after calling New()
+// should defer s.Listener.Close() after calling New()
 func New(port string) (*Server, error) {
 	l, err := net.Listen("tcp", port)
 	if err != nil {
@@ -29,7 +29,7 @@ func (s *Server) Start() {
 	for {
 		// wait for a connection to the server
 		// (block until one is received)
-		conn, err := s.listener.Accept()
+		conn, err := s.Listener.Accept()
 		if err != nil {
 			log.Println(err)
 		}
@@ -45,8 +45,8 @@ func (s *Server) handleClient(c net.Conn) {
 	// creationTime := time.Now()
 
 	// create entry for user
-	u := client.New(c, s.listener)
-	s.clients.Add(u)
+	u := client.New(c, s.Listener)
+	s.Clients.Add(u)
 
 	// when a client is added, the registrationg process must be attempted
 
@@ -76,19 +76,19 @@ func (s *Server) handleClient(c net.Conn) {
 			if err == io.EOF {
 				// client has closed connection, so we need to remove them from the user list
 				u.Close()
-				s.clients.Remove(u)
+				s.Clients.Remove(u)
 				return
 			} else if operr, ok := err.(*net.OpError); ok {
 				// there was some kind of network error
 				u.Close()
-				s.clients.Remove(u)
+				s.Clients.Remove(u)
 				fmt.Println(operr)
 				return
 
 			} else {
 				// not sure what happened!
 				u.Close()
-				s.clients.Remove(u)
+				s.Clients.Remove(u)
 				fmt.Println(err)
 				return
 			}
@@ -103,7 +103,7 @@ func (s *Server) handleClient(c net.Conn) {
 		if err != nil {
 			if err == io.EOF {
 				u.Close()
-				s.clients.Remove(u)
+				s.Clients.Remove(u)
 				return
 			} else {
 				u.Write([]byte(fmt.Sprintln(err)))
@@ -120,12 +120,4 @@ func (s *Server) handleClient(c net.Conn) {
 		// 	clients.Get(i).Write(msgBuf)
 		// }
 	}
-}
-
-func (s *Server) addClient(c *client.Client) {
-	s.clients.Add(c)
-}
-
-func (s *Server) Close() {
-	s.listener.Close()
 }
