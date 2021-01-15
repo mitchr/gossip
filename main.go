@@ -14,11 +14,10 @@ func main() {
 	flag.Parse()
 
 	s, err := server.New(*port)
-	defer s.Close()
-
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer s.Close()
 
 	s.Start()
 }
