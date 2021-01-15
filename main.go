@@ -8,7 +8,7 @@ import (
 )
 
 // default port of 8080
-var port *string = flag.String("port", ":8080", "sets server port")
+var port *string = flag.String("port", ":6667", "sets server port")
 
 func main() {
 	flag.Parse()

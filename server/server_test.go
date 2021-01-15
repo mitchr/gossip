@@ -5,7 +5,7 @@ import (
 )
 
 func TestNewServer(t *testing.T) {
-	s, err := New(":8080")
+	s, err := New(":6667")
 	defer s.Close()
 
 	if err != nil {
@@ -14,7 +14,7 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestStartServer(t *testing.T) {
-	s, err := New(":8080")
+	s, err := New(":6667")
 	defer s.Close()
 
 	if err != nil {
