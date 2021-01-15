@@ -166,7 +166,7 @@ func parseCommand(com []string, c *client.Client) error {
 		// look at next argument
 		pos++
 		if pos > len(com)-1 {
-			return errors.New("no nickname given\r\n")
+			return numericReply(c, 433, "No nickname given")
 		}
 
 		c.Nick = com[1]
