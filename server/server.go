@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"time"
 
 	"github.com/mitchr/gossip/client"
 )
@@ -13,6 +14,7 @@ import (
 type Server struct {
 	Listener net.Listener
 	Clients  *client.List
+	Created  time.Time
 }
 
 // should defer s.Listener.Close() after calling New()
@@ -21,11 +23,13 @@ func New(port string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Server{l, &client.List{}}, nil
+	return &Server{l, &client.List{}, time.Time{}}, nil
 }
 
 // start server in new goroutine: go s.Start()
 func (s *Server) Start() {
+	s.Created = time.Now()
+
 	for {
 		// wait for a connection to the server
 		// (block until one is received)
@@ -41,9 +45,6 @@ func (s *Server) Start() {
 }
 
 func (s *Server) handleClient(c net.Conn) {
-	// used when sending RPL_CREATED 003
-	// creationTime := time.Now()
-
 	// create entry for user
 	u := client.New(c)
 	s.Clients.Add(u)
