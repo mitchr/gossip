@@ -91,7 +91,7 @@ func (s *Server) Parse(msg []byte, c *client.Client) error {
 	// if there are arguments, they will be handled now
 	err := s.parseCommand(splitByWhitespace[pos:], c)
 	if err != nil {
-		c.Write([]byte(err.Error()))
+		c.Write(err)
 		fmt.Println("wrote error to client")
 	}
 	return nil

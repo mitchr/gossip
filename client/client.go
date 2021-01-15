@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -37,8 +38,16 @@ func New(conn net.Conn) *Client {
 }
 
 // wrap Read/Write/Close for the connection
-func (c *Client) Write(b []byte) (int, error) {
-	return c.conn.Write(b)
+func (c *Client) Write(i interface{}) (int, error) {
+	switch b := i.(type) {
+	case []byte:
+		return c.conn.Write(b)
+	case string:
+		return c.conn.Write([]byte(b))
+	case error:
+		return c.conn.Write([]byte(b.Error()))
+	}
+	return 0, errors.New("Couldn't write: message parameter type unknown")
 }
 
 func (c *Client) Read(b []byte) (int, error) {
