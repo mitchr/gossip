@@ -173,6 +173,20 @@ func (s *Server) parseCommand(com []string, c *client.Client) error {
 		c.Nick = com[1]
 		fmt.Println("registered nick:", com[1])
 	case "USER":
+		// TODO: Ident Protocol
+
+		if c.Registered {
+			return s.numericReply(c, 462, "You may not reregister")
+		} else if len(com) < 5 {
+			return s.numericReply(c, 461, "Not enough parameters")
+		}
+
+		c.User = com[1]
+		if com[2] != "0" || com[3] != "*" {
+			// TODO: find appropriate error code
+			return s.numericReply(c, 0, "Wrong protocol")
+		}
+		c.Realname = strings.Join(com[4:], " ")
 	default:
 		return s.numericReply(c, 421, fmt.Sprintf("Unknown command '%s'", com[0]))
 	}
