@@ -10,7 +10,7 @@ import (
 type Client struct {
 	Nick        string
 	User        string
-	address     net.Addr
+	Host        net.Addr
 	conn        net.Conn
 	idleTimeout time.Time
 
@@ -26,8 +26,8 @@ type Client struct {
 
 func New(conn net.Conn) *Client {
 	return &Client{
-		address: conn.RemoteAddr(),
-		conn:    conn,
+		Host: conn.RemoteAddr(),
+		conn: conn,
 
 		// when the connection begins, start a timeout that fires if the connection goes silent for x amount of time
 		// before capability negotiation, this timeout will be short
