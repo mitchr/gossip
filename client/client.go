@@ -7,16 +7,9 @@ import (
 	"time"
 )
 
-type UserType int
-
-const (
-	Unregistered UserType = iota
-	Registered
-	Operator
-)
-
 type Client struct {
 	Nick    string
+	User    string
 	address net.Addr
 	conn    net.Conn
 	// handle to the server the client is connected to
@@ -24,12 +17,14 @@ type Client struct {
 
 	idleTimeout time.Time
 
-	// list of channels that the client is connected to
+	// list of channels that the client belongs to
 	chanList []string
 
-	// the type of user the client is
-	// determines permissions and available commands
-	chanOp UserType
+	// list of channels that client is a chanop for
+	opList []string
+
+	// True if client is registered (nick/user passed)
+	Registered bool
 }
 
 func New(conn net.Conn, server net.Listener) *Client {
