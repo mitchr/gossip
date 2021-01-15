@@ -11,6 +11,7 @@ import (
 type Client struct {
 	Nick        string
 	User        string
+	Realname    string
 	Host        net.Addr
 	conn        net.Conn
 	idleTimeout time.Time
