@@ -7,6 +7,14 @@ import (
 	"time"
 )
 
+type UserType int
+
+const (
+	Unregistered UserType = iota
+	Registered
+	Operator
+)
+
 type Client struct {
 	Nick    string
 	address net.Addr
@@ -23,14 +31,6 @@ type Client struct {
 	// determines permissions and available commands
 	chanOp UserType
 }
-
-type UserType int
-
-const (
-	UNREGISTERED UserType = iota
-	REGISTERED
-	OPERATOR
-)
 
 func New(conn net.Conn, server net.Listener) *Client {
 	return &Client{
