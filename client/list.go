@@ -18,7 +18,7 @@ func (l *List) String() string {
 
 	current := l.head
 	for current != nil {
-		str += fmt.Sprintf("%d->", current.data)
+		str += fmt.Sprintf("%v->", current.data)
 		current = current.next
 	}
 
