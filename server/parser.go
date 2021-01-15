@@ -169,10 +169,13 @@ func (s *Server) parseCommand(com []string, c *client.Client) error {
 			return s.numericReply(c, 433, "No nickname given")
 		}
 
+		// if nickname is already in use, send back error
+		if s.Clients.SearchNick(com[1]) != nil {
+			return s.numericReply(c, 433, "Nickname is already in use")
+		}
+
 		c.Nick = com[1]
 		fmt.Println("registered nick:", com[1])
-
-		return s.numericReply(c, 433, "Nickname is already in use")
 	case "USER":
 	default:
 		return s.numericReply(c, 421, fmt.Sprintf("Unknown command '%s'", com[0]))

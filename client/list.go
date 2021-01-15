@@ -87,3 +87,12 @@ func (l *List) Get(i int) *Client {
 	}
 	return nil
 }
+
+func (l *List) SearchNick(nickName string) *Client {
+	for current := l.head; current.next != nil; current = current.next {
+		if current.data.Nick == nickName {
+			return current.data
+		}
+	}
+	return nil
+}
