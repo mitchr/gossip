@@ -146,10 +146,6 @@ func parseSource(source string) (string, string, string) {
 		host = addr[0]
 	}
 
-	fmt.Println("nick: " + nick)
-	fmt.Println("user: " + user)
-	fmt.Println("host: " + host)
-
 	return nick, user, host
 }
 
