@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"strings"
 
 	"github.com/mitchr/gossip/client"
@@ -172,6 +173,7 @@ func (s *Server) parseCommand(com []string, c *client.Client) error {
 
 		c.Nick = com[1]
 		fmt.Println("registered nick:", com[1])
+		s.endRegistration(c)
 	case "USER":
 		// TODO: Ident Protocol
 
@@ -187,11 +189,33 @@ func (s *Server) parseCommand(com []string, c *client.Client) error {
 			return s.numericReply(c, 0, "Wrong protocol")
 		}
 		c.Realname = strings.Join(com[4:], " ")
+
+		s.endRegistration(c)
 	default:
 		return s.numericReply(c, 421, fmt.Sprintf("Unknown command '%s'", com[0]))
 	}
 
 	return nil
+}
+
+// TODO: If we add capability negotiation, then that logic will have to go here as well
+// when a client successfully calls USER/NICK, they are registered
+func (s *Server) endRegistration(c *client.Client) {
+	if c.Nick != "" && c.User != "" {
+		c.Registered = true
+
+		// send RPL_WELCOME and friends in acceptance
+		c.Write(s.numericReply(c, 001, fmt.Sprintf("Welcome to the Internet Relay Network %s[!%s@%s]", c.Nick, c.User, c.Host.String())))
+		c.Write(s.numericReply(c, 002, fmt.Sprintf("Your host is %s", s.Listener.Addr().String())))
+		c.Write(s.numericReply(c, 003, fmt.Sprintf("This server was created %s", s.Created)))
+
+		// TODO: send proper response messages
+		c.Write(s.numericReply(c, 004, ""))
+		c.Write(s.numericReply(c, 005, ""))
+
+		// TODO: send LUSERS and MOTD
+		log.Println("successfully registered client")
+	}
 }
 
 func (s *Server) numericReply(c *client.Client, errCode int, errString string) error {
