@@ -8,13 +8,10 @@ import (
 )
 
 type Client struct {
-	Nick    string
-	User    string
-	address net.Addr
-	conn    net.Conn
-	// handle to the server the client is connected to
-	Server net.Listener
-
+	Nick        string
+	User        string
+	address     net.Addr
+	conn        net.Conn
 	idleTimeout time.Time
 
 	// list of channels that the client belongs to
@@ -27,10 +24,9 @@ type Client struct {
 	Registered bool
 }
 
-func New(conn net.Conn, server net.Listener) *Client {
+func New(conn net.Conn) *Client {
 	return &Client{
 		address: conn.RemoteAddr(),
-		Server:  server,
 		conn:    conn,
 
 		// when the connection begins, start a timeout that fires if the connection goes silent for x amount of time

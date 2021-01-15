@@ -33,7 +33,8 @@ import (
 // 	trailing
 // )
 
-func Parse(msg []byte, c *client.Client) error {
+// Parse and if necessary, execute a message from the given client
+func (s *Server) Parse(msg []byte, c *client.Client) error {
 	// allow sending newline characters by themselves
 	if msg[0] == '\r' && msg[1] == '\n' {
 		return nil
@@ -88,7 +89,7 @@ func Parse(msg []byte, c *client.Client) error {
 
 	// determine command name
 	// if there are arguments, they will be handled now
-	err := parseCommand(splitByWhitespace[pos:], c)
+	err := s.parseCommand(splitByWhitespace[pos:], c)
 	if err != nil {
 		c.Write([]byte(err.Error()))
 		fmt.Println("wrote error to client")
@@ -152,8 +153,7 @@ func parseSource(source string) (string, string, string) {
 	return nick, user, host
 }
 
-// we need to be able to access the client here somehow...
-func parseCommand(com []string, c *client.Client) error {
+func (s *Server) parseCommand(com []string, c *client.Client) error {
 	if len(com) == 0 {
 		return errors.New("missing command\r\n")
 	}
@@ -166,21 +166,21 @@ func parseCommand(com []string, c *client.Client) error {
 		// look at next argument
 		pos++
 		if pos > len(com)-1 {
-			return numericReply(c, 433, "No nickname given")
+			return s.numericReply(c, 433, "No nickname given")
 		}
 
 		c.Nick = com[1]
 		fmt.Println("registered nick:", com[1])
 
-		return numericReply(c, 433, "Nickname is already in use")
+		return s.numericReply(c, 433, "Nickname is already in use")
 	case "USER":
 	default:
-		return numericReply(c, 421, fmt.Sprintf("Unknown command '%s'", com[0]))
+		return s.numericReply(c, 421, fmt.Sprintf("Unknown command '%s'", com[0]))
 	}
 
 	return nil
 }
 
-func numericReply(c *client.Client, errCode int, errString string) error {
-	return fmt.Errorf(":%s %d %s :%s\r\n", c.Server.Addr().String(), errCode, c.Nick, errString)
+func (s *Server) numericReply(c *client.Client, errCode int, errString string) error {
+	return fmt.Errorf(":%s %d %s :%s\r\n", s.Listener.Addr().String(), errCode, c.Nick, errString)
 }

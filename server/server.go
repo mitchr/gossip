@@ -45,7 +45,7 @@ func (s *Server) handleClient(c net.Conn) {
 	// creationTime := time.Now()
 
 	// create entry for user
-	u := client.New(c, s.Listener)
+	u := client.New(c)
 	s.Clients.Add(u)
 
 	// when a client is added, the registrationg process must be attempted
@@ -99,7 +99,7 @@ func (s *Server) handleClient(c net.Conn) {
 		// wris.te to client
 		// conn.Write(msgBuf)
 
-		err = Parse(msgBuf, u)
+		err = s.Parse(msgBuf, u)
 		if err != nil {
 			if err == io.EOF {
 				u.Close()
