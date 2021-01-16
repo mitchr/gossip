@@ -17,7 +17,6 @@ type Server struct {
 	Created  time.Time
 }
 
-// should defer s.Listener.Close() after calling New()
 func New(port string) (*Server, error) {
 	l, err := net.Listen("tcp", port)
 	if err != nil {
@@ -29,6 +28,7 @@ func New(port string) (*Server, error) {
 // start server in new goroutine: go s.Start()
 func (s *Server) Start() {
 	s.Created = time.Now()
+	defer s.Listener.Close()
 
 	for {
 		// wait for a connection to the server
@@ -36,6 +36,7 @@ func (s *Server) Start() {
 		conn, err := s.Listener.Accept()
 		if err != nil {
 			log.Println(err)
+			continue
 		}
 		log.Println("accepted connection")
 
