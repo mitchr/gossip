@@ -22,12 +22,11 @@ func New(port string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Server{l, &client.List{}, time.Time{}}, nil
+	return &Server{l, &client.List{}, time.Now()}, nil
 }
 
 // start server in new goroutine: go s.Start()
 func (s *Server) Start() {
-	s.Created = time.Now()
 	defer s.Listener.Close()
 
 	for {
