@@ -81,6 +81,9 @@ func (l *List) Remove(d *Client) bool {
 }
 
 func (l *List) Get(i int) *Client {
+	l.m.Lock()
+	defer l.m.Unlock()
+
 	j := 0
 	current := l.head
 	for current != nil {
