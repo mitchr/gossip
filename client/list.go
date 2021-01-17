@@ -11,6 +11,7 @@ type node struct {
 }
 
 type List struct {
+	Len  int
 	head *node
 	m    sync.Mutex
 }
@@ -30,19 +31,6 @@ func (l *List) String() string {
 	return str
 }
 
-func (l *List) Len() int {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	i := 0
-	current := l.head
-	for current != nil {
-		i++
-		current = current.next
-	}
-	return i
-}
-
 func (l *List) Add(d *Client) {
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -56,6 +44,7 @@ func (l *List) Add(d *Client) {
 		}
 		current.next = &node{nil, d}
 	}
+	l.Len++
 }
 
 // returns true if element was found and removed
@@ -70,6 +59,7 @@ func (l *List) Remove(d *Client) bool {
 	// if need to remove head
 	if current.data == d {
 		l.head = l.head.next
+		l.Len--
 		return true
 	}
 
@@ -81,6 +71,7 @@ func (l *List) Remove(d *Client) bool {
 			} else { // not the last or first node
 				current.next = current.next.next
 			}
+			l.Len--
 			return true
 		}
 		previous = current
