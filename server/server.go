@@ -77,23 +77,16 @@ func (s *Server) handleClient(c *client.Client) {
 		if err != nil {
 			if err == io.EOF {
 				// client has closed connection, so we need to remove them from the user list
-				c.Close()
-				s.Clients.Remove(c)
-				return
 			} else if operr, ok := err.(*net.OpError); ok {
 				// there was some kind of network error
-				c.Close()
-				s.Clients.Remove(c)
 				fmt.Println(operr)
-				return
-
 			} else {
 				// not sure what happened!
-				c.Close()
-				s.Clients.Remove(c)
 				fmt.Println(err)
-				return
 			}
+			c.Close()
+			s.Clients.Remove(c)
+			return
 		}
 		// write to server
 		// should probably also store in a log of some kind
