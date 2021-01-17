@@ -37,17 +37,18 @@ func (s *Server) Start() {
 			log.Println(err)
 			continue
 		}
+
 		log.Println("accepted connection")
+		u := client.New(conn)
 
 		// each client gets own goroutine for handling
-		go s.handleClient(conn)
+		go s.handleClient(u)
 	}
 }
 
-func (s *Server) handleClient(c net.Conn) {
+func (s *Server) handleClient(c *client.Client) {
 	// create entry for user
-	u := client.New(c)
-	s.Clients.Add(u)
+	s.Clients.Add(c)
 
 	// when a client is added, the registrationg process must be attempted
 
@@ -76,20 +77,20 @@ func (s *Server) handleClient(c net.Conn) {
 		if err != nil {
 			if err == io.EOF {
 				// client has closed connection, so we need to remove them from the user list
-				u.Close()
-				s.Clients.Remove(u)
+				c.Close()
+				s.Clients.Remove(c)
 				return
 			} else if operr, ok := err.(*net.OpError); ok {
 				// there was some kind of network error
-				u.Close()
-				s.Clients.Remove(u)
+				c.Close()
+				s.Clients.Remove(c)
 				fmt.Println(operr)
 				return
 
 			} else {
 				// not sure what happened!
-				u.Close()
-				s.Clients.Remove(u)
+				c.Close()
+				s.Clients.Remove(c)
 				fmt.Println(err)
 				return
 			}
@@ -100,14 +101,14 @@ func (s *Server) handleClient(c net.Conn) {
 		// wris.te to client
 		// conn.Write(msgBuf)
 
-		err = s.Parse(msgBuf, u)
+		err = s.Parse(msgBuf, c)
 		if err != nil {
 			if err == io.EOF {
-				u.Close()
-				s.Clients.Remove(u)
+				c.Close()
+				s.Clients.Remove(c)
 				return
 			} else {
-				u.Write([]byte(fmt.Sprintln(err)))
+				c.Write(err)
 			}
 		}
 
