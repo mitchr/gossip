@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"sync"
 )
 
 type node struct {
@@ -11,9 +12,13 @@ type node struct {
 
 type List struct {
 	head *node
+	m    sync.Mutex
 }
 
 func (l *List) String() string {
+	l.m.Lock()
+	defer l.m.Unlock()
+
 	str := ""
 
 	current := l.head
@@ -26,6 +31,9 @@ func (l *List) String() string {
 }
 
 func (l *List) Len() int {
+	l.m.Lock()
+	defer l.m.Unlock()
+
 	i := 0
 	current := l.head
 	for current != nil {
@@ -36,6 +44,9 @@ func (l *List) Len() int {
 }
 
 func (l *List) Add(d *Client) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
 	if l.head == nil {
 		l.head = &node{nil, d}
 	} else {
@@ -50,6 +61,9 @@ func (l *List) Add(d *Client) {
 // returns true if element was found and removed
 // otherwise false
 func (l *List) Remove(d *Client) bool {
+	l.m.Lock()
+	defer l.m.Unlock()
+
 	current := l.head
 	previous := current
 
