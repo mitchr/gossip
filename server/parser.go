@@ -205,19 +205,15 @@ func (s *Server) endRegistration(c *client.Client) {
 		c.Registered = true
 
 		// send RPL_WELCOME and friends in acceptance
-		c.Write(s.numericReply(c, 001, fmt.Sprintf("Welcome to the Internet Relay Network %s[!%s@%s]", c.Nick, c.User, c.Host.String())))
-		c.Write(s.numericReply(c, 002, fmt.Sprintf("Your host is %s", s.Listener.Addr().String())))
-		c.Write(s.numericReply(c, 003, fmt.Sprintf("This server was created %s", s.Created)))
+		c.Write(s.numericReply(c, RPL_WELCOME, fmt.Sprintf("Welcome to the Internet Relay Network %s[!%s@%s]", c.Nick, c.User, c.Host.String())))
+		c.Write(s.numericReply(c, RPL_YOURHOST, fmt.Sprintf("Your host is %s", s.Listener.Addr().String())))
+		c.Write(s.numericReply(c, RPL_CREATED, fmt.Sprintf("This server was created %s", s.Created)))
 
 		// TODO: send proper response messages
-		c.Write(s.numericReply(c, 004, ""))
-		c.Write(s.numericReply(c, 005, ""))
+		c.Write(s.numericReply(c, RPL_MYINFO, ""))
+		c.Write(s.numericReply(c, RPL_ISUPPORT, ""))
 
 		// TODO: send LUSERS and MOTD
 		log.Println("successfully registered client")
 	}
-}
-
-func (s *Server) numericReply(c *client.Client, errCode int, errString string) error {
-	return fmt.Errorf(":%s %d %s :%s\r\n", s.Listener.Addr().String(), errCode, c.Nick, errString)
 }
