@@ -32,6 +32,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 	case "NICK":
 		if len(m.middle) != 1 {
 			s.numericReply(c, 433, "No nickname given")
+			return
 		}
 
 		nick := m.middle[0]
@@ -39,6 +40,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		// if nickname is already in use, send back error
 		if s.Clients.SearchNick(nick) != nil {
 			s.numericReply(c, 433, "Nickname is already in use")
+			return
 		}
 
 		c.Nick = nick
@@ -50,17 +52,20 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 
 		if c.Registered {
 			s.numericReply(c, 462, "You may not reregister")
+			return
 		} else if len(params) != 4 {
 			s.numericReply(c, 461, "Not enough parameters")
+			return
 		}
 
-		c.User = params[0]
 		if params[1] != "0" || params[2] != "*" {
 			// TODO: find appropriate error code
 			s.numericReply(c, 0, "Wrong protocol")
+			return
 		}
-		c.Realname = params[3]
 
+		c.User = params[0]
+		c.Realname = params[3]
 		s.endRegistration(c)
 	default:
 		s.numericReply(c, 421, fmt.Sprintf("Unknown command '%s'", m.command))
