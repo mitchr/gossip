@@ -17,5 +17,6 @@ const (
 )
 
 func (s *Server) numericReply(c *client.Client, errCode numeric, errString string) error {
-	return fmt.Errorf(":%s %d %s :%s\r\n", s.Listener.Addr().String(), errCode, c.Nick, errString)
+	_, err := c.Write(fmt.Errorf(":%s %d %s :%s\r\n", s.Listener.Addr().String(), errCode, c.Nick, errString))
+	return err
 }
