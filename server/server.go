@@ -94,16 +94,23 @@ func (s *Server) handleClient(c *client.Client) {
 		// wris.te to client
 		// conn.Write(msgBuf)
 
-		err = s.Parse(msgBuf, c)
-		if err != nil {
-			if err == io.EOF {
-				c.Close()
-				s.Clients.Remove(c)
-				return
-			} else {
-				c.Write(err)
-			}
+		msg := parse(lex(msgBuf))
+		if msg == nil {
+			log.Println("message is nil; ignored")
+		} else {
+			s.executeMessage(msg, c)
 		}
+
+		// err = s.Parse(msgBuf, c)
+		// if err != nil {
+		// 	if err == io.EOF {
+		// 		c.Close()
+		// 		s.Clients.Remove(c)
+		// 		return
+		// 	} else {
+		// 		c.Write(err)
+		// 	}
+		// }
 
 		// err = u.Ping(l.Addr())
 		// if err != nil {

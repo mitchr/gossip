@@ -1,133 +1,80 @@
 package server
 
 import (
-	"errors"
-	"fmt"
-	"io"
 	"log"
 	"strings"
-
-	"github.com/mitchr/gossip/client"
 )
 
-// type tokenType int
-// type token struct {
-// 	tType tokenType
-// 	value string
-// }
-//
-// const (
-// 	// associated with tags
-// 	tags tokenType = iota
-// 	tag
-// 	key
-// 	escapedVal
-// 	vendor
-//
-// 	source
-// 	command
-//
-// 	// associated with parameters
-// 	parameters
-// 	nospcrlfcl
-// 	middle
-// 	trailing
-// )
+type parser struct {
+	tokens []token
+	start  int
+	pos    int
+}
 
-// Parse and if necessary, execute a message from the given client
-func (s *Server) Parse(msg []byte, c *client.Client) error {
-	// allow sending newline characters by themselves
-	if msg[0] == '\r' && msg[1] == '\n' {
+func (p *parser) next() token {
+	if p.pos == len(p.tokens) {
+		return token{eof, ""} // nil token
+	}
+	t := p.tokens[p.pos]
+	p.pos++
+	return t
+}
+
+func (p *parser) peek() token {
+	if p.pos == len(p.tokens) {
+		return token{eof, ""} // nil token
+	}
+	t := p.next()
+	p.pos--
+	return t
+}
+
+// TODO: whenever expect fails, then the entire message should fail
+func (p *parser) expect(t tokenType) bool {
+	return p.next().tokenType == t
+}
+
+// given a slice of tokens, produce a corresponding irc message
+// uses recursive descent obv
+func parse(t []token) *message {
+	p := &parser{tokens: t}
+	m := &message{}
+
+	if p.peek().tokenType == at {
+		// TODO: p.tags()
+	}
+	if p.peek().tokenType == colon {
+		p.next() // consume colon
+		m.nick, m.user, m.host = p.source()
+		if !p.expect(space) {
+			log.Println("expected space")
+			return nil
+		}
+	}
+	m.command = p.command(p.next())
+	if p.peek().tokenType == space {
+		m.middle, m.trailing = p.params()
+	}
+	if !p.expect(crlf) {
+		log.Println("no crlf; ignoring")
 		return nil
 	}
 
-	// some clients like telnet might send an ASCII 4 (EOT, end of transaction) when closing, in which case they should be disconnected
-	if msg[0] == 4 {
-		return io.EOF
-	}
-
-	// fmt.Printf("msg length: %v\nmsg bytes: %v\nmsg: %s\n", len(msg), msg, string(msg))
-	fmt.Println("msg:", string(msg))
-
-	// if message does not end with \r\n, reject
-	if msg[len(msg)-2] != '\r' && msg[len(msg)-1] != '\n' {
-		// fmt.Println(msg[len(msg)-2], msg[len(msg)-1])
-		return errors.New("ill-formed message: need CRLF line ending")
-	} else {
-		// trim '\r\n' off end
-		msg = msg[:len(msg)-2]
-	}
-
-	pos := 0
-	splitByWhitespace := strings.Split(string(msg), " ")
-
-	switch splitByWhitespace[0][0] {
-	// first element was a tag
-	// second element could be source
-	case byte('@'):
-		parseTags(splitByWhitespace[pos])
-		if len(splitByWhitespace) == 1 {
-			return errors.New("message too short: missing source or command")
-		}
-		if splitByWhitespace[1][0] == ':' {
-			pos++
-			parseSource(splitByWhitespace[pos])
-		}
-	// first element was a source
-	case byte(':'):
-		parseSource(splitByWhitespace[pos])
-		pos++
-
-	// if there was no source or tags, then the source is assumed to just be the nicknam
-	default:
-		// client may not have a registered nickname at this point, so just call them 'you'?
-		if c.Nick == "" {
-			parseSource(":you")
-		} else {
-			parseSource(":" + c.Nick)
-		}
-	}
-
-	// determine command name
-	// if there are arguments, they will be handled now
-	err := s.parseCommand(splitByWhitespace[pos:], c)
-	if err != nil {
-		c.Write(err)
-		fmt.Println("wrote error to client")
-	}
-	return nil
+	return m
 }
 
-func parseTags(tags string) map[string]string {
-	// remove beginning '@'
-	tags = tags[1:]
-
-	// split string by semicolor
-	splitBySemi := strings.Split(tags, ";")
-	var tagMap = make(map[string]string)
-	for i := 0; i < len(splitBySemi); i++ {
-		splitByEq := strings.Split(splitBySemi[i], "=")
-		// if key is given with no value
-		if len(splitByEq) == 1 {
-			tagMap[splitByEq[0]] = ""
-		} else {
-			tagMap[splitByEq[0]] = splitByEq[1]
-		}
-	}
-
-	fmt.Println(tagMap)
-	return tagMap
-}
-
-// returns nickname, user, and hostname of sender
-func parseSource(source string) (string, string, string) {
-	// trim ':' from beginning\
-	source = source[1:]
+// because of the way nospcrlfcl's are lexed, we are not able to
+// differentiate between character strings with other special characters
+// in them (like '!' or '@'), so we have to do this ugly slicing
+// TODO: one way we could make this better is by imposing some kind of
+// restriction on how nick/user/host names look, so we could then create
+// a rule for the lexer that would allow them to be tokenized. as far as
+// I can tell, the IRC spec leaves handling of nick/user/host name up to
+// the server implementation, but I think restricting to ASCII is fair
+func (p *parser) source() (nick, user, host string) {
+	source := p.next().value
 	sourceInfo := strings.Split(source, "!")
 
-	nick := ""
-	user := ""
-	host := ""
 	loc := 0
 
 	// atleast there is a nick and a hostname
@@ -150,70 +97,51 @@ func parseSource(source string) (string, string, string) {
 	return nick, user, host
 }
 
-func (s *Server) parseCommand(com []string, c *client.Client) error {
-	if len(com) == 0 {
-		return errors.New("missing command\r\n")
-	}
-
-	pos := 0
-	// first element is command
-	switch com[0] {
-	case "CAP":
-	case "NICK":
-		// look at next argument
-		pos++
-		if pos > len(com)-1 {
-			return s.numericReply(c, 433, "No nickname given")
-		}
-
-		// if nickname is already in use, send back error
-		if s.Clients.SearchNick(com[1]) != nil {
-			return s.numericReply(c, 433, "Nickname is already in use")
-		}
-
-		c.Nick = com[1]
-		fmt.Println("registered nick:", com[1])
-		s.endRegistration(c)
-	case "USER":
-		// TODO: Ident Protocol
-
-		if c.Registered {
-			return s.numericReply(c, 462, "You may not reregister")
-		} else if len(com) < 5 {
-			return s.numericReply(c, 461, "Not enough parameters")
-		}
-
-		c.User = com[1]
-		if com[2] != "0" || com[3] != "*" {
-			// TODO: find appropriate error code
-			return s.numericReply(c, 0, "Wrong protocol")
-		}
-		c.Realname = strings.Join(com[4:], " ")
-
-		s.endRegistration(c)
-	default:
-		return s.numericReply(c, 421, fmt.Sprintf("Unknown command '%s'", com[0]))
-	}
-
-	return nil
+// either a valid IRC command, or a 3 digit numeric reply
+// TODO: need irc command map of some kind
+func (p *parser) command(t token) string {
+	return t.value
 }
 
-// TODO: If we add capability negotiation, then that logic will have to go here as well
-// when a client successfully calls USER/NICK, they are registered
-func (s *Server) endRegistration(c *client.Client) {
-	if c.Nick != "" && c.User != "" {
-		c.Registered = true
+// *( SPACE middle ) [ SPACE ":" trailing ]
+func (p *parser) params() (middle []string, trailing string) {
+	// must always have atleast one middle
+	p.expect(space)
+	middle = append(middle, p.middle(p.next()))
 
-		// send RPL_WELCOME and friends in acceptance
-		c.Write(s.numericReply(c, RPL_WELCOME, fmt.Sprintf("Welcome to the Internet Relay Network %s[!%s@%s]", c.Nick, c.User, c.Host.String())))
-		c.Write(s.numericReply(c, RPL_YOURHOST, fmt.Sprintf("Your host is %s", s.Listener.Addr().String())))
-		c.Write(s.numericReply(c, RPL_CREATED, fmt.Sprintf("This server was created %s", s.Created)))
+	for {
+		// found end, so we are done
+		if r := p.peek().tokenType; r == crlf || r == eof {
+			return
+		}
 
-		// TODO: send proper response messages
-		c.Write(s.numericReply(c, RPL_MYINFO, ""))
-		c.Write(s.numericReply(c, RPL_ISUPPORT, ""))
-
-		// TODO: send LUSERS and MOTD
-		log.Println("successfully registered client")
+		// else, there is another parameter
+		p.expect(space)
+		r := p.next()
+		if r.tokenType == colon {
+			trailing = p.trailing()
+		} else if r.tokenType == nospcrlfcl {
+			middle = append(middle, p.middle(r))
+		}
 	}
+}
+
+// space already consumed, current token is nospcrlfcl
+func (p *parser) middle(s token) string {
+	m := s.value
+	for t := p.peek(); t.tokenType == nospcrlfcl || t.tokenType == colon; t = p.peek() {
+		m += t.value
+		p.next()
+	}
+	return m
+}
+
+// *( ":" / " " / nospcrlfcl )
+func (p *parser) trailing() string {
+	m := ""
+	for t := p.peek(); t.tokenType == colon || t.tokenType == space || t.tokenType == nospcrlfcl; t = p.peek() {
+		m += t.value
+		p.next()
+	}
+	return m
 }

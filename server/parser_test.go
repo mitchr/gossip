@@ -1,23 +1,25 @@
 package server
 
 import (
+	"reflect"
 	"testing"
 )
 
-func TestParseSource(t *testing.T) {
+func TestParse(t *testing.T) {
 	tests := []struct {
-		input, nick, user, host string
+		t []token
+		m *message
 	}{
-		{":amy!a@foo.example.com", "amy", "a", "foo.example.com"},
-		{":dan!d@localhost", "dan", "d", "localhost"},
-		{":foo.example.com", "", "", "foo.example.com"},
-		{":noHost", "", "", "noHost"},
+		{lex([]byte(":dan!d@localhost PRIVMSG #chan :Hey!\r\n")), &message{nil, "dan", "d", "localhost", "PRIVMSG", []string{"#chan"}, "Hey!"}},
+		{lex([]byte("NICK alice\r\n")), &message{nil, "", "", "", "NICK", []string{"alice"}, ""}},
+		{lex([]byte("USER alice 0 * :Alice Smith\r\n")), &message{nil, "", "", "", "USER", []string{"alice", "0", "*"}, "Alice Smith"}},
+		// {lex([]byte("CAP * LS :multi-prefix sasl\r\n"))},
+		// {lex([]byte("CAP REQ :sasl message-tags foo\r\n"))},
 	}
 
 	for _, v := range tests {
-		nick, user, host := parseSource(v.input)
-		if nick != v.nick || user != v.user || host != v.host {
-			t.Error(v)
+		if !reflect.DeepEqual(parse(v.t), v.m) {
+			t.Fatal("parse error", parse(v.t), v.m)
 		}
 	}
 }
