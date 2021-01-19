@@ -12,6 +12,7 @@ func TestParse(t *testing.T) {
 	}{
 		{lex([]byte(":dan!d@localhost PRIVMSG #chan :Hey!\r\n")), &message{nil, "dan", "d", "localhost", "PRIVMSG", []string{"#chan"}, "Hey!"}},
 		{lex([]byte("NICK alice\r\n")), &message{nil, "", "", "", "NICK", []string{"alice"}, ""}},
+		{lex([]byte(":dan!d@localhost QUIT :Quit: Bye for now!\r\n")), &message{nil, "dan", "d", "localhost", "QUIT", nil, "Quit: Bye for now!"}},
 		{lex([]byte("USER alice 0 * :Alice Smith\r\n")), &message{nil, "", "", "", "USER", []string{"alice", "0", "*"}, "Alice Smith"}},
 		// {lex([]byte("CAP * LS :multi-prefix sasl\r\n"))},
 		// {lex([]byte("CAP REQ :sasl message-tags foo\r\n"))},

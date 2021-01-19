@@ -105,10 +105,6 @@ func (p *parser) command(t token) string {
 
 // *( SPACE middle ) [ SPACE ":" trailing ]
 func (p *parser) params() (middle []string, trailing string) {
-	// must always have atleast one middle
-	p.expect(space)
-	middle = append(middle, p.middle(p.next()))
-
 	for {
 		// found end, so we are done
 		if r := p.peek().tokenType; r == crlf || r == eof {
