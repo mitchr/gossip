@@ -31,6 +31,8 @@ func (m message) parameters() []string {
 func (s *Server) executeMessage(m *message, c *client.Client) {
 	// TODO: don't allow client to access any other commands besides
 	// CAP, NICK, USER, PASS if they are unregistered
+	params := m.parameters()
+
 	switch m.command {
 	case "NICK":
 		if len(m.middle) != 1 {
@@ -50,8 +52,6 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		s.endRegistration(c)
 	case "USER":
 		// TODO: Ident Protocol
-
-		params := m.parameters()
 
 		if c.Registered {
 			s.numericReply(c, 462, "You may not reregister")
