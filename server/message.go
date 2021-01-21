@@ -22,6 +22,9 @@ func (m message) String() string {
 
 // merge middle and trailing into one slice
 func (m message) parameters() []string {
+	if m.trailing == "" {
+		return m.middle
+	}
 	return append(m.middle, m.trailing)
 }
 
