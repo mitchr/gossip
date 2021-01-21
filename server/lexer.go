@@ -118,5 +118,5 @@ func lexAny(l *lexer) state {
 // is not space, cr, lf, or colon (or NULL)
 func isNospcrlfcl(r rune) bool {
 	// use <= 0 to account for NUL and eof at same time
-	return !(r == 0 || r == '\r' || r == '\n' || r == ':' || r == ' ')
+	return r != 0 && r != '\r' && r != '\n' && r != ':' && r != ' '
 }
