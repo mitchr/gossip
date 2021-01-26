@@ -8,6 +8,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 )
 
@@ -15,6 +16,7 @@ type Server struct {
 	Listener net.Listener
 	Clients  *client.List
 	Created  time.Time
+	Channels []*channel.Channel
 }
 
 func New(port string) (*Server, error) {
@@ -22,7 +24,7 @@ func New(port string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Server{l, &client.List{}, time.Now()}, nil
+	return &Server{Listener: l, Clients: &client.List{}, Created: time.Now()}, nil
 }
 
 // start server in new goroutine: go s.Start()
