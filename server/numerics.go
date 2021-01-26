@@ -16,6 +16,14 @@ const (
 	RPL_ISUPPORT
 )
 
+const (
+	RPL_LUSERCLIENT numeric = iota + 251
+	RPL_LUSEROP
+	RPL_LUSERUNKNOWN
+	RPL_LUSERCHANNELS
+	RPL_LUSERME
+)
+
 func (s *Server) numericReply(c *client.Client, errCode numeric, errString string) error {
 	_, err := c.Write(fmt.Errorf(":%s %d %s :%s\r\n", s.Listener.Addr().String(), errCode, c.Nick, errString))
 	return err
