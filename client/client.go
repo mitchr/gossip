@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 	"time"
@@ -35,6 +36,19 @@ func New(conn net.Conn) *Client {
 		// before capability negotiation, this timeout will be short
 		// after the user is established, give them more time
 		idleTimeout: time.Now().Add(10 * time.Second),
+	}
+}
+
+func (c *Client) Prefix() string {
+	if c.User != "" {
+		return fmt.Sprintf("%s!%s@%s", c.Nick, c.User, c.Host)
+	} else if c.Host.String() != "" {
+		return fmt.Sprintf("%s@%s", c.Nick, c.Host)
+	} else if c.Nick != "" {
+		return c.Nick
+	} else {
+		log.Println("client has no nick registered")
+		return ""
 	}
 }
 
