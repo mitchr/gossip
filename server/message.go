@@ -82,7 +82,7 @@ func (s *Server) endRegistration(c *client.Client) {
 		c.Registered = true
 
 		// send RPL_WELCOME and friends in acceptance
-		c.Write(s.numericReply(c, RPL_WELCOME, fmt.Sprintf("Welcome to the Internet Relay Network %s[!%s@%s]", c.Nick, c.User, c.Host.String())))
+		c.Write(s.numericReply(c, RPL_WELCOME, fmt.Sprintf("Welcome to the Internet Relay Network %s", c.Prefix())))
 		c.Write(s.numericReply(c, RPL_YOURHOST, fmt.Sprintf("Your host is %s", s.Listener.Addr().String())))
 		c.Write(s.numericReply(c, RPL_CREATED, fmt.Sprintf("This server was created %s", s.Created)))
 
