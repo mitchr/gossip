@@ -13,9 +13,7 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// start server in background goroutine
-	go s.Start()
+	defer s.Close()
 
 	conn, err := net.Dial("tcp", ":6667")
 	if err != nil {

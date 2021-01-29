@@ -24,28 +24,36 @@ func New(port string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Server{Listener: l, Clients: &client.List{}, Created: time.Now()}, nil
+	s := &Server{Listener: l, Clients: &client.List{}, Created: time.Now()}
+
+	go func() {
+		for {
+			// wait for a connection to the server
+			// (block until one is received)
+			conn, err := s.Listener.Accept()
+			if err != nil {
+				// silently ignore error
+				continue
+			}
+
+			log.Println("accepted connection")
+			u := client.New(conn)
+
+			// each client gets own goroutine for handling
+			go s.handleClient(u)
+		}
+	}()
+
+	return s, nil
 }
 
-// start server in new goroutine: go s.Start()
-func (s *Server) Start() {
-	defer s.Listener.Close()
-
-	for {
-		// wait for a connection to the server
-		// (block until one is received)
-		conn, err := s.Listener.Accept()
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		log.Println("accepted connection")
-		u := client.New(conn)
-
-		// each client gets own goroutine for handling
-		go s.handleClient(u)
-	}
+// TODO: by only closing the listener, we allow the server to coast to a
+// stop. we do not intentionally close any client connections, or send a
+// QUIT message to them. We also allow the accept goroutine to continue
+// running, although it will be unable to accept any new clients because
+// the listener is now closed. Maybe revisit how this is structured.
+func (s *Server) Close() error {
+	return s.Listener.Close()
 }
 
 func (s *Server) handleClient(c *client.Client) {

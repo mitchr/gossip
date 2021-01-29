@@ -18,5 +18,5 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s.Start()
+	defer s.Close()
 }
