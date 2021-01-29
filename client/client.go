@@ -17,12 +17,6 @@ type Client struct {
 	conn        net.Conn
 	idleTimeout time.Time
 
-	// list of channels that the client belongs to
-	chanList []string
-
-	// list of channels that client is a chanop for
-	opList []string
-
 	// True if client is registered (nick/user passed)
 	Registered bool
 }
