@@ -11,7 +11,7 @@ import (
 func TestServer(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// start server in background goroutine
@@ -19,7 +19,7 @@ func TestServer(t *testing.T) {
 
 	conn, err := net.Dial("tcp", ":6667")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer conn.Close()
 
