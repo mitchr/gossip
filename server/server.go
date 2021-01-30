@@ -8,15 +8,15 @@ import (
 	"net"
 	"time"
 
-	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/util"
 )
 
 type Server struct {
 	Listener net.Listener
-	Clients  *client.List
+	Clients  util.List
 	Created  time.Time
-	Channels []*channel.Channel
+	Channels util.List
 }
 
 func New(port string) (*Server, error) {
@@ -24,7 +24,7 @@ func New(port string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{Listener: l, Clients: &client.List{}, Created: time.Now()}
+	s := &Server{Listener: l, Created: time.Now()}
 
 	go func() {
 		for {

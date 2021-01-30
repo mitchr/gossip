@@ -43,7 +43,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		nick := m.middle[0]
 
 		// if nickname is already in use, send back error
-		if s.Clients.SearchNick(nick) != nil {
+		if s.Clients.Find(nick) != nil {
 			s.numericReply(c, 433, "Nickname is already in use")
 			return
 		}

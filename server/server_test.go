@@ -6,6 +6,8 @@ import (
 	"net"
 	"testing"
 	"time"
+
+	"github.com/mitchr/gossip/client"
 )
 
 func TestServer(t *testing.T) {
@@ -26,7 +28,7 @@ func TestServer(t *testing.T) {
 		ch := make(chan bool)
 		go func() {
 			for {
-				if s.Clients.Len != 0 {
+				if len(s.Clients) != 0 {
 					ch <- true
 					return
 				}
@@ -38,17 +40,19 @@ func TestServer(t *testing.T) {
 			t.Fatal("No client connection made")
 		}
 
+		// grab client from server
+		c := s.Clients.Get(0).(*client.Client)
+
 		t.Run("NICK", func(t *testing.T) {
 			n, err := conn.Write([]byte("NICK alice\r\n"))
 			if n <= 0 || err != nil {
 				t.Error(err)
 			}
-			client := s.Clients.Get(0)
 
 			ch := make(chan bool)
 			go func() {
 				for {
-					if client.Nick != "" {
+					if c.Nick != "" {
 						ch <- true
 					}
 				}
@@ -56,8 +60,8 @@ func TestServer(t *testing.T) {
 
 			if !waitForChange(ch) {
 				t.Error("Nick not registered")
-			} else if client.Nick != "alice" {
-				t.Errorf("Nick registered incorrectly. Got %s\n", client.Nick)
+			} else if c.Nick != "alice" {
+				t.Errorf("Nick registered incorrectly. Got %s\n", c.Nick)
 			}
 		})
 
@@ -66,12 +70,11 @@ func TestServer(t *testing.T) {
 			if n <= 0 || err != nil {
 				t.Error(err)
 			}
-			client := s.Clients.Get(0)
 
 			ch := make(chan bool)
 			go func() {
 				for {
-					if client.User != "" {
+					if c.User != "" {
 						ch <- true
 					}
 				}
@@ -79,16 +82,13 @@ func TestServer(t *testing.T) {
 
 			if !waitForChange(ch) {
 				t.Error("User not registered")
-			} else if client.User != "alice" || client.Realname != "Alice Smith" {
-				t.Errorf("User registered incorrectly. Got %s\n", client.User)
+			} else if c.User != "alice" || c.Realname != "Alice Smith" {
+				t.Errorf("User registered incorrectly. Got %s\n", c.User)
 			}
 		})
-	})
 
 	t.Run("RegisterClient", func(t *testing.T) {
-		client := s.Clients.Get(0)
-
-		if !client.Registered {
+			if !c.Registered {
 			t.Fatal("Client not registered")
 		}
 
