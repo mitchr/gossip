@@ -87,28 +87,54 @@ func TestServer(t *testing.T) {
 			}
 		})
 
-	t.Run("RegisterClient", func(t *testing.T) {
+		t.Run("RegisterClient", func(t *testing.T) {
 			if !c.Registered {
-			t.Fatal("Client not registered")
-		}
-
-		r := bufio.NewReader(conn)
-		t.Run("RSP_WELCOME", func(t *testing.T) {
-			welcome, err := r.ReadBytes('\n')
-			if err != nil {
-				t.Error(err)
+				t.Fatal("Client not registered")
 			}
-			fmt.Println(string(welcome))
-		})
 
-		t.Run("RSP_YOURHOST", func(t *testing.T) {
-			host, err := r.ReadBytes('\n')
-			if err != nil {
-				t.Error(err)
-			}
-			fmt.Println(string(host))
+			r := bufio.NewReader(conn)
+			t.Run("RSP_WELCOME", func(t *testing.T) {
+				welcome, err := r.ReadBytes('\n')
+				if err != nil {
+					t.Error(err)
+				}
+				fmt.Println(string(welcome))
+			})
+
+			t.Run("RSP_YOURHOST", func(t *testing.T) {
+				host, err := r.ReadBytes('\n')
+				if err != nil {
+					t.Error(err)
+				}
+				fmt.Println(string(host))
+			})
 		})
 	})
+}
+
+func Test100Clients(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	for i := 0; i < 100; i++ {
+		c, _ := net.Dial("tcp", ":6667")
+		defer c.Close()
+	}
+
+	ch := make(chan bool)
+	go func() {
+		for {
+			if len(s.Clients) == 100 {
+				ch <- true
+			}
+		}
+	}()
+	if !waitForChange(ch) {
+		t.Error(len(s.Clients))
+	}
 }
 
 // helper function that returns true if c returns a value before 500 miliseconds have elapsed
