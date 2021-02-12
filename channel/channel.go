@@ -7,11 +7,11 @@ import (
 	"github.com/mitchr/gossip/client"
 )
 
-type ChanType int
+type ChanType rune
 
 const (
-	Remote ChanType = iota
-	Local
+	Remote ChanType = '#'
+	Local  ChanType = '&'
 )
 
 // TODO: add some modes
