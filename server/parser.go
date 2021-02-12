@@ -98,7 +98,6 @@ func (p *parser) source() (nick, user, host string) {
 }
 
 // either a valid IRC command, or a 3 digit numeric reply
-// TODO: need irc command map of some kind
 func (p *parser) command(t token) string {
 	return t.value
 }
