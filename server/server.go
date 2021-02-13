@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/mitchr/gossip/client"
@@ -17,6 +18,9 @@ type Server struct {
 	Clients  util.List
 	Created  time.Time
 	Channels util.List
+
+	quit chan bool
+	wg   sync.WaitGroup
 }
 
 func New(port string) (*Server, error) {
@@ -24,36 +28,52 @@ func New(port string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Server{Listener: l, Created: time.Now()}, nil
+	return &Server{Listener: l, Created: time.Now(), quit: make(chan bool)}, nil
 }
 
 func (s *Server) Serve() {
-		for {
-			// wait for a connection to the server
-			// (block until one is received)
-			conn, err := s.Listener.Accept()
-			if err != nil {
-				// silently ignore error
-				continue
+	for {
+		// wait for a connection to the server
+		// (block until one is received)
+		conn, err := s.Listener.Accept()
+		if err != nil {
+			select {
+			case <-s.quit:
+				return
+			default:
+				log.Println(err)
 			}
-
-			log.Println("accepted connection")
-			u := client.New(conn)
-
-			// each client gets own goroutine for handling
-			go s.handleClient(u)
+			continue
 		}
+
+		u := client.New(conn)
+
+		// each client gets own goroutine for handling
+		s.wg.Add(1)
+		go func() {
+			s.handleClient(u)
+			s.wg.Done()
+		}()
+	}
 }
 
-// TODO: by only closing the listener, we allow the server to coast to a
-// stop. we do not intentionally close any client connections, or send a
-// QUIT message to them. We also allow the accept goroutine to continue
-// running, although it will be unable to accept any new clients because
-// the listener is now closed. Maybe revisit how this is structured.
-func (s *Server) Close() error {
-	return s.Listener.Close()
+// gracefully shutdown server:
+// 1. close s.quit so that s stops listening for more connections
+// 2. close s.listener; we are assured that there are no pending
+//		connections because we have already stopped listening
+// 3. wait for all existing clients to finish being handled
+// thanks to these two posts about gracefully shutdown patterns in go:
+// https://eli.thegreenplace.net/2020/graceful-shutdown-of-a-tcp-server-in-go/
+// https://forum.golangbridge.org/t/correct-shutdown-of-net-listener/8705
+func (s *Server) Close() {
+	close(s.quit)
+	s.Listener.Close()
+	s.wg.Wait()
 }
 
+// TODO: when s.quit closes, force all clients to finish handling;
+// either instantly force them off with a preceeding closure message,
+// or give a small timeout window
 func (s *Server) handleClient(c *client.Client) {
 	// create entry for user
 	s.Clients.Add(c)
