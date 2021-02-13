@@ -17,6 +17,8 @@ func TestServer(t *testing.T) {
 	}
 	defer s.Close()
 
+	go s.Serve()
+
 	conn, err := net.Dial("tcp", ":6667")
 	if err != nil {
 		t.Fatal(err)
@@ -118,6 +120,8 @@ func Test100Clients(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
+
+	go s.Serve()
 
 	for i := 0; i < 100; i++ {
 		c, _ := net.Dial("tcp", ":6667")

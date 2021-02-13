@@ -24,9 +24,10 @@ func New(port string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{Listener: l, Created: time.Now()}
+	return &Server{Listener: l, Created: time.Now()}, nil
+}
 
-	go func() {
+func (s *Server) Serve() {
 		for {
 			// wait for a connection to the server
 			// (block until one is received)
@@ -42,9 +43,6 @@ func New(port string) (*Server, error) {
 			// each client gets own goroutine for handling
 			go s.handleClient(u)
 		}
-	}()
-
-	return s, nil
 }
 
 // TODO: by only closing the listener, we allow the server to coast to a
