@@ -84,7 +84,8 @@ func lexAny(l *lexer) state {
 	case r == eof:
 		return nil
 	case r == '\r':
-		if l.next() == '\n' {
+		if l.peek() == '\n' {
+			l.next()
 			l.push(crlf)
 		}
 		return lexAny
