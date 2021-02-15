@@ -36,6 +36,9 @@ func (l List) Get(i int) interface{} {
 	l.m.Lock()
 	defer l.m.Unlock()
 
+	if i < 0 || i >= len(l.data) {
+		return nil
+	}
 	return l.data[i]
 }
 
