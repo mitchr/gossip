@@ -1,1 +1,1 @@
-# gossip ![build status](https://api.travis-ci.org/mitchr/gossip.svg)
+# gossip ![build status](https://github.com/mitchr/gossip/workflows/Go/badge.svg)
