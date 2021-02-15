@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/util"
 )
 
 func TestServer(t *testing.T) {
@@ -27,26 +28,26 @@ func TestServer(t *testing.T) {
 	t.Run("RegisterClient", func(t *testing.T) {
 		_, err := conn.Write([]byte("NICK alice\r\n"))
 		if err != nil {
-				t.Error(err)
-			}
+			t.Error(err)
+		}
 
 		_, err = conn.Write([]byte("USER alice 0 * :Alice Smith\r\n"))
 		if err != nil {
-				t.Error(err)
-			}
+			t.Error(err)
+		}
 
-			r := bufio.NewReader(conn)
-				welcome, err := r.ReadBytes('\n')
-				if err != nil {
-					t.Error(err)
-				}
-				fmt.Println(string(welcome))
+		r := bufio.NewReader(conn)
+		welcome, err := r.ReadBytes('\n')
+		if err != nil {
+			t.Error(err)
+		}
+		fmt.Println(string(welcome))
 
-				host, err := r.ReadBytes('\n')
-				if err != nil {
-					t.Error(err)
-				}
-				fmt.Println(string(host))
+		host, err := r.ReadBytes('\n')
+		if err != nil {
+			t.Error(err)
+		}
+		fmt.Println(string(host))
 
 		// check to see if server is in correct state
 		c := s.Clients.Get(0).(*client.Client)
@@ -66,7 +67,7 @@ func TestServer(t *testing.T) {
 		if !c.Registered {
 			t.Error("Client not registered")
 		}
-		})
+	})
 }
 
 func Test100Clients(t *testing.T) {
@@ -83,21 +84,35 @@ func Test100Clients(t *testing.T) {
 		defer c.Close()
 	}
 
-	ch := make(chan bool)
-	go func() {
-		for {
-			if len(s.Clients) == 100 {
-				ch <- true
-			}
-		}
-	}()
-	if !waitForChange(ch) {
-		t.Error(len(s.Clients))
+	if !wfc(&s.Clients, 100) {
+		t.Error(s.Clients.Len())
 	}
 }
 
-// helper function that returns true if c returns a value before 500 miliseconds have elapsed
-func waitForChange(c chan bool) bool {
+// wfc = wait for change
+func wfc(s interface{}, eq interface{}) bool {
+	c := make(chan bool)
+
+	// start goroutine that continually checks pointer reference against
+	// eq, and signals channel if true
+	go func() {
+		for {
+			switch v := s.(type) {
+			case *string:
+				if *v == eq {
+					c <- true
+					return
+				}
+			case *util.List:
+				if v.Len() == eq {
+					c <- true
+					return
+				}
+			}
+		}
+	}()
+
+	// returns true if c returns a value before 500 miliseconds have elapsed
 	select {
 	case <-c:
 		return true

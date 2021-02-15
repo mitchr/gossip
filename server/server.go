@@ -28,7 +28,14 @@ func New(port string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Server{Listener: l, Created: time.Now(), quit: make(chan bool)}, nil
+	return &Server{
+		Listener: l,
+		Clients:  util.NewList(),
+		Created:  time.Now(),
+		Channels: util.NewList(),
+		quit:     make(chan bool),
+		wg:       sync.WaitGroup{},
+	}, nil
 }
 
 func (s *Server) Serve() {
