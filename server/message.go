@@ -16,8 +16,30 @@ type message struct {
 	trailing         string   // also a command parameter but after ':'
 }
 
+// TODO: print tags as well
 func (m message) String() string {
-	return fmt.Sprintf("nick: %s\nuser: %s\nhost: %s\ncommand: %s\nmiddle: %v\ntrailing: %s\n", m.nick, m.user, m.host, m.command, m.middle, m.trailing)
+	var prefix string
+	if m.user != "" {
+		prefix = fmt.Sprintf(":%s!%s@%s", m.nick, m.user, m.host)
+	} else if m.host != "" {
+		prefix = fmt.Sprintf(":%s@%s", m.nick, m.host)
+	} else if m.nick != "" {
+		prefix = ":" + m.nick
+	} else {
+		prefix = ":*"
+}
+
+	var params string
+	for _, v := range m.middle {
+		params += v + " "
+	}
+	if m.trailing != "" {
+		params += ":" + m.trailing
+	} else {
+		params = params[:len(params)-1] // trim trailing space
+	}
+
+	return fmt.Sprintf("%s %s %s\r\n", prefix, m.command, params)
 }
 
 // merge middle and trailing into one slice
