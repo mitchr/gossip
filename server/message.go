@@ -36,7 +36,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 	switch m.command {
 	case "NICK":
 		if len(m.middle) != 1 {
-			s.numericReply(c, 433, "No nickname given")
+			c.Write(fmt.Sprintf(ERR_NONICKNAMEGIVEN, s.Listener.Addr(), c.Nick))
 			return
 		}
 
@@ -44,7 +44,11 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 
 		// if nickname is already in use, send back error
 		if s.Clients.Find(nick) != nil {
-			s.numericReply(c, 433, "Nickname is already in use")
+			// TODO: if user is changing their already existing username,
+			// this will be fine. otherwise, trying to send back c.Nick will
+			// just be an empty string, whereas the spec says you should give
+			// back a '*' for an unused/unitialized parameter
+			c.Write(fmt.Sprintf(ERR_NICKNAMEINUSE, s.Listener.Addr(), c.Nick, nick))
 			return
 		}
 
@@ -54,16 +58,16 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		// TODO: Ident Protocol
 
 		if c.Registered {
-			s.numericReply(c, 462, "You may not reregister")
+			c.Write(fmt.Sprintf(ERR_ALREADYREGISTRED, s.Listener.Addr(), c.Nick))
 			return
 		} else if len(params) != 4 {
-			s.numericReply(c, 461, "Not enough parameters")
+			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
 			return
 		}
 
 		if params[1] != "0" || params[2] != "*" {
 			// TODO: find appropriate error code
-			s.numericReply(c, 0, "Wrong protocol")
+			// s.numericReply(c, 0, "Wrong protocol")
 			return
 		}
 
@@ -71,7 +75,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		c.Realname = params[3]
 		s.endRegistration(c)
 	default:
-		s.numericReply(c, 421, fmt.Sprintf("Unknown command '%s'", m.command))
+		c.Write(fmt.Sprintf(ERR_UNKNOWNCOMMAND, s.Listener.Addr(), c.Nick, m.command))
 	}
 }
 
@@ -82,13 +86,13 @@ func (s *Server) endRegistration(c *client.Client) {
 		c.Registered = true
 
 		// send RPL_WELCOME and friends in acceptance
-		c.Write(s.numericReply(c, RPL_WELCOME, fmt.Sprintf("Welcome to the Internet Relay Network %s", c.Prefix())))
-		c.Write(s.numericReply(c, RPL_YOURHOST, fmt.Sprintf("Your host is %s", s.Listener.Addr().String())))
-		c.Write(s.numericReply(c, RPL_CREATED, fmt.Sprintf("This server was created %s", s.Created)))
+		c.Write(fmt.Sprintf(RPL_WELCOME, s.Listener.Addr(), c.Nick, c.Prefix()))
+		c.Write(fmt.Sprintf(RPL_YOURHOST, s.Listener.Addr(), c.Nick, s.Listener.Addr()))
+		c.Write(fmt.Sprintf(RPL_CREATED, s.Listener.Addr(), c.Nick, s.Created))
 
 		// TODO: send proper response messages
-		c.Write(s.numericReply(c, RPL_MYINFO, ""))
-		c.Write(s.numericReply(c, RPL_ISUPPORT, ""))
+		// c.Write(s.numericReply(c, RPL_MYINFO, ""))
+		// c.Write(s.numericReply(c, RPL_ISUPPORT, ""))
 
 		// TODO: send LUSERS and MOTD
 		log.Println("successfully registered client")
