@@ -96,9 +96,29 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		c.User = params[0]
 		c.Realname = params[3]
 		s.endRegistration(c)
+	case "LUSERS":
+		s.LUSERS(c)
+	case "MOTD":
+		s.MOTD(c)
 	default:
 		c.Write(fmt.Sprintf(ERR_UNKNOWNCOMMAND, s.Listener.Addr(), c.Nick, m.command))
 	}
+}
+
+// TODO: actually calculate invisible and connected servers for response
+func (s *Server) LUSERS(c *client.Client) {
+	c.Write(fmt.Sprintf(RPL_LUSERCLIENT, s.Listener.Addr(), c.Nick, s.Clients.Len(), 0, 0))
+	c.Write(fmt.Sprintf(RPL_LUSEROP, s.Listener.Addr(), c.Nick, 0))
+	c.Write(fmt.Sprintf(RPL_LUSERUNKNOWN, s.Listener.Addr(), c.Nick, 0))
+	c.Write(fmt.Sprintf(RPL_LUSERCHANNELS, s.Listener.Addr(), c.Nick, s.Channels.Len()))
+	c.Write(fmt.Sprintf(RPL_LUSERME, s.Listener.Addr(), c.Nick, s.Clients.Len(), 0))
+	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
+}
+
+func (s *Server) MOTD(c *client.Client) {
+	c.Write(fmt.Sprintf(RPL_MOTDSTART, s.Listener.Addr(), c.Nick, s.Listener.Addr()))
+	c.Write(fmt.Sprintf(RPL_MOTD, s.Listener.Addr(), c.Nick, "")) // TODO: parse MOTD from config file or something
+	c.Write(fmt.Sprintf(RPL_ENDOFMOTD, s.Listener.Addr(), c.Nick))
 }
 
 // TODO: If we add capability negotiation, then that logic will have to go here as well
@@ -116,7 +136,8 @@ func (s *Server) endRegistration(c *client.Client) {
 		c.Write(fmt.Sprintf(RPL_MYINFO, s.Listener.Addr(), c.Nick, s.Listener.Addr(), "", "", ""))
 		c.Write(fmt.Sprintf(RPL_ISUPPORT, s.Listener.Addr(), c.Nick, ""))
 
-		// TODO: send LUSERS and MOTD
+		s.LUSERS(c)
+		s.MOTD(c)
 		log.Println("successfully registered client")
 	}
 }
