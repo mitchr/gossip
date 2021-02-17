@@ -113,8 +113,8 @@ func (s *Server) endRegistration(c *client.Client) {
 		c.Write(fmt.Sprintf(RPL_CREATED, s.Listener.Addr(), c.Nick, s.Created))
 
 		// TODO: send proper response messages
-		// c.Write(s.numericReply(c, RPL_MYINFO, ""))
-		// c.Write(s.numericReply(c, RPL_ISUPPORT, ""))
+		c.Write(fmt.Sprintf(RPL_MYINFO, s.Listener.Addr(), c.Nick, s.Listener.Addr(), "", "", ""))
+		c.Write(fmt.Sprintf(RPL_ISUPPORT, s.Listener.Addr(), c.Nick, ""))
 
 		// TODO: send LUSERS and MOTD
 		log.Println("successfully registered client")
