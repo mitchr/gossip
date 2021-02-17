@@ -11,7 +11,7 @@ import (
 	"github.com/mitchr/gossip/util"
 )
 
-func TestServer(t *testing.T) {
+func TestRegistration(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {
 		t.Fatal(err)
@@ -48,6 +48,12 @@ func TestServer(t *testing.T) {
 			t.Error(err)
 		}
 		fmt.Println(string(host))
+
+		created, err := r.ReadBytes('\n')
+		if err != nil {
+			t.Error(err)
+		}
+		fmt.Println(string(created))
 
 		// check to see if server is in correct state
 		c := s.Clients.Get(0).(*client.Client)
