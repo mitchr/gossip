@@ -106,8 +106,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		// split all given channels by comma separator
 		chans := strings.Split(m.middle[0], ",")
 		for _, v := range chans {
-			if ch := s.Channels.Find(v); ch != nil { // channel already exists
-				ch := ch.(*channel.Channel)
+			if ch, ok := s.Channels.Find(v).(*channel.Channel); ok { // channel already exists
 				ch.Clients.Add(c)
 				// send JOIN to all participants of channel
 				ch.Write(fmt.Sprintf(":%s JOIN %s\r\n", c.Prefix(), v))
