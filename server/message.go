@@ -89,11 +89,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 			return
 		}
 
-		if params[1] != "0" || params[2] != "*" {
-			// TODO: find appropriate error code
-			// s.numericReply(c, 0, "Wrong protocol")
-			return
-		}
+		// TODO: determine user mode from params[1] (RFC2812)
 
 		c.User = params[0]
 		c.Realname = params[3]
