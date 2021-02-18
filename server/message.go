@@ -110,7 +110,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 				ch := ch.(*channel.Channel)
 				ch.Clients.Add(c)
 				// send JOIN to all participants of channel
-				ch.Write([]byte(fmt.Sprintf("%s JOIN %s\r\n", c.Prefix(), v)))
+				ch.Write(fmt.Sprintf(":%s JOIN %s\r\n", c.Prefix(), v))
 
 				// TODO: send RPL_TOPIC/RPL_NOTOPIC and RPL_NAMREPLY to current joiner
 			} else { // create new channel
@@ -128,7 +128,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 				ch := channel.New(chanName, chanChar)
 				s.Channels.Add(ch)
 				ch.Clients.Add(c)
-				c.Write(fmt.Sprintf("%s JOIN %s\r\n", c.Prefix(), ch))
+				c.Write(fmt.Sprintf(":%s JOIN %s\r\n", c.Prefix(), ch))
 			}
 		}
 
