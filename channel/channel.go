@@ -51,7 +51,7 @@ func (c Channel) Equals(i interface{}) bool {
 
 // broadcast message to each client in channel
 // TODO: race condition here if length of client changed during execution
-func (c *Channel) Write(b []byte) (int, error) {
+func (c *Channel) Write(b interface{}) (int, error) {
 	var n int
 	var errStrings []string
 
