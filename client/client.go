@@ -37,6 +37,8 @@ func (c Client) Equals(i interface{}) bool {
 	switch v := i.(type) {
 	case Client:
 		return c.Nick == v.Nick
+	case *Client:
+		return c.Nick == v.Nick
 	default:
 		return c.Nick == v
 	}
