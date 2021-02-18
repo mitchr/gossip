@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/util"
 )
 
 type ChanType rune
@@ -22,11 +23,11 @@ const ()
 type Channel struct {
 	Name     string
 	ChanType ChanType
-	clients  *client.List
+	Clients  util.List
 }
 
 func New(name string, t ChanType) *Channel {
-	return &Channel{Name: name, ChanType: t}
+	return &Channel{name, t, util.NewList()}
 }
 
 // Equals accepts two types of arguments: a Channel struct, or a string.
@@ -45,12 +46,13 @@ func (c Channel) Equals(i interface{}) bool {
 }
 
 // broadcast message to each client in channel
+// TODO: race condition here if length of client changed during execution
 func (c *Channel) Write(b []byte) (int, error) {
 	var n int
 	var errStrings []string
 
-	for i := 0; i < c.clients.Len; i++ {
-		client := c.clients.Get(i)
+	for i := 0; i < c.Clients.Len(); i++ {
+		client := c.Clients.Get(i).(*client.Client)
 		written, err := client.Write(b)
 
 		n += written
