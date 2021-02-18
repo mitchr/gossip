@@ -25,6 +25,7 @@ func (l List) String() string {
 	}
 	return s
 }
+
 func (l *List) Add(e interface{}) {
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -90,4 +91,12 @@ func (l List) Find(i interface{}) interface{} {
 		}
 	}
 	return nil
+}
+
+func (l *List) ForEach(f func(interface{})) {
+	l.m.Lock()
+	defer l.m.Unlock()
+	for _, v := range l.data {
+		f(v)
+	}
 }

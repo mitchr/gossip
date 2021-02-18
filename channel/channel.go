@@ -2,6 +2,7 @@ package channel
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/mitchr/gossip/client"
@@ -50,18 +51,18 @@ func (c Channel) Equals(i interface{}) bool {
 }
 
 // broadcast message to each client in channel
-// TODO: race condition here if length of client changed during execution
 func (c *Channel) Write(b interface{}) (int, error) {
 	var n int
 	var errStrings []string
 
-	for i := 0; i < c.Clients.Len(); i++ {
-		client := c.Clients.Get(i).(*client.Client)
+	c.Clients.ForEach(func(e interface{}) {
+		client := e.(*client.Client)
 		written, err := client.Write(b)
-
+		if err != nil {
+			errStrings = append(errStrings, err.Error())
+			log.Println(err)
+		}
 		n += written
-		errStrings = append(errStrings, err.Error())
-	}
-
+	})
 	return n, fmt.Errorf(strings.Join(errStrings, "\n"))
 }
