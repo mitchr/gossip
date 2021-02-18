@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/util"
 )
@@ -115,4 +116,16 @@ func (s *Server) handleClient(c *client.Client) {
 			s.executeMessage(msg, c)
 		}
 	}
+}
+
+func (s *Server) getAllChannelsForClient(c *client.Client) []*channel.Channel {
+	l := []*channel.Channel{}
+
+	s.Channels.ForEach(func(e interface{}) {
+		ch := e.(*channel.Channel)
+		if ch.Clients.Find(c) != nil {
+			l = append(l, ch)
+		}
+	})
+	return l
 }

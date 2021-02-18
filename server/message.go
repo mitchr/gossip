@@ -100,7 +100,13 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 			return
 		}
 
-		//TODO: when 'JOIN 0', PART from every channel client is a member of
+		//when 'JOIN 0', PART from every channel client is a member of
+		if m.middle[0] == "0" {
+			for _, v := range s.getAllChannelsForClient(c) {
+				s.PART(c, v.String())
+			}
+			return
+		}
 
 		// TODO: support channel keys
 		// split all given channels by comma separator
