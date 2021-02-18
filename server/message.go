@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 )
 
@@ -96,6 +97,50 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		c.User = params[0]
 		c.Realname = params[3]
 		s.endRegistration(c)
+	case "JOIN":
+		if len(m.middle) < 1 {
+			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
+			return
+		}
+
+		//TODO: when 'JOIN 0', PART from every channel client is a member of
+
+		// TODO: support channel keys
+		// split all given channels by comma separator
+		chans := strings.Split(m.middle[0], ",")
+		for _, v := range chans {
+			if ch := s.Channels.Find(v); ch != nil { // channel already exists
+				ch := ch.(*channel.Channel)
+				ch.Clients.Add(c)
+				// send JOIN to all participants of channel
+				ch.Write([]byte(fmt.Sprintf("%s JOIN %s\r\n", c.Prefix(), v)))
+
+				// TODO: send RPL_TOPIC/RPL_NOTOPIC and RPL_NAMREPLY to current joiner
+			} else { // create new channel
+				chanChar := channel.ChanType(v[0])
+				chanName := v[1:]
+
+				if chanChar == channel.Remote {
+				}
+				if chanChar != channel.Remote && chanChar != channel.Local {
+					// TODO: is there a response code for this case?
+					// maybe 403 nosuchchannel?
+					continue
+				}
+
+				ch := channel.New(chanName, chanChar)
+				s.Channels.Add(ch)
+				ch.Clients.Add(c)
+				c.Write(fmt.Sprintf("%s JOIN %s\r\n", c.Prefix(), ch))
+			}
+		}
+
+	case "PART":
+		// TODO: support <reason> parameter
+		chans := strings.Split(m.middle[0], ",")
+		for _, v := range chans {
+			s.PART(c, v)
+		}
 	case "LUSERS":
 		s.LUSERS(c)
 	case "MOTD":
@@ -119,6 +164,28 @@ func (s *Server) MOTD(c *client.Client) {
 	c.Write(fmt.Sprintf(RPL_MOTDSTART, s.Listener.Addr(), c.Nick, s.Listener.Addr()))
 	c.Write(fmt.Sprintf(RPL_MOTD, s.Listener.Addr(), c.Nick, "")) // TODO: parse MOTD from config file or something
 	c.Write(fmt.Sprintf(RPL_ENDOFMOTD, s.Listener.Addr(), c.Nick))
+}
+
+func (s *Server) PART(client *client.Client, chanStr string) {
+	ch := s.Channels.Find(chanStr)
+	if ch == nil { // channel not found
+		client.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), client.Nick, ch))
+	} else {
+		ch := ch.(*channel.Channel)
+		if ch.Clients.Find(client) == nil { // client does not belong to channel
+			client.Write(fmt.Sprintf(ERR_NOTONCHANNEL, s.Listener.Addr(), client.Nick, chanStr))
+			return
+		}
+
+		ch.Clients.Remove(client)
+		// if there are not more clients in this channel, destroy it
+		if ch.Clients.Len() == 0 {
+			s.Channels.Remove(ch)
+		} else {
+			// inform all channel participants that this client has parted
+			ch.Write([]byte(fmt.Sprintf("%s PART %s\r\n", client.Prefix(), ch)))
+		}
+	}
 }
 
 // TODO: If we add capability negotiation, then that logic will have to go here as well

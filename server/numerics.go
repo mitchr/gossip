@@ -17,6 +17,9 @@ const (
 	RPL_MOTD      = ":%s 371 %s :%s\r\n"
 	RPL_ENDOFMOTD = ":%s 376 %s :End of /MOTD command.\r\n"
 
+	ERR_NOSUCHCHANNEL = ":%s 403 %s %s :No such channel\r\n"
+	ERR_NOTONCHANNEL  = ":%s 442 %s %s :You're not on that channel\r\n"
+
 	ERR_UNKNOWNCOMMAND   = ":%s 421 %s %s :Unknown command\r\n"
 	ERR_NONICKNAMEGIVEN  = ":%s 431 %s :No nickname given\r\n"
 	ERR_NICKNAMEINUSE    = ":%s 433 %s %s :Nickname is already in use\r\n"
