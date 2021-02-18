@@ -111,7 +111,7 @@ func lexAny(l *lexer) state {
 		l.push(nospcrlfcl)
 		return lexAny
 	default:
-		log.Fatalf("Unrecognized character %v\n", string(r))
+		log.Println("Unrecognized character: ", r, string(r))
 		return nil
 	}
 }
