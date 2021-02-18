@@ -30,6 +30,10 @@ func New(name string, t ChanType) *Channel {
 	return &Channel{name, t, util.NewList()}
 }
 
+func (c Channel) String() string {
+	return string(c.ChanType) + c.Name
+}
+
 // Equals accepts two types of arguments: a Channel struct, or a string.
 // If given a channel struct, it will compare against the name and type,
 // whereas if given a string of the form "#chan" or "&chan" it will
