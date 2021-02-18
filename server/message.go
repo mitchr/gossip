@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
