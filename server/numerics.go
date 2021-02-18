@@ -18,6 +18,8 @@ const (
 	RPL_ENDOFMOTD = ":%s 376 %s :End of /MOTD command.\r\n"
 
 	ERR_NOSUCHCHANNEL = ":%s 403 %s %s :No such channel\r\n"
+	ERR_NORECIPIENT   = ":%s 411 %s :No recipient given (%s)\r\n"
+	ERR_NOTEXTTOSEND  = ":%s 412 %s :No text to send\r\n"
 	ERR_NOTONCHANNEL  = ":%s 442 %s %s :You're not on that channel\r\n"
 
 	ERR_UNKNOWNCOMMAND   = ":%s 421 %s %s :Unknown command\r\n"

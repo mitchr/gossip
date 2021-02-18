@@ -94,6 +94,26 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		c.User = params[0]
 		c.Realname = params[3]
 		s.endRegistration(c)
+	case "PRIVMSG":
+		if len(params) < 2 {
+			c.Write(fmt.Sprintf(ERR_NOTEXTTOSEND, s.Listener.Addr(), c.Nick))
+			return
+		}
+
+		recipients := strings.Split(params[0], ",")
+		msg := params[1]
+		for _, v := range recipients {
+			if ch, ok := s.Channels.Find(v).(*channel.Channel); ok {
+				ch.Write(fmt.Sprintf(":%s PRIVMSG %s :%s\r\n", c.Prefix(), v, msg))
+				continue
+			}
+			if client, ok := s.Clients.Find(v).(*client.Client); ok {
+				client.Write(fmt.Sprintf(":%s PRIVMSG %s :%s\r\n", c.Prefix(), v, msg))
+				continue
+			}
+
+			// TODO: decide which error to send depending on which was not found, either channel or client
+		}
 	case "JOIN":
 		if len(m.middle) < 1 {
 			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
