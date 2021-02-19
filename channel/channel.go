@@ -43,6 +43,8 @@ func (c Channel) Equals(i interface{}) bool {
 	switch v := i.(type) {
 	case Channel:
 		return c.Name == v.Name && c.ChanType == v.ChanType
+	case *Channel:
+		return c.Name == v.Name && c.ChanType == v.ChanType
 	case string:
 		return c.Name == v[1:] && c.ChanType == ChanType(v[0])
 	default:
