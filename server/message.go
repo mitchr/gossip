@@ -189,11 +189,9 @@ func (s *Server) MOTD(c *client.Client) {
 }
 
 func (s *Server) PART(client *client.Client, chanStr string) {
-	ch := s.Channels.Find(chanStr)
-	if ch == nil { // channel not found
+	if ch, ok := s.Channels.Find(chanStr).(*channel.Channel); !ok { // channel not found
 		client.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), client.Nick, ch))
 	} else {
-		ch := ch.(*channel.Channel)
 		if ch.Clients.Find(client) == nil { // client does not belong to channel
 			client.Write(fmt.Sprintf(ERR_NOTONCHANNEL, s.Listener.Addr(), client.Nick, chanStr))
 			return
