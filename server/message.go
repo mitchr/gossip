@@ -203,7 +203,7 @@ func (s *Server) PART(client *client.Client, chanStr string) {
 			s.Channels.Remove(ch)
 		} else {
 			// inform all channel participants that this client has parted
-			ch.Write([]byte(fmt.Sprintf("%s PART %s\r\n", client.Prefix(), ch)))
+			ch.Write(fmt.Sprintf("%s PART %s\r\n", client.Prefix(), ch))
 		}
 	}
 }
