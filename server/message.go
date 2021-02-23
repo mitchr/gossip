@@ -53,8 +53,11 @@ func (m message) parameters() []string {
 }
 
 func (s *Server) executeMessage(m *message, c *client.Client) {
-	// TODO: don't allow client to access any other commands besides
-	// CAP, NICK, USER, PASS if they are unregistered
+	// ignore unregistered user commands until registration completes
+	if !c.Registered && (m.command != "CAP" && m.command != "NICK" && m.command != "USER" && m.command != "PASS") {
+		return
+	}
+
 	params := m.parameters()
 
 	switch m.command {
