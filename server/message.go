@@ -200,14 +200,7 @@ func (s *Server) PART(client *client.Client, chanStr string) {
 			return
 		}
 
-		ch.Clients.Remove(client)
-		// if there are not more clients in this channel, destroy it
-		if ch.Clients.Len() == 0 {
-			s.Channels.Remove(ch)
-		} else {
-			// inform all channel participants that this client has parted
-			ch.Write(fmt.Sprintf("%s PART %s\r\n", client.Prefix(), ch))
-		}
+		s.removeClientFromChannel(client, ch, fmt.Sprintf("%s PART %s\r\n", client.Prefix(), ch))
 	}
 }
 
