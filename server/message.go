@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/mitchr/gossip/channel"
@@ -221,6 +220,5 @@ func (s *Server) endRegistration(c *client.Client) {
 
 		s.LUSERS(c)
 		s.MOTD(c)
-		log.Println("successfully registered client")
 	}
 }
