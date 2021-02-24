@@ -169,6 +169,14 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		s.LUSERS(c)
 	case "MOTD":
 		s.MOTD(c)
+	case "QUIT":
+		// send QUIT to all channels that client is connected to, and
+		// remove that client from the channel
+		for _, v := range s.getAllChannelsForClient(c) {
+			s.removeClientFromChannel(c, v, fmt.Sprintf(":%s QUIT :%s\r\n", c.Prefix(), params[0]))
+		}
+
+		c.Cancel()
 	default:
 		c.Write(fmt.Sprintf(ERR_UNKNOWNCOMMAND, s.Listener.Addr(), c.Nick, m.command))
 	}
