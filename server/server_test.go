@@ -76,6 +76,84 @@ func TestRegistration(t *testing.T) {
 	})
 }
 
+func TestQUIT(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, _ := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, _ := connectAndRegister("bob", "Bob Smith")
+	defer c2.Close()
+	c1.Write([]byte("QUIT\r\n"))
+	c2.Write([]byte("QUIT\r\n"))
+
+	if !wfc(&s.Clients, 0) {
+		t.Error("client could not quit")
+	}
+}
+
+func TestChannelCreation(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, _ := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, _ := connectAndRegister("bob", "Bob Smith")
+	defer c2.Close()
+	c1.Write([]byte("JOIN #local\r\n"))
+	c2.Write([]byte("JOIN #local\r\n"))
+
+	if !wfc(&s.Channels, 1) {
+		t.Fatal("Could not create channel")
+	}
+
+	t.Run("TestChannelDestruction", func(t *testing.T) {
+		c1.Write([]byte("PART #local\r\n"))
+		c2.Write([]byte("PART #local\r\n"))
+
+		if !wfc(&s.Channels, 0) {
+			t.Error("Could not destroy channel")
+		}
+	})
+}
+
+func TestPRIVMSG(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	defer c2.Close()
+	c1.Write([]byte("JOIN #local\r\n"))
+	c2.Write([]byte("JOIN #local\r\n"))
+	r1.ReadBytes('\n')
+	r2.ReadBytes('\n')
+
+	t.Run("TestClientPRIVMSG", func(t *testing.T) {
+		c1.Write([]byte("PRIVMSG bob :hello\r\n"))
+		msgResp, _ := r2.ReadBytes('\n')
+		fmt.Println(string(msgResp))
+	})
+	t.Run("TestChannelPRIVMSG", func(t *testing.T) {
+		c1.Write([]byte("PRIVMSG #local :hello\r\n"))
+		msgResp, _ := r2.ReadBytes('\n')
+		fmt.Println(string(msgResp))
+	})
+}
+
 func Test100Clients(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {
@@ -93,6 +171,23 @@ func Test100Clients(t *testing.T) {
 	if !wfc(&s.Clients, 100) {
 		t.Error(s.Clients.Len())
 	}
+}
+
+// given a nick and a realname, return a connection that is already
+// registered and a bufio.Reader that has already read past all the
+// initial connection rigamarole (RPL's, MOTD, etc.)
+func connectAndRegister(nick, realname string) (net.Conn, *bufio.Reader) {
+	c, _ := net.Dial("tcp", ":6667")
+
+	c.Write([]byte("NICK " + nick + "\r\n"))
+	c.Write([]byte("USER " + nick + " 0 0 :" + realname + "\r\n"))
+
+	r := bufio.NewReader(c)
+	for i := 0; i < 13; i++ {
+		r.ReadBytes('\n')
+	}
+
+	return c, r
 }
 
 // wfc = wait for change
