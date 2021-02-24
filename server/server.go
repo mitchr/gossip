@@ -2,11 +2,9 @@ package server
 
 import (
 	"bufio"
+	"context"
 	"fmt"
-	"io"
-	"log"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/mitchr/gossip/channel"
@@ -20,8 +18,8 @@ type Server struct {
 	Created  time.Time
 	Channels util.List
 
-	quit chan bool
-	wg   sync.WaitGroup
+	// calling this cancel also cancels all the child client's contexts
+	cancel context.CancelFunc
 }
 
 func New(port string) (*Server, error) {
@@ -34,87 +32,89 @@ func New(port string) (*Server, error) {
 		Clients:  util.NewList(),
 		Created:  time.Now(),
 		Channels: util.NewList(),
-		quit:     make(chan bool),
-		wg:       sync.WaitGroup{},
 	}, nil
 }
 
 func (s *Server) Serve() {
-	for {
-		// wait for a connection to the server
-		// (block until one is received)
-		conn, err := s.Listener.Accept()
-		if err != nil {
-			select {
-			case <-s.quit:
-				return
-			default:
-				log.Println(err)
+	ctx, cancel := context.WithCancel(context.Background())
+	s.cancel = cancel
+
+	conChan := make(chan net.Conn)
+	go func(c chan<- net.Conn) { // goroutine that accepts forever
+		for {
+			conn, err := s.Listener.Accept()
+			if err == nil {
+				c <- conn
 			}
-			continue
 		}
+	}(conChan)
 
-		u := client.New(conn)
-
-		// each client gets own goroutine for handling
-		s.wg.Add(1)
-		go func() {
-			s.handleClient(u)
-			s.wg.Done()
-		}()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case conn := <-conChan:
+			u := client.New(conn)
+			go s.handleClient(u, ctx)
+		}
 	}
 }
 
 // gracefully shutdown server:
-// 1. close s.quit so that s stops listening for more connections
-// 2. close s.listener; we are assured that there are no pending
-//		connections because we have already stopped listening
-// 3. wait for all existing clients to finish being handled
-// thanks to these two posts about gracefully shutdown patterns in go:
-// https://eli.thegreenplace.net/2020/graceful-shutdown-of-a-tcp-server-in-go/
-// https://forum.golangbridge.org/t/correct-shutdown-of-net-listener/8705
+// 1. close listener so that we stop accepting more connections
+// 2. s.cancel to exit serve loop
+// graceful shutdown from https://blog.golang.org/context
 func (s *Server) Close() {
-	close(s.quit)
 	s.Listener.Close()
-	s.wg.Wait()
+	s.cancel()
 }
 
-// TODO: when s.quit closes, force all clients to finish handling;
-// either instantly force them off with a preceeding closure message,
-// or give a small timeout window
-func (s *Server) handleClient(c *client.Client) {
+func (s *Server) handleClient(c *client.Client, ctx context.Context) {
+	clientCtx, cancel := context.WithCancel(ctx)
+	c.Cancel = cancel
+
 	// create entry for user
 	s.Clients.Add(c)
 
 	reader := bufio.NewReader(c)
 	for {
-		// read until we encounter a newline
-		// really we should have \r\n, but we allow the parser to check that \r exists
-		// also this removes the 512 byte message length limit, so we should consider if this is a meaningful regression
-		// client could send so much data that the server crashes?
-		msgBuf, err := reader.ReadBytes('\n')
-
-		if err != nil {
-			if err == io.EOF {
-				// client has closed connection, so we need to remove them from the user list
-			} else if operr, ok := err.(*net.OpError); ok {
-				// there was some kind of network error
-				fmt.Println(operr)
-			} else {
-				// not sure what happened!
-				fmt.Println(err)
+		select {
+		case <-clientCtx.Done():
+			// client may have been kicked off without first sending a QUIT
+			// command, so we need to handle removing them from all the
+			// channels they are still connected to
+			for _, v := range s.getAllChannelsForClient(c) {
+				s.removeClientFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(\r\n", c.Prefix()))
 			}
+
 			c.Close()
 			s.Clients.Remove(c)
 			return
+		default:
+			// read until we encounter a newline; the parser checks that \r exists
+			msgBuf, err := reader.ReadBytes('\n')
+			if err != nil { // TODO: do something different if encountering a certain err? (io.EOF, net.OpErr)
+				// either client closed its own connection, or they disconnected without quit
+				c.Cancel()
+			} else {
+				msg := parse(lex(msgBuf))
+				// implicitly ignore all nil messages
+				if msg != nil {
+					s.executeMessage(msg, c)
+				}
+			}
 		}
+	}
+}
 
-		msg := parse(lex(msgBuf))
-		if msg == nil {
-			log.Println("message is nil; ignored")
-		} else {
-			s.executeMessage(msg, c)
-		}
+func (s *Server) removeClientFromChannel(c *client.Client, ch *channel.Channel, msg string) {
+	// if this was the last client in the channel, destroy it
+	if ch.Clients.Len() == 1 {
+		s.Channels.Remove(ch)
+	} else {
+		// message all remaining channel participants
+		ch.Clients.Remove(c)
+		ch.Write(msg)
 	}
 }
 

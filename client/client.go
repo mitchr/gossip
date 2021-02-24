@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -16,6 +17,7 @@ type Client struct {
 	Host        net.Addr
 	conn        net.Conn
 	idleTimeout time.Time
+	Cancel      context.CancelFunc // need to store for QUIT
 
 	// True if client is registered (nick/user passed)
 	Registered bool
