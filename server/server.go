@@ -78,13 +78,9 @@ func (s *Server) Serve() {
 			s.wg.Done()
 			return
 		case conn := <-conChan:
-			u := client.New(conn)
-			clientCtx, cancel := context.WithCancel(ctx)
-			u.Cancel = cancel
-
 			s.wg.Add(1)
 			go func() {
-				s.handleClient(u, clientCtx)
+				s.handleConn(conn, ctx)
 				s.wg.Done()
 			}()
 		}
@@ -102,10 +98,14 @@ func (s *Server) Close() {
 	s.wg.Wait()
 }
 
-func (s *Server) handleClient(c *client.Client, ctx context.Context) {
-	input := make(chan []byte)
+func (s *Server) handleConn(u net.Conn, ctx context.Context) {
+	c := client.New(u)
+	clientCtx, cancel := context.WithCancel(ctx)
+	c.Cancel = cancel
 
-	// continuously try to read from the client
+	// continuously try to read from the client. this will implicitly end
+	// when c.Cancel is called because the client will be closed
+	input := make(chan []byte)
 	go func() {
 		reader := bufio.NewReader(c)
 		for {
@@ -124,7 +124,7 @@ func (s *Server) handleClient(c *client.Client, ctx context.Context) {
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-clientCtx.Done():
 			s.msgLock.Lock()
 			defer s.msgLock.Unlock()
 
