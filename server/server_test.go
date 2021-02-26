@@ -160,7 +160,6 @@ func Test100Clients(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-
 	go s.Serve()
 
 	for i := 0; i < 100; i++ {
