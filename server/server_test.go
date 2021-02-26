@@ -91,7 +91,7 @@ func TestQUIT(t *testing.T) {
 	c1.Write([]byte("QUIT\r\n"))
 	c2.Write([]byte("QUIT\r\n"))
 
-	if !wfc(&s.Clients, 0) {
+	if !poll(&s.Clients, 0) {
 		t.Error("client could not quit")
 	}
 }
@@ -111,7 +111,7 @@ func TestChannelCreation(t *testing.T) {
 	c1.Write([]byte("JOIN #local\r\n"))
 	c2.Write([]byte("JOIN #local\r\n"))
 
-	if !wfc(&s.Channels, 1) {
+	if !poll(&s.Channels, 1) {
 		t.Fatal("Could not create channel")
 	}
 
@@ -119,7 +119,7 @@ func TestChannelCreation(t *testing.T) {
 		c1.Write([]byte("PART #local\r\n"))
 		c2.Write([]byte("PART #local\r\n"))
 
-		if !wfc(&s.Channels, 0) {
+		if !poll(&s.Channels, 0) {
 			t.Error("Could not destroy channel")
 		}
 	})
@@ -171,8 +171,7 @@ func connectAndRegister(nick, realname string) (net.Conn, *bufio.Reader) {
 	return c, r
 }
 
-// wfc = wait for change
-func wfc(s interface{}, eq interface{}) bool {
+func poll(s interface{}, eq interface{}) bool {
 	c := make(chan bool)
 
 	// start goroutine that continually checks pointer reference against
