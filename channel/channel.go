@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/mitchr/gossip/client"
-	"github.com/mitchr/gossip/util"
 )
 
 type ChanType rune
@@ -24,11 +23,13 @@ const ()
 type Channel struct {
 	Name     string
 	ChanType ChanType
-	Clients  util.List
+
+	// map of Nick to undelying client
+	Clients map[string]*client.Client
 }
 
 func New(name string, t ChanType) *Channel {
-	return &Channel{Name: name, ChanType: t}
+	return &Channel{name, t, make(map[string]*client.Client)}
 }
 
 func (c Channel) String() string {
@@ -57,14 +58,14 @@ func (c *Channel) Write(b interface{}) (int, error) {
 	var n int
 	var errStrings []string
 
-	c.Clients.ForEach(func(e interface{}) {
-		client := e.(*client.Client)
-		written, err := client.Write(b)
+	for _, v := range c.Clients {
+		written, err := v.Write(b)
 		if err != nil {
 			errStrings = append(errStrings, err.Error())
 			log.Println(err)
 		}
 		n += written
-	})
+	}
+
 	return n, fmt.Errorf(strings.Join(errStrings, "\n"))
 }

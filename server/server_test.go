@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
-	"github.com/mitchr/gossip/util"
 )
 
 func TestRegistration(t *testing.T) {
@@ -56,7 +56,7 @@ func TestRegistration(t *testing.T) {
 		fmt.Println(string(created))
 
 		// check to see if server is in correct state
-		c := s.Clients.Get(0).(*client.Client)
+		c := s.Clients["alice"]
 
 		if c == nil {
 			t.Fatal("No client connection made")
@@ -154,24 +154,6 @@ func TestPRIVMSG(t *testing.T) {
 	})
 }
 
-func Test100Clients(t *testing.T) {
-	s, err := New(":6667")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer s.Close()
-	go s.Serve()
-
-	for i := 0; i < 100; i++ {
-		c, _ := net.Dial("tcp", ":6667")
-		defer c.Close()
-	}
-
-	if !wfc(&s.Clients, 100) {
-		t.Error(s.Clients.Len())
-	}
-}
-
 // given a nick and a realname, return a connection that is already
 // registered and a bufio.Reader that has already read past all the
 // initial connection rigamarole (RPL's, MOTD, etc.)
@@ -198,13 +180,13 @@ func wfc(s interface{}, eq interface{}) bool {
 	go func() {
 		for {
 			switch v := s.(type) {
-			case *string:
-				if *v == eq {
+			case *map[string]*client.Client:
+				if len(*v) == eq {
 					c <- true
 					return
 				}
-			case *util.List:
-				if v.Len() == eq {
+			case *map[string]*channel.Channel:
+				if len(*v) == eq {
 					c <- true
 					return
 				}

@@ -28,7 +28,7 @@ func (m message) String() string {
 		prefix = ":" + m.nick
 	} else {
 		prefix = ":*"
-}
+	}
 
 	var params string
 	for _, v := range m.middle {
@@ -69,7 +69,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		nick := m.middle[0]
 
 		// if nickname is already in use, send back error
-		if s.Clients.Find(nick) != nil {
+		if s.Clients[nick] != nil {
 			// TODO: if user is changing their already existing username,
 			// this will be fine. otherwise, trying to send back c.Nick will
 			// just be an empty string, whereas the spec says you should give
@@ -105,11 +105,11 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		recipients := strings.Split(params[0], ",")
 		msg := params[1]
 		for _, v := range recipients {
-			if ch, ok := s.Channels.Find(v).(*channel.Channel); ok {
+			if ch, ok := s.Channels[v]; ok {
 				ch.Write(fmt.Sprintf(":%s PRIVMSG %s :%s\r\n", c.Prefix(), v, msg))
 				continue
 			}
-			if client, ok := s.Clients.Find(v).(*client.Client); ok {
+			if client, ok := s.Clients[v]; ok {
 				client.Write(fmt.Sprintf(":%s PRIVMSG %s :%s\r\n", c.Prefix(), v, msg))
 				continue
 			}
@@ -134,8 +134,8 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		// split all given channels by comma separator
 		chans := strings.Split(m.middle[0], ",")
 		for _, v := range chans {
-			if ch, ok := s.Channels.Find(v).(*channel.Channel); ok { // channel already exists
-				ch.Clients.Add(c)
+			if ch, ok := s.Channels[v]; ok { // channel already exists
+				ch.Clients[c.Nick] = c
 				// send JOIN to all participants of channel
 				ch.Write(fmt.Sprintf(":%s JOIN %s\r\n", c.Prefix(), v))
 
@@ -153,12 +153,11 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 				}
 
 				ch := channel.New(chanName, chanChar)
-				s.Channels.Add(ch)
-				ch.Clients.Add(c)
+				s.Channels[ch.String()] = ch
+				ch.Clients[c.Nick] = c
 				c.Write(fmt.Sprintf(":%s JOIN %s\r\n", c.Prefix(), ch))
 			}
 		}
-
 	case "PART":
 		// TODO: support <reason> parameter
 		chans := strings.Split(m.middle[0], ",")
@@ -189,11 +188,11 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 
 // TODO: actually calculate invisible and connected servers for response
 func (s *Server) LUSERS(c *client.Client) {
-	c.Write(fmt.Sprintf(RPL_LUSERCLIENT, s.Listener.Addr(), c.Nick, s.Clients.Len(), 0, 0))
+	c.Write(fmt.Sprintf(RPL_LUSERCLIENT, s.Listener.Addr(), c.Nick, len(s.Clients), 0, 0))
 	c.Write(fmt.Sprintf(RPL_LUSEROP, s.Listener.Addr(), c.Nick, 0))
 	c.Write(fmt.Sprintf(RPL_LUSERUNKNOWN, s.Listener.Addr(), c.Nick, 0))
-	c.Write(fmt.Sprintf(RPL_LUSERCHANNELS, s.Listener.Addr(), c.Nick, s.Channels.Len()))
-	c.Write(fmt.Sprintf(RPL_LUSERME, s.Listener.Addr(), c.Nick, s.Clients.Len(), 0))
+	c.Write(fmt.Sprintf(RPL_LUSERCHANNELS, s.Listener.Addr(), c.Nick, len(s.Channels)))
+	c.Write(fmt.Sprintf(RPL_LUSERME, s.Listener.Addr(), c.Nick, len(s.Clients), 0))
 	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
 }
 
@@ -204,10 +203,10 @@ func (s *Server) MOTD(c *client.Client) {
 }
 
 func (s *Server) PART(client *client.Client, chanStr string) {
-	if ch, ok := s.Channels.Find(chanStr).(*channel.Channel); !ok { // channel not found
+	if ch, ok := s.Channels[chanStr]; !ok { // channel not found
 		client.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), client.Nick, ch))
 	} else {
-		if ch.Clients.Find(client) == nil { // client does not belong to channel
+		if ch.Clients[client.Nick] == nil { // client does not belong to channel
 			client.Write(fmt.Sprintf(ERR_NOTONCHANNEL, s.Listener.Addr(), client.Nick, chanStr))
 			return
 		}
@@ -221,6 +220,7 @@ func (s *Server) PART(client *client.Client, chanStr string) {
 func (s *Server) endRegistration(c *client.Client) {
 	if c.Nick != "" && c.User != "" {
 		c.Registered = true
+		s.Clients[c.Nick] = c
 
 		// send RPL_WELCOME and friends in acceptance
 		c.Write(fmt.Sprintf(RPL_WELCOME, s.Listener.Addr(), c.Nick, c.Prefix()))

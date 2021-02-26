@@ -10,7 +10,6 @@ import (
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
-	"github.com/mitchr/gossip/util"
 )
 
 // A msgPair consists of a message and the client that sent it
@@ -21,9 +20,11 @@ type msgPair struct {
 
 type Server struct {
 	Listener net.Listener
-	Clients  util.List
 	Created  time.Time
-	Channels util.List
+	// nick to underlying client
+	Clients map[string]*client.Client
+	// ChanType + name to channel
+	Channels map[string]*channel.Channel
 
 	// calling this cancel also cancels all the child client's contexts
 	cancel   context.CancelFunc
@@ -40,8 +41,8 @@ func New(port string) (*Server, error) {
 	return &Server{
 		Listener: l,
 		Created:  time.Now(),
-		// Clients:  util.NewList(),
-		// Channels: util.NewList(),
+		Clients:  make(map[string]*client.Client),
+		Channels: make(map[string]*channel.Channel),
 		msgQueue: make(chan msgPair, 2),
 		msgLock:  new(sync.Mutex),
 	}, nil
@@ -80,10 +81,6 @@ func (s *Server) Serve() {
 			u := client.New(conn)
 			clientCtx, cancel := context.WithCancel(ctx)
 			u.Cancel = cancel
-
-			s.msgLock.Lock()
-			s.Clients.Add(u)
-			s.msgLock.Unlock()
 
 			s.wg.Add(1)
 			go func() {
@@ -139,7 +136,7 @@ func (s *Server) handleClient(c *client.Client, ctx context.Context) {
 			}
 
 			c.Close()
-			s.Clients.Remove(c)
+			delete(s.Clients, c.Nick)
 			return
 		case msgBuf := <-input:
 			msg := parse(lex(msgBuf))
@@ -153,11 +150,11 @@ func (s *Server) handleClient(c *client.Client, ctx context.Context) {
 
 func (s *Server) removeClientFromChannel(c *client.Client, ch *channel.Channel, msg string) {
 	// if this was the last client in the channel, destroy it
-	if ch.Clients.Len() == 1 {
-		s.Channels.Remove(ch)
+	if len(ch.Clients) == 1 {
+		delete(s.Channels, ch.String())
 	} else {
 		// message all remaining channel participants
-		ch.Clients.Remove(c)
+		delete(ch.Clients, c.Nick)
 		ch.Write(msg)
 	}
 }
@@ -165,11 +162,10 @@ func (s *Server) removeClientFromChannel(c *client.Client, ch *channel.Channel, 
 func (s *Server) getAllChannelsForClient(c *client.Client) []*channel.Channel {
 	l := []*channel.Channel{}
 
-	s.Channels.ForEach(func(e interface{}) {
-		ch := e.(*channel.Channel)
-		if ch.Clients.Find(c) != nil {
-			l = append(l, ch)
+	for _, v := range s.Channels {
+		if v.Clients[c.Nick] != nil {
+			l = append(l, v)
 		}
-	})
+	}
 	return l
 }
