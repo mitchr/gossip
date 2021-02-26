@@ -181,6 +181,15 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		}
 
 		c.Cancel()
+	case "PING":
+		// TODO: params can contain other servers, in which case the PING
+		// will have to be redirected. For now, we can just assume that any
+		// PING from a connected client is meant for this server
+		c.Write(fmt.Sprintf(":%s PONG", s.Listener.Addr()))
+	case "PONG":
+		// TODO: ignore for now, but like PING, PONG can be meant for
+		// multiple servers so we need to investigate params
+		return
 	default:
 		c.Write(fmt.Sprintf(ERR_UNKNOWNCOMMAND, s.Listener.Addr(), c.Nick, m.command))
 	}
