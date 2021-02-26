@@ -170,10 +170,15 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 	case "MOTD":
 		s.MOTD(c)
 	case "QUIT":
+		reason := "" // assume client does not send a reason for quit
+		if len(params) > 0 {
+			reason = params[0]
+		}
+
 		// send QUIT to all channels that client is connected to, and
 		// remove that client from the channel
 		for _, v := range s.getAllChannelsForClient(c) {
-			s.removeClientFromChannel(c, v, fmt.Sprintf(":%s QUIT :%s\r\n", c.Prefix(), params[0]))
+			s.removeClientFromChannel(c, v, fmt.Sprintf(":%s QUIT :%s\r\n", c.Prefix(), reason))
 		}
 
 		c.Cancel()
