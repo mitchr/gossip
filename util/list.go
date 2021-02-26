@@ -2,64 +2,35 @@ package util
 
 import (
 	"fmt"
-	"sync"
 )
 
 type Equaler interface {
 	Equals(interface{}) bool
 }
 
-type List struct {
-	data []interface{}
-	m    *sync.Mutex
-}
-
-func NewList() List {
-	return List{m: new(sync.Mutex)}
-}
+type List []interface{}
 
 func (l List) String() string {
 	s := ""
-	for _, v := range l.data {
+	for _, v := range l {
 		s += fmt.Sprintf("%v ", v)
 	}
 	return s
 }
 
-func (l *List) Add(e interface{}) {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	l.data = append(l.data, e)
-}
-
+func (l *List) Add(e interface{}) { *l = append(*l, e) }
 func (l List) Get(i int) interface{} {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	if i < 0 || i >= len(l.data) {
+	if i < 0 || i >= len(l) {
 		return nil
 	}
-	return l.data[i]
+	return l[i]
 }
 
-func (l List) Len() int {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	return len(l.data)
-}
-
-func (l *List) removeAtIndex(i int) {
-	l.data = append(l.data[:i], l.data[i+1:]...)
-}
-
+func (l List) Len() int             { return len(l) }
+func (l *List) removeAtIndex(i int) { *l = append((*l)[:i], (*l)[i+1:]...) }
 func (l *List) Remove(e interface{}) {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	for i := 0; i < len(l.data); i++ {
-		switch t := l.data[i].(type) {
+	for i, v := range *l {
+		switch t := v.(type) {
 		case Equaler:
 			if t.Equals(e) {
 				l.removeAtIndex(i)
@@ -75,10 +46,7 @@ func (l *List) Remove(e interface{}) {
 }
 
 func (l List) Find(i interface{}) interface{} {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	for _, v := range l.data {
+	for _, v := range l {
 		switch t := v.(type) {
 		case Equaler:
 			if t.Equals(i) {
@@ -94,9 +62,7 @@ func (l List) Find(i interface{}) interface{} {
 }
 
 func (l *List) ForEach(f func(interface{})) {
-	l.m.Lock()
-	defer l.m.Unlock()
-	for _, v := range l.data {
+	for _, v := range *l {
 		f(v)
 	}
 }

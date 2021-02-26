@@ -5,12 +5,19 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/util"
 )
+
+// A msgPair consists of a message and the client that sent it
+type msgPair struct {
+	m *message
+	c *client.Client
+}
 
 type Server struct {
 	Listener net.Listener
@@ -19,7 +26,10 @@ type Server struct {
 	Channels util.List
 
 	// calling this cancel also cancels all the child client's contexts
-	cancel context.CancelFunc
+	cancel   context.CancelFunc
+	msgQueue chan msgPair
+	msgLock  *sync.Mutex
+	wg       sync.WaitGroup
 }
 
 func New(port string) (*Server, error) {
@@ -29,9 +39,11 @@ func New(port string) (*Server, error) {
 	}
 	return &Server{
 		Listener: l,
-		Clients:  util.NewList(),
 		Created:  time.Now(),
-		Channels: util.NewList(),
+		// Clients:  util.NewList(),
+		// Channels: util.NewList(),
+		msgQueue: make(chan msgPair, 2),
+		msgLock:  new(sync.Mutex),
 	}, nil
 }
 
@@ -40,22 +52,44 @@ func (s *Server) Serve() {
 	s.cancel = cancel
 
 	conChan := make(chan net.Conn)
-	go func(c chan<- net.Conn) { // goroutine that accepts forever
+	go func() { // accepts a connection and sends on chan
 		for {
 			conn, err := s.Listener.Accept()
 			if err == nil {
-				c <- conn
+				conChan <- conn
 			}
 		}
-	}(conChan)
+	}()
 
+	go func() {
+		for {
+			msg := <-s.msgQueue
+			s.msgLock.Lock()
+			s.executeMessage(msg.m, msg.c)
+			s.msgLock.Unlock()
+		}
+	}()
+
+	s.wg.Add(1)
 	for {
 		select {
 		case <-ctx.Done():
+			s.wg.Done()
 			return
 		case conn := <-conChan:
 			u := client.New(conn)
-			go s.handleClient(u, ctx)
+			clientCtx, cancel := context.WithCancel(ctx)
+			u.Cancel = cancel
+
+			s.msgLock.Lock()
+			s.Clients.Add(u)
+			s.msgLock.Unlock()
+
+			s.wg.Add(1)
+			go func() {
+				s.handleClient(u, clientCtx)
+				s.wg.Done()
+			}()
 		}
 	}
 }
@@ -63,26 +97,43 @@ func (s *Server) Serve() {
 // gracefully shutdown server:
 // 1. close listener so that we stop accepting more connections
 // 2. s.cancel to exit serve loop
+// 3. wait until all clients have canceled AND Serve() receives cancel signal
 // graceful shutdown from https://blog.golang.org/context
 func (s *Server) Close() {
 	s.Listener.Close()
 	s.cancel()
+	s.wg.Wait()
 }
 
 func (s *Server) handleClient(c *client.Client, ctx context.Context) {
-	clientCtx, cancel := context.WithCancel(ctx)
-	c.Cancel = cancel
+	input := make(chan []byte)
 
-	// create entry for user
-	s.Clients.Add(c)
+	// continuously try to read from the client
+	go func() {
+		reader := bufio.NewReader(c)
+		for {
+			// read until encountering a newline; the parser checks that \r exists
+			msgBuf, err := reader.ReadBytes('\n')
+			if err != nil {
+				// TODO: do something different if encountering a certain err? (io.EOF, net.OpErr)
+				// either client closed its own connection, or they disconnected without quit
+				c.Cancel()
+				return
+			} else {
+				input <- msgBuf
+			}
+		}
+	}()
 
-	reader := bufio.NewReader(c)
 	for {
 		select {
-		case <-clientCtx.Done():
+		case <-ctx.Done():
+			s.msgLock.Lock()
+			defer s.msgLock.Unlock()
+
 			// client may have been kicked off without first sending a QUIT
-			// command, so we need to handle removing them from all the
-			// channels they are still connected to
+			// command, so we need to remove them from all the channels they
+			// are still connected to
 			for _, v := range s.getAllChannelsForClient(c) {
 				s.removeClientFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(\r\n", c.Prefix()))
 			}
@@ -90,18 +141,11 @@ func (s *Server) handleClient(c *client.Client, ctx context.Context) {
 			c.Close()
 			s.Clients.Remove(c)
 			return
-		default:
-			// read until we encounter a newline; the parser checks that \r exists
-			msgBuf, err := reader.ReadBytes('\n')
-			if err != nil { // TODO: do something different if encountering a certain err? (io.EOF, net.OpErr)
-				// either client closed its own connection, or they disconnected without quit
-				c.Cancel()
-			} else {
-				msg := parse(lex(msgBuf))
-				// implicitly ignore all nil messages
-				if msg != nil {
-					s.executeMessage(msg, c)
-				}
+		case msgBuf := <-input:
+			msg := parse(lex(msgBuf))
+			// implicitly ignore all nil messages
+			if msg != nil {
+				s.msgQueue <- msgPair{msg, c}
 			}
 		}
 	}

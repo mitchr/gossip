@@ -28,7 +28,7 @@ type Channel struct {
 }
 
 func New(name string, t ChanType) *Channel {
-	return &Channel{name, t, util.NewList()}
+	return &Channel{Name: name, ChanType: t}
 }
 
 func (c Channel) String() string {
