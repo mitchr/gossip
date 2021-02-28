@@ -79,32 +79,3 @@ func (c *Client) Read(b []byte) (int, error) {
 func (c *Client) Close() error {
 	return c.conn.Close()
 }
-
-// ping client and wait for PONG response
-func (c *Client) PING(addr net.Addr) <-chan int {
-	// send PING to client
-	msg := fmt.Sprintf("PING :%s\r\n", addr.String())
-	c.Write([]byte(msg))
-
-	// next response should be a corresponding PONG
-	resp := make([]byte, 256)
-
-	// start timer to wait for PONG response
-	c.conn.SetReadDeadline(c.idleTimeout)
-	_, err := c.Read(resp)
-	if err != nil {
-		// time expired, close the connection
-		c.Close()
-	}
-	// set time back to normal
-	c.conn.SetReadDeadline(time.Time{})
-
-	if !strings.Contains(string(resp), "PONG") {
-		c.Close()
-		return nil
-	} else {
-		pong := make(chan int, 1)
-		pong <- 1
-		return pong
-	}
-}
