@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
 	"sync"
 	"time"
 
@@ -62,6 +64,7 @@ func (s *Server) Serve() {
 		}
 	}()
 
+	// grabs messages from the queue and executes them in sequential order
 	go func() {
 		for {
 			msg := <-s.msgQueue
@@ -69,6 +72,14 @@ func (s *Server) Serve() {
 			s.executeMessage(msg.m, msg.c)
 			s.msgLock.Unlock()
 		}
+	}()
+
+	// capture OS interrupt signal so that we can gracefully shutdown server
+	interrupt := make(chan os.Signal)
+	signal.Notify(interrupt, os.Interrupt)
+	go func() {
+		<-interrupt
+		s.Close()
 	}()
 
 	s.wg.Add(1)
