@@ -197,11 +197,12 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 
 // TODO: actually calculate invisible and connected servers for response
 func (s *Server) LUSERS(c *client.Client) {
-	c.Write(fmt.Sprintf(RPL_LUSERCLIENT, s.Listener.Addr(), c.Nick, len(s.Clients), 0, 0))
-	c.Write(fmt.Sprintf(RPL_LUSEROP, s.Listener.Addr(), c.Nick, 0))
-	c.Write(fmt.Sprintf(RPL_LUSERUNKNOWN, s.Listener.Addr(), c.Nick, 0))
-	c.Write(fmt.Sprintf(RPL_LUSERCHANNELS, s.Listener.Addr(), c.Nick, len(s.Channels)))
-	c.Write(fmt.Sprintf(RPL_LUSERME, s.Listener.Addr(), c.Nick, len(s.Clients), 0))
+	c.Write(fmt.Sprintf(RPL_LUSERCLIENT, s.Listener.Addr(), c.Nick, len(s.Clients), 0, 0) +
+		fmt.Sprintf(RPL_LUSEROP, s.Listener.Addr(), c.Nick, 0) +
+		fmt.Sprintf(RPL_LUSERUNKNOWN, s.Listener.Addr(), c.Nick, 0) +
+		fmt.Sprintf(RPL_LUSERCHANNELS, s.Listener.Addr(), c.Nick, len(s.Channels)) +
+		fmt.Sprintf(RPL_LUSERME, s.Listener.Addr(), c.Nick, len(s.Clients), 0),
+	)
 	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
 }
 
@@ -232,14 +233,13 @@ func (s *Server) endRegistration(c *client.Client) {
 		s.Clients[c.Nick] = c
 
 		// send RPL_WELCOME and friends in acceptance
-		c.Write(fmt.Sprintf(RPL_WELCOME, s.Listener.Addr(), c.Nick, c.Prefix()))
-		c.Write(fmt.Sprintf(RPL_YOURHOST, s.Listener.Addr(), c.Nick, s.Listener.Addr()))
-		c.Write(fmt.Sprintf(RPL_CREATED, s.Listener.Addr(), c.Nick, s.Created))
-
+		c.Write(fmt.Sprintf(RPL_WELCOME, s.Listener.Addr(), c.Nick, c.Prefix()) +
+			fmt.Sprintf(RPL_YOURHOST, s.Listener.Addr(), c.Nick, s.Listener.Addr()) +
+			fmt.Sprintf(RPL_CREATED, s.Listener.Addr(), c.Nick, s.Created) +
 		// TODO: send proper response messages
-		c.Write(fmt.Sprintf(RPL_MYINFO, s.Listener.Addr(), c.Nick, s.Listener.Addr(), "", "", ""))
-		c.Write(fmt.Sprintf(RPL_ISUPPORT, s.Listener.Addr(), c.Nick, ""))
-
+			fmt.Sprintf(RPL_MYINFO, s.Listener.Addr(), c.Nick, s.Listener.Addr(), "", "", "") +
+			fmt.Sprintf(RPL_ISUPPORT, s.Listener.Addr(), c.Nick, ""),
+		)
 		s.LUSERS(c)
 		s.MOTD(c)
 	}
