@@ -23,15 +23,22 @@ type Client struct {
 }
 
 func New(conn net.Conn) *Client {
-	return &Client{
+	c := &Client{
 		Host: conn.RemoteAddr(),
 		conn: conn,
-
-		// when the connection begins, start a timeout that fires if the connection goes silent for x amount of time
-		// before capability negotiation, this timeout will be short
-		// after the user is established, give them more time
-		idleTimeout: time.Now().Add(10 * time.Second),
 	}
+
+	// give a small window for client to register before kicking them off
+	go func() {
+		<-time.After(time.Second * 10)
+		if !c.Registered {
+			// TODO: send a QUIT message to this client with reason?
+			c.Cancel()
+			return
+	}
+	}()
+
+	return c
 }
 
 func (c Client) Equals(i interface{}) bool {
