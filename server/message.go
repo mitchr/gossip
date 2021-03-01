@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
@@ -187,6 +188,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		// PING from a connected client is meant for this server
 		c.Write(fmt.Sprintf(":%s PONG", s.Listener.Addr()))
 	case "PONG":
+		c.ExpectingPONG = false
 		// TODO: ignore for now, but like PING, PONG can be meant for
 		// multiple servers so we need to investigate params
 		return
@@ -236,11 +238,29 @@ func (s *Server) endRegistration(c *client.Client) {
 		c.Write(fmt.Sprintf(RPL_WELCOME, s.Listener.Addr(), c.Nick, c.Prefix()) +
 			fmt.Sprintf(RPL_YOURHOST, s.Listener.Addr(), c.Nick, s.Listener.Addr()) +
 			fmt.Sprintf(RPL_CREATED, s.Listener.Addr(), c.Nick, s.Created) +
-		// TODO: send proper response messages
+			// TODO: send proper response messages
 			fmt.Sprintf(RPL_MYINFO, s.Listener.Addr(), c.Nick, s.Listener.Addr(), "", "", "") +
 			fmt.Sprintf(RPL_ISUPPORT, s.Listener.Addr(), c.Nick, ""),
 		)
 		s.LUSERS(c)
 		s.MOTD(c)
+
+		// start PING timer
+		go func() {
+			ticker := time.NewTicker(time.Minute * 3)
+			// wait 3 minutes, send PING
+			// if client doesn't respond with a PONG in 10 seconds, kick them
+			for {
+				<-ticker.C
+				c.ExpectingPONG = true
+				c.Write(fmt.Sprintf(":%s PING %s\r\n", s.Listener.Addr(), c.Nick))
+				time.Sleep(time.Second * 10)
+				if c.ExpectingPONG {
+					c.Cancel()
+					ticker.Stop()
+					return
+				}
+			}
+		}()
 	}
 }

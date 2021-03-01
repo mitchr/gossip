@@ -10,18 +10,18 @@ import (
 )
 
 type Client struct {
-	Nick        string
-	User        string
-	Realname    string
-	Host        net.Addr
-	conn        net.Conn
-	idleTimeout time.Time
-	Cancel      context.CancelFunc // need to store for QUIT
+	Nick     string
+	User     string
+	Realname string
+	Host     net.Addr
 
-	// True if client is registered (nick/user passed)
-	Registered bool
+	conn          net.Conn
+	ExpectingPONG bool
+	Cancel        context.CancelFunc // need to store for QUIT
+	Registered    bool
 }
 
+// TODO: default values for Nick, User, and Realname? (maybe '*')
 func New(conn net.Conn) *Client {
 	c := &Client{
 		Host: conn.RemoteAddr(),
@@ -35,7 +35,7 @@ func New(conn net.Conn) *Client {
 			// TODO: send a QUIT message to this client with reason?
 			c.Cancel()
 			return
-	}
+		}
 	}()
 
 	return c
