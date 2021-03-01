@@ -125,7 +125,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 
 		//when 'JOIN 0', PART from every channel client is a member of
 		if params[0] == "0" {
-			for _, v := range s.getAllChannelsForClient(c) {
+			for _, v := range s.channelsOf(c) {
 				s.PART(c, v.String())
 			}
 			return
@@ -177,8 +177,8 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 
 		// send QUIT to all channels that client is connected to, and
 		// remove that client from the channel
-		for _, v := range s.getAllChannelsForClient(c) {
-			s.removeClientFromChannel(c, v, fmt.Sprintf(":%s QUIT :%s\r\n", c.Prefix(), reason))
+		for _, v := range s.channelsOf(c) {
+			s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :%s\r\n", c.Prefix(), reason))
 		}
 
 		c.Cancel()
@@ -223,7 +223,7 @@ func (s *Server) PART(client *client.Client, chanStr string) {
 			return
 		}
 
-		s.removeClientFromChannel(client, ch, fmt.Sprintf("%s PART %s\r\n", client.Prefix(), ch))
+		s.removeFromChannel(client, ch, fmt.Sprintf("%s PART %s\r\n", client.Prefix(), ch))
 	}
 }
 

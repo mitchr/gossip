@@ -129,8 +129,8 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				// client may have been kicked off without first sending a QUIT
 				// command, so we need to remove them from all the channels they
 				// are still connected to
-				for _, v := range s.getAllChannelsForClient(c) {
-					s.removeClientFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(\r\n", c.Prefix()))
+				for _, v := range s.channelsOf(c) {
+					s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(\r\n", c.Prefix()))
 				}
 
 				c.Close()
@@ -147,7 +147,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	}
 }
 
-func (s *Server) removeClientFromChannel(c *client.Client, ch *channel.Channel, msg string) {
+func (s *Server) removeFromChannel(c *client.Client, ch *channel.Channel, msg string) {
 	// if this was the last client in the channel, destroy it
 	if len(ch.Clients) == 1 {
 		delete(s.Channels, ch.String())
@@ -158,7 +158,7 @@ func (s *Server) removeClientFromChannel(c *client.Client, ch *channel.Channel, 
 	}
 }
 
-func (s *Server) getAllChannelsForClient(c *client.Client) []*channel.Channel {
+func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 	l := []*channel.Channel{}
 
 	for _, v := range s.Channels {
