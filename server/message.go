@@ -62,12 +62,12 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 
 	switch m.command {
 	case "NICK":
-		if len(m.middle) != 1 {
+		if len(params) != 1 {
 			c.Write(fmt.Sprintf(ERR_NONICKNAMEGIVEN, s.Listener.Addr(), c.Nick))
 			return
 		}
 
-		nick := m.middle[0]
+		nick := params[0]
 
 		// if nickname is already in use, send back error
 		if s.Clients[nick] != nil {
@@ -118,13 +118,13 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 			// TODO: decide which error to send depending on which was not found, either channel or client
 		}
 	case "JOIN":
-		if len(m.middle) < 1 {
+		if len(params) < 1 {
 			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
 			return
 		}
 
 		//when 'JOIN 0', PART from every channel client is a member of
-		if m.middle[0] == "0" {
+		if params[0] == "0" {
 			for _, v := range s.getAllChannelsForClient(c) {
 				s.PART(c, v.String())
 			}
@@ -133,7 +133,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 
 		// TODO: support channel keys
 		// split all given channels by comma separator
-		chans := strings.Split(m.middle[0], ",")
+		chans := strings.Split(params[0], ",")
 		for _, v := range chans {
 			if ch, ok := s.Channels[v]; ok { // channel already exists
 				ch.Clients[c.Nick] = c
@@ -161,7 +161,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		}
 	case "PART":
 		// TODO: support <reason> parameter
-		chans := strings.Split(m.middle[0], ",")
+		chans := strings.Split(params[0], ",")
 		for _, v := range chans {
 			s.PART(c, v)
 		}
