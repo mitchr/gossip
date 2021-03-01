@@ -14,12 +14,6 @@ import (
 	"github.com/mitchr/gossip/client"
 )
 
-// A msgPair consists of a message and the client that sent it
-type msgPair struct {
-	m *message
-	c *client.Client
-}
-
 type Server struct {
 	Listener net.Listener
 	Created  time.Time
@@ -30,8 +24,7 @@ type Server struct {
 
 	// calling this cancel also cancels all the child client's contexts
 	cancel   context.CancelFunc
-	msgQueue chan msgPair
-	msgLock  *sync.Mutex
+	msgQueue chan func()
 	wg       sync.WaitGroup
 }
 
@@ -45,8 +38,7 @@ func New(port string) (*Server, error) {
 		Created:  time.Now(),
 		Clients:  make(map[string]*client.Client),
 		Channels: make(map[string]*channel.Channel),
-		msgQueue: make(chan msgPair, 2),
-		msgLock:  new(sync.Mutex),
+		msgQueue: make(chan func(), 2),
 	}, nil
 }
 
@@ -67,10 +59,7 @@ func (s *Server) Serve() {
 	// grabs messages from the queue and executes them in sequential order
 	go func() {
 		for {
-			msg := <-s.msgQueue
-			s.msgLock.Lock()
-			s.executeMessage(msg.m, msg.c)
-			s.msgLock.Unlock()
+			(<-s.msgQueue)()
 		}
 	}()
 
@@ -136,24 +125,23 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	for {
 		select {
 		case <-clientCtx.Done():
-			s.msgLock.Lock()
-			defer s.msgLock.Unlock()
+			s.msgQueue <- func() {
+				// client may have been kicked off without first sending a QUIT
+				// command, so we need to remove them from all the channels they
+				// are still connected to
+				for _, v := range s.getAllChannelsForClient(c) {
+					s.removeClientFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(\r\n", c.Prefix()))
+				}
 
-			// client may have been kicked off without first sending a QUIT
-			// command, so we need to remove them from all the channels they
-			// are still connected to
-			for _, v := range s.getAllChannelsForClient(c) {
-				s.removeClientFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(\r\n", c.Prefix()))
+				c.Close()
+				delete(s.Clients, c.Nick)
 			}
-
-			c.Close()
-			delete(s.Clients, c.Nick)
 			return
 		case msgBuf := <-input:
 			msg := parse(lex(msgBuf))
 			// implicitly ignore all nil messages
 			if msg != nil {
-				s.msgQueue <- msgPair{msg, c}
+				s.msgQueue <- func() { s.executeMessage(msg, c) }
 			}
 		}
 	}
