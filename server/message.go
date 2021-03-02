@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -92,8 +94,15 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 			return
 		}
 
-		// TODO: determine user mode from params[1] (RFC2812)
+		modeBits, err := strconv.Atoi(params[1])
+		if err != nil {
+			// TODO: really, no error code for this?
+			log.Println(err)
+			return
+		}
 
+		// only allow user to make themselves invis or wallops
+		c.Mode = client.Mode(modeBits) & (client.Invisible | client.Wallops)
 		c.User = params[0]
 		c.Realname = params[3]
 		s.endRegistration(c)
@@ -192,6 +201,17 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		// TODO: ignore for now, but like PING, PONG can be meant for
 		// multiple servers so we need to investigate params
 		return
+	case "WALLOPS":
+		if len(params) != 1 {
+			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
+			return
+		}
+		// TODO: only allows WALLOPS from another server; can be abused by clients
+		for _, v := range s.Clients {
+			if v.Mode&client.Wallops == client.Wallops {
+				v.Write(fmt.Sprintf("%s WALLOPS %s\r\n", s.Listener.Addr(), params[1]))
+			}
+		}
 	default:
 		c.Write(fmt.Sprintf(ERR_UNKNOWNCOMMAND, s.Listener.Addr(), c.Nick, m.command))
 	}

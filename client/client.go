@@ -14,6 +14,7 @@ type Client struct {
 	User     string
 	Realname string
 	Host     net.Addr
+	Mode     Mode
 
 	conn          net.Conn
 	ExpectingPONG bool
