@@ -158,6 +158,38 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		for _, v := range chans {
 			s.PART(c, v)
 		}
+	case "TOPIC":
+		if len(params) < 1 {
+			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
+			return
+		}
+
+		// TODO: allow 'TOPIC &chan :' to clear the channel's topic. this
+		// is difficult because the parser currently discards a trailing
+		// parameter if it's empty
+		if ch := s.Channels[params[0]]; ch != nil {
+			if _, belongs := ch.Clients[c.Nick]; belongs {
+				if len(params) == 2 { // modify topic
+					// TODO: don't allow modifying topic if client doesn't have
+					// proper privileges 'ERR_CHANOPRIVSNEEDED'
+					ch.Topic = params[1]
+					c.Write(fmt.Sprintf(RPL_TOPIC, s.Listener.Addr(), c.Nick, ch, ch.Topic))
+				} else {
+					if ch.Topic == "" {
+						c.Write(fmt.Sprintf(RPL_NOTOPIC, s.Listener.Addr(), c.Nick, ch))
+					} else { // give back existing topic
+						c.Write(fmt.Sprintf(RPL_TOPIC, s.Listener.Addr(), c.Nick, ch, ch.Topic))
+					}
+				}
+
+			} else {
+				c.Write(fmt.Sprintf(ERR_NOTONCHANNEL, s.Listener.Addr(), c.Nick, ch))
+				return
+			}
+		} else {
+			c.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), c.Nick, ch))
+			return
+		}
 	case "LUSERS":
 		s.LUSERS(c)
 	case "MOTD":

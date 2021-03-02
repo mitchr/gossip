@@ -23,13 +23,18 @@ const ()
 type Channel struct {
 	Name     string
 	ChanType ChanType
+	Topic    string
 
 	// map of Nick to undelying client
 	Clients map[string]*client.Client
 }
 
 func New(name string, t ChanType) *Channel {
-	return &Channel{name, t, make(map[string]*client.Client)}
+	return &Channel{
+		Name:     name,
+		ChanType: t,
+		Clients:  make(map[string]*client.Client),
+	}
 }
 
 func (c Channel) String() string {

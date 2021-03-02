@@ -13,6 +13,9 @@ const (
 	RPL_LUSERCHANNELS = ":%s 254 %s %d :channels formed\r\n"
 	RPL_LUSERME       = ":%s 255 %s :I have %d clients and %d servers\r\n"
 
+	RPL_NOTOPIC = ":%s 331 %s %s :No topic is set\r\n"
+	RPL_TOPIC   = ":%s 332 %s %s :%s\r\n"
+
 	RPL_MOTDSTART = ":%s 375 %s :- %s Message of the Day -\r\n"
 	RPL_MOTD      = ":%s 371 %s :%s\r\n"
 	RPL_ENDOFMOTD = ":%s 376 %s :End of /MOTD command.\r\n"

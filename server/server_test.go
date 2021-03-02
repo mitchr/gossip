@@ -125,6 +125,32 @@ func TestChannelCreation(t *testing.T) {
 	})
 }
 
+func TestTOPIC(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("alice", "Alice Smith")
+	defer c.Close()
+
+	c.Write([]byte("JOIN &test\r\n"))
+	r.ReadBytes('\n')
+
+	c.Write([]byte("TOPIC &test\r\n"))
+	c.Write([]byte("TOPIC &test :This is a test\r\n"))
+	c.Write([]byte("TOPIC &test\r\n"))
+
+	unchanged, _ := r.ReadBytes('\n')
+	assertResponse(unchanged, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Listener.Addr()), t)
+	changed, _ := r.ReadBytes('\n')
+	assertResponse(changed, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Listener.Addr()), t)
+	retrieve, _ := r.ReadBytes('\n')
+	assertResponse(retrieve, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Listener.Addr()), t)
+}
+
 func TestPRIVMSG(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {
@@ -169,6 +195,12 @@ func connectAndRegister(nick, realname string) (net.Conn, *bufio.Reader) {
 	}
 
 	return c, r
+}
+
+func assertResponse(resp []byte, eq string, t *testing.T) {
+	if string(resp) != eq {
+		t.Fail()
+	}
 }
 
 func poll(s interface{}, eq interface{}) bool {
