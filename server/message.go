@@ -107,25 +107,9 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		c.Realname = params[3]
 		s.endRegistration(c)
 	case "PRIVMSG":
-		if len(params) < 2 {
-			c.Write(fmt.Sprintf(ERR_NOTEXTTOSEND, s.Listener.Addr(), c.Nick))
-			return
-		}
-
-		recipients := strings.Split(params[0], ",")
-		msg := params[1]
-		for _, v := range recipients {
-			if ch, ok := s.Channels[v]; ok {
-				ch.Write(fmt.Sprintf(":%s PRIVMSG %s :%s\r\n", c.Prefix(), v, msg))
-				continue
-			}
-			if client, ok := s.Clients[v]; ok {
-				client.Write(fmt.Sprintf(":%s PRIVMSG %s :%s\r\n", c.Prefix(), v, msg))
-				continue
-			}
-
-			// TODO: decide which error to send depending on which was not found, either channel or client
-		}
+		s.communicate(params, c, false)
+	case "NOTICE":
+		s.communicate(params, c, true)
 	case "JOIN":
 		if len(params) < 1 {
 			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
@@ -214,6 +198,35 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		}
 	default:
 		c.Write(fmt.Sprintf(ERR_UNKNOWNCOMMAND, s.Listener.Addr(), c.Nick, m.command))
+	}
+}
+
+// communicate is used for PRIVMSG/NOTICE. if notice is set to true,
+// then error replies from the server will not be sent.
+func (s *Server) communicate(params []string, c *client.Client, notice bool) {
+	command := "PRIVMSG"
+	if notice {
+		command = "NOTICE"
+	}
+
+	if !notice && len(params) < 2 {
+		c.Write(fmt.Sprintf(ERR_NOTEXTTOSEND, s.Listener.Addr(), c.Nick))
+		return
+	}
+
+	recipients := strings.Split(params[0], ",")
+	msg := params[1]
+	for _, v := range recipients {
+		if ch, ok := s.Channels[v]; ok {
+			ch.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c.Prefix(), command, v, msg))
+			continue
+		}
+		if client, ok := s.Clients[v]; ok {
+			client.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c.Prefix(), command, v, msg))
+			continue
+		}
+
+		// TODO: decide which error to send depending on which was not found, either channel or client
 	}
 }
 
