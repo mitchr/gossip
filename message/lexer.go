@@ -66,7 +66,7 @@ func (l *lexer) push(t tokenType) {
 	l.start = l.position
 }
 
-func Lex(b []byte) []token {
+func lex(b []byte) []token {
 	l := &lexer{
 		state: lexAny,
 		input: b,
