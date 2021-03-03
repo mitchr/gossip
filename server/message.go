@@ -138,12 +138,10 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 				chanChar := channel.ChanType(v[0])
 				chanName := v[1:]
 
-				if chanChar == channel.Remote {
-				}
 				if chanChar != channel.Remote && chanChar != channel.Local {
 					// TODO: is there a response code for this case?
 					// maybe 403 nosuchchannel?
-					continue
+					return
 				}
 
 				ch := channel.New(chanName, chanChar)
