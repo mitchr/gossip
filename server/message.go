@@ -9,60 +9,18 @@ import (
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/message"
 )
 
-// a message represents a single irc message
-type message struct {
-	tags             map[string]string
-	nick, user, host string // source/prefix information
-	command          string
-	middle           []string // command parameters
-	trailing         string   // also a command parameter but after ':'
-}
-
-// TODO: print tags as well
-func (m message) String() string {
-	var prefix string
-	if m.user != "" {
-		prefix = fmt.Sprintf(":%s!%s@%s", m.nick, m.user, m.host)
-	} else if m.host != "" {
-		prefix = fmt.Sprintf(":%s@%s", m.nick, m.host)
-	} else if m.nick != "" {
-		prefix = ":" + m.nick
-	} else {
-		prefix = ":*"
-	}
-
-	var params string
-	for _, v := range m.middle {
-		params += v + " "
-	}
-	if m.trailing != "" {
-		params += ":" + m.trailing
-	} else {
-		params = params[:len(params)-1] // trim trailing space
-	}
-
-	return fmt.Sprintf("%s %s %s\r\n", prefix, m.command, params)
-}
-
-// merge middle and trailing into one slice
-func (m message) parameters() []string {
-	if m.trailing == "" {
-		return m.middle
-	}
-	return append(m.middle, m.trailing)
-}
-
-func (s *Server) executeMessage(m *message, c *client.Client) {
+func (s *Server) executeMessage(m *message.Message, c *client.Client) {
 	// ignore unregistered user commands until registration completes
-	if !c.Registered && (m.command != "CAP" && m.command != "NICK" && m.command != "USER" && m.command != "PASS") {
+	if !c.Registered && (m.Command != "CAP" && m.Command != "NICK" && m.Command != "USER" && m.Command != "PASS") {
 		return
 	}
 
-	params := m.parameters()
+	params := m.Parameters()
 
-	switch m.command {
+	switch m.Command {
 	case "NICK":
 		if len(params) != 1 {
 			c.Write(fmt.Sprintf(ERR_NONICKNAMEGIVEN, s.Listener.Addr(), c.Nick))
@@ -90,7 +48,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 			c.Write(fmt.Sprintf(ERR_ALREADYREGISTRED, s.Listener.Addr(), c.Nick))
 			return
 		} else if len(params) != 4 {
-			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
+			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.Command))
 			return
 		}
 
@@ -112,7 +70,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		s.communicate(params, c, true)
 	case "JOIN":
 		if len(params) < 1 {
-			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
+			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.Command))
 			return
 		}
 
@@ -158,7 +116,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		}
 	case "TOPIC":
 		if len(params) < 1 {
-			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
+			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.Command))
 			return
 		}
 
@@ -221,7 +179,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		return
 	case "WALLOPS":
 		if len(params) != 1 {
-			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.command))
+			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.Command))
 			return
 		}
 		// TODO: only allows WALLOPS from another server; can be abused by clients
@@ -231,7 +189,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 			}
 		}
 	default:
-		c.Write(fmt.Sprintf(ERR_UNKNOWNCOMMAND, s.Listener.Addr(), c.Nick, m.command))
+		c.Write(fmt.Sprintf(ERR_UNKNOWNCOMMAND, s.Listener.Addr(), c.Nick, m.Command))
 	}
 }
 

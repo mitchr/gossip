@@ -1,4 +1,4 @@
-package server
+package message
 
 import (
 	"fmt"
@@ -19,8 +19,8 @@ func TestLexParams(t *testing.T) {
 
 	for k, v := range tests {
 		t.Run(k, func(t *testing.T) {
-			if !reflect.DeepEqual(lex([]byte(k)), v) {
-				fmt.Println(lex([]byte(k)))
+			if !reflect.DeepEqual(Lex([]byte(k)), v) {
+				fmt.Println(Lex([]byte(k)))
 				t.Errorf("Failed to lex %s\n", k)
 			}
 		})

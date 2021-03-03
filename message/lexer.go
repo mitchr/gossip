@@ -2,7 +2,7 @@
 // https://github.com/robpike/ivy
 // https://www.youtube.com/watch?v=PXoG0WX0r_E
 
-package server
+package message
 
 import (
 	"log"
@@ -66,7 +66,7 @@ func (l *lexer) push(t tokenType) {
 	l.start = l.position
 }
 
-func lex(b []byte) []token {
+func Lex(b []byte) []token {
 	l := &lexer{
 		state: lexAny,
 		input: b,
