@@ -278,6 +278,9 @@ func (s *Server) MOTD(c *client.Client) {
 }
 
 func (s *Server) PART(client *client.Client, chanStr string) {
+	// TODO: could refactor this below if check into a func like
+	// 'chanExistsandUserBelongs'; this logic is also used in TOPIC and
+	// will probably be used elsewhere!
 	if ch, ok := s.Channels[chanStr]; !ok { // channel not found
 		client.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), client.Nick, ch))
 	} else {
