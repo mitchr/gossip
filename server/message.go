@@ -129,7 +129,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		chans := strings.Split(params[0], ",")
 		for _, v := range chans {
 			if ch, ok := s.Channels[v]; ok { // channel already exists
-				ch.Clients[c.Nick] = c
+				ch.Members[c.Nick] = channel.NewMember(c, "")
 				// send JOIN to all participants of channel
 				ch.Write(fmt.Sprintf(":%s JOIN %s\r\n", c.Prefix(), v))
 
@@ -148,7 +148,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 
 				ch := channel.New(chanName, chanChar)
 				s.Channels[ch.String()] = ch
-				ch.Clients[c.Nick] = c
+				ch.Members[c.Nick] = channel.NewMember(c, string(channel.Founder))
 				c.Write(fmt.Sprintf(":%s JOIN %s\r\n", c.Prefix(), ch))
 			}
 		}
@@ -168,7 +168,7 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 		// is difficult because the parser currently discards a trailing
 		// parameter if it's empty
 		if ch := s.Channels[params[0]]; ch != nil {
-			if _, belongs := ch.Clients[c.Nick]; belongs {
+			if _, belongs := ch.Members[c.Nick]; belongs {
 				if len(params) == 2 { // modify topic
 					// TODO: don't allow modifying topic if client doesn't have
 					// proper privileges 'ERR_CHANOPRIVSNEEDED'
@@ -283,7 +283,7 @@ func (s *Server) PART(client *client.Client, chanStr string) {
 	if ch, ok := s.Channels[chanStr]; !ok { // channel not found
 		client.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), client.Nick, ch))
 	} else {
-		if ch.Clients[client.Nick] == nil { // client does not belong to channel
+		if ch.Members[client.Nick] == nil { // client does not belong to channel
 			client.Write(fmt.Sprintf(ERR_NOTONCHANNEL, s.Listener.Addr(), client.Nick, chanStr))
 			return
 		}

@@ -149,11 +149,11 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 
 func (s *Server) removeFromChannel(c *client.Client, ch *channel.Channel, msg string) {
 	// if this was the last client in the channel, destroy it
-	if len(ch.Clients) == 1 {
+	if len(ch.Members) == 1 {
 		delete(s.Channels, ch.String())
 	} else {
 		// message all remaining channel participants
-		delete(ch.Clients, c.Nick)
+		delete(ch.Members, c.Nick)
 		ch.Write(msg)
 	}
 }
@@ -162,7 +162,7 @@ func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 	l := []*channel.Channel{}
 
 	for _, v := range s.Channels {
-		if v.Clients[c.Nick] != nil {
+		if v.Members[c.Nick] != nil {
 			l = append(l, v)
 		}
 	}
