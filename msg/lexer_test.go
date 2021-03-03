@@ -19,8 +19,8 @@ func TestLexParams(t *testing.T) {
 
 	for k, v := range tests {
 		t.Run(k, func(t *testing.T) {
-			if !reflect.DeepEqual(lex([]byte(k)), v) {
-				fmt.Println(lex([]byte(k)))
+			if !reflect.DeepEqual(lex([]byte(k), lexMessage), v) {
+				fmt.Println(lex([]byte(k), lexMessage))
 				t.Errorf("Failed to lex %s\n", k)
 			}
 		})

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestParse(t *testing.T) {
+func TestParseMessage(t *testing.T) {
 	tests := []struct {
 		b []byte
 		m *Message
@@ -22,6 +22,26 @@ func TestParse(t *testing.T) {
 	for _, v := range tests {
 		if !reflect.DeepEqual(ParseMessage(v.b), v.m) {
 			t.Fatal("parse error", ParseMessage(v.b), v.m)
+		}
+	}
+}
+
+func TestParseMode(t *testing.T) {
+	tests := []struct {
+		i        string
+		add, sub []rune
+	}{
+		{"+m", []rune{'m'}, nil},
+		{"+mb", []rune{'m', 'b'}, nil},
+		{"-i", nil, []rune{'i'}},
+		{"+a-i", []rune{'a'}, []rune{'i'}},
+		{"+a+b+c-de+f-g", []rune{'a', 'b', 'c', 'f'}, []rune{'d', 'e', 'g'}},
+	}
+
+	for _, v := range tests {
+		a, s := ParseMode([]byte(v.i))
+		if !reflect.DeepEqual(a, v.add) || !reflect.DeepEqual(s, v.sub) {
+			t.Error(a, v.add, s, v.sub)
 		}
 	}
 }

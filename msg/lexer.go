@@ -6,20 +6,26 @@ package msg
 
 import (
 	"log"
+	"unicode"
 )
 
 type tokenType int
 
 const (
-	// tokens used in parameter matching
+	eof = -1
+
+	// message parameter matching
 	nospcrlfcl tokenType = iota
 	at
 	colon
 	exclam
-
 	space
 	crlf
-	eof = -1
+
+	// modeStr
+	plus tokenType = iota
+	minus
+	modechar
 )
 
 type token struct {
@@ -39,7 +45,7 @@ type lexer struct {
 
 func (l *lexer) next() rune {
 	if l.position == len(l.input) {
-		return eof
+		return rune(eof)
 	}
 
 	r := rune(l.input[l.position])
@@ -66,9 +72,9 @@ func (l *lexer) push(t tokenType) {
 	l.start = l.position
 }
 
-func lex(b []byte) []token {
+func lex(b []byte, initState state) []token {
 	l := &lexer{
-		state: lexAny,
+		state: initState,
 		input: b,
 	}
 
@@ -79,7 +85,7 @@ func lex(b []byte) []token {
 	return l.tokens
 }
 
-func lexAny(l *lexer) state {
+func lexMessage(l *lexer) state {
 	switch r := l.next(); {
 	case r == eof:
 		return nil
@@ -88,30 +94,49 @@ func lexAny(l *lexer) state {
 			l.next()
 			l.push(crlf)
 		}
-		return lexAny
+		return lexMessage
 	case r == ' ':
 		for l.peek() == ' ' {
 			l.next()
 		}
 		l.push(space)
-		return lexAny
+		return lexMessage
 	case r == ':':
 		l.push(colon)
-		return lexAny
+		return lexMessage
 	case r == '@':
 		l.push(at)
-		return lexAny
+		return lexMessage
 	case r == '!':
 		l.push(exclam)
-		return lexAny
+		return lexMessage
 	case isNospcrlfcl(r):
 		for s := l.peek(); isNospcrlfcl(s) && s != eof; s = l.peek() {
 			l.next()
 		}
 		l.push(nospcrlfcl)
-		return lexAny
+		return lexMessage
 	default:
 		log.Println("Unrecognized character: ", r, string(r))
+		return nil
+	}
+}
+
+// mode lexing
+func lexMode(l *lexer) state {
+	switch r := l.next(); {
+	case r == eof:
+		return nil
+	case r == '+':
+		l.push(plus)
+		return lexMode
+	case r == '-':
+		l.push(minus)
+		return lexMode
+	case unicode.IsLetter(r): // isLetter == a-zA-z?
+		l.push(modechar)
+		return lexMode
+	default:
 		return nil
 	}
 }

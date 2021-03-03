@@ -37,7 +37,7 @@ func (p *parser) expect(t tokenType) bool {
 // given a slice of tokens, produce a corresponding irc message
 // uses recursive descent obv
 func ParseMessage(b []byte) *Message {
-	p := &parser{tokens: lex(b)}
+	p := &parser{tokens: lex(b, lexMessage)}
 	m := &Message{}
 
 	if p.peek().tokenType == at {
