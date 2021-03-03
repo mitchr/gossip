@@ -188,6 +188,10 @@ func (s *Server) executeMessage(m *message, c *client.Client) {
 			c.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), c.Nick, ch))
 			return
 		}
+	case "NAMES":
+		if len(params) != 1 {
+			c.Write(fmt.Sprintf(RPL_ENDOFNAMES, s.Listener.Addr(), c.Nick, "*"))
+		}
 	case "LUSERS":
 		s.LUSERS(c)
 	case "MOTD":

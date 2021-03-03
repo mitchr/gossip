@@ -16,9 +16,12 @@ const (
 	RPL_NOTOPIC = ":%s 331 %s %s :No topic is set\r\n"
 	RPL_TOPIC   = ":%s 332 %s %s :%s\r\n"
 
+	RPL_NAMREPLY   = ":%s 353 %s %s %s :$s\r\n"
+	RPL_ENDOFNAMES = ":%s 366 %s %s :End of /NAMES list\r\n"
+
 	RPL_MOTDSTART = ":%s 375 %s :- %s Message of the Day -\r\n"
 	RPL_MOTD      = ":%s 371 %s :%s\r\n"
-	RPL_ENDOFMOTD = ":%s 376 %s :End of /MOTD command.\r\n"
+	RPL_ENDOFMOTD = ":%s 376 %s :End of /MOTD command\r\n"
 
 	ERR_NOSUCHCHANNEL = ":%s 403 %s %s :No such channel\r\n"
 	ERR_NORECIPIENT   = ":%s 411 %s :No recipient given (%s)\r\n"
