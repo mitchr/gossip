@@ -20,8 +20,8 @@ func TestParse(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		if !reflect.DeepEqual(Parse(v.b), v.m) {
-			t.Fatal("parse error", Parse(v.b), v.m)
+		if !reflect.DeepEqual(ParseMessage(v.b), v.m) {
+			t.Fatal("parse error", ParseMessage(v.b), v.m)
 		}
 	}
 }
