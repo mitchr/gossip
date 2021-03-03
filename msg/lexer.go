@@ -2,7 +2,7 @@
 // https://github.com/robpike/ivy
 // https://www.youtube.com/watch?v=PXoG0WX0r_E
 
-package message
+package msg
 
 import (
 	"log"

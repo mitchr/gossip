@@ -9,10 +9,10 @@ import (
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
-	"github.com/mitchr/gossip/message"
+	"github.com/mitchr/gossip/msg"
 )
 
-func (s *Server) executeMessage(m *message.Message, c *client.Client) {
+func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	// ignore unregistered user commands until registration completes
 	if !c.Registered && (m.Command != "CAP" && m.Command != "NICK" && m.Command != "USER" && m.Command != "PASS") {
 		return

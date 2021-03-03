@@ -12,7 +12,7 @@ import (
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
-	"github.com/mitchr/gossip/message"
+	"github.com/mitchr/gossip/msg"
 )
 
 type Server struct {
@@ -139,7 +139,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			}
 			return
 		case msgBuf := <-input:
-			msg := message.Parse(msgBuf)
+			msg := msg.Parse(msgBuf)
 			// implicitly ignore all nil messages
 			if msg != nil {
 				s.msgQueue <- func() { s.executeMessage(msg, c) }
