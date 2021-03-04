@@ -20,10 +20,9 @@ func ParseMode(b []byte) (addSet []rune, subSet []rune) {
 				subSet = append(subSet, chars...)
 			}
 		} else {
-			break
+			return addSet, subSet
 		}
 	}
-	return addSet, subSet
 }
 
 // modeset = plusminus *( modechar )
