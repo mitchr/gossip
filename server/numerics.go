@@ -7,6 +7,8 @@ const (
 	RPL_MYINFO   = ":%s 004 %s %s %s %s %s\r\n"
 	RPL_ISUPPORT = ":%s 005 %s %s :are supported by this server\r\n"
 
+	RPL_UMODEIS = ":%s 221 %s %s\r\n"
+
 	RPL_LUSERCLIENT   = ":%s 251 %s :There are %d users and %d invisible on %d servers\r\n"
 	RPL_LUSEROP       = ":%s 252 %s %d :operator(s) online\r\n"
 	RPL_LUSERUNKNOWN  = ":%s 253 %s %d :unknown connection(s)\r\n"
@@ -34,4 +36,7 @@ const (
 	ERR_NICKNAMEINUSE    = ":%s 433 %s %s :Nickname is already in use\r\n"
 	ERR_NEEDMOREPARAMS   = ":%s 461 %s %s :Not enough parameters\r\n"
 	ERR_ALREADYREGISTRED = ":%s 462 %s :You may not reregister\r\n"
+
+	ERR_UMODEUNKNOWNFLAG = ":%s 501 %s :Unknown MODE flag\r\n"
+	ERR_USERSDONTMATCH   = ":%s 502 %s :Can't change mode for other users\r\n"
 )

@@ -1,6 +1,10 @@
 package client
 
-type Mode int
+import (
+	"github.com/mitchr/gossip/msg"
+)
+
+type Mode uint
 
 const (
 	None       Mode = 0
@@ -12,6 +16,42 @@ const (
 	LocalOp
 )
 
-func applyMode(s string, c *Client) {
+var letter = map[rune]Mode{
+	'i': Invisible,
+	'o': Op,
+	'O': LocalOp,
+	'r': Registered,
+	'w': Wallops,
+}
 
+func (m Mode) String() string {
+	s := ""
+	for k, v := range letter {
+		if m&v == v {
+			s += string(k)
+		}
+	}
+	return s
+}
+
+// given a modeStr, apply the modes to c. If one of the runes does not
+// correspond to a user mode, return it
+func (c *Client) ApplyMode(b []byte) bool {
+	add, sub := msg.ParseMode(b)
+	for _, v := range add {
+		if mode, ok := letter[v]; ok {
+			c.Mode |= mode
+		} else {
+			return false
+		}
+	}
+
+	for _, v := range sub {
+		if mode, ok := letter[v]; ok {
+			c.Mode &= ^mode
+		} else {
+			return false
+		}
+	}
+	return true
 }

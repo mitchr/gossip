@@ -154,6 +154,34 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		s.LUSERS(c)
 	case "MOTD":
 		s.MOTD(c)
+	case "MODE":
+		if len(params) < 1 {
+			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.Command))
+			return
+		}
+
+		target := params[0]
+		if !isChannel(target) {
+			if client, ok := s.Clients[target]; ok {
+				if client.Nick != c.Nick { // can't mofidy another user
+					c.Write(fmt.Sprintf(ERR_USERSDONTMATCH, s.Listener.Addr(), c.Nick))
+					return
+				}
+
+				if len(params) == 2 { // modify own mode
+					found := c.ApplyMode([]byte(params[1]))
+					if !found {
+						c.Write(fmt.Sprintf(ERR_UMODEUNKNOWNFLAG, s.Listener.Addr(), c.Nick))
+					}
+					c.Write(fmt.Sprintf(":%s MODE %s %s\r\n", s.Listener.Addr(), c.Nick, params[1]))
+				} else { // give back own mode
+					c.Write(fmt.Sprintf(RPL_UMODEIS, s.Listener.Addr(), c.Nick, c.Mode))
+				}
+			} else {
+				c.Write(fmt.Sprintf(ERR_NOSUCHNICK, s.Listener.Addr(), c.Nick, target))
+			}
+		}
+
 	case "QUIT":
 		reason := "" // assume client does not send a reason for quit
 		if len(params) > 0 {
