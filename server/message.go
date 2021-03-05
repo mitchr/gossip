@@ -209,16 +209,19 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 	recipients := strings.Split(params[0], ",")
 	msg := params[1]
 	for _, v := range recipients {
-		if ch, ok := s.Channels[v]; ok {
-			ch.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c.Prefix(), command, v, msg))
-			continue
+		if isChannel(v) {
+			if ch, ok := s.Channels[v]; ok {
+				ch.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c.Prefix(), command, v, msg))
+			} else if !notice {
+				c.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), c.Nick, v))
+			}
+		} else {
+			if client, ok := s.Clients[v]; ok {
+				client.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c.Prefix(), command, v, msg))
+			} else if !notice {
+				c.Write(fmt.Sprintf(ERR_NOSUCHNICK, s.Listener.Addr(), c.Nick, v))
+			}
 		}
-		if client, ok := s.Clients[v]; ok {
-			client.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c.Prefix(), command, v, msg))
-			continue
-		}
-
-		// TODO: decide which error to send depending on which was not found, either channel or client
 	}
 }
 
@@ -291,4 +294,9 @@ func (s *Server) endRegistration(c *client.Client) {
 			}
 		}()
 	}
+}
+
+// determine if the given string is a channel
+func isChannel(s string) bool {
+	return s[0] == byte(channel.Remote) || s[0] == byte(channel.Local)
 }

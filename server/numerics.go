@@ -23,6 +23,7 @@ const (
 	RPL_MOTD      = ":%s 371 %s :%s\r\n"
 	RPL_ENDOFMOTD = ":%s 376 %s :End of /MOTD command\r\n"
 
+	ERR_NOSUCHNICK    = ":%s 401 %s %s :No such nick/channel\r\n"
 	ERR_NOSUCHCHANNEL = ":%s 403 %s %s :No such channel\r\n"
 	ERR_NORECIPIENT   = ":%s 411 %s :No recipient given (%s)\r\n"
 	ERR_NOTEXTTOSEND  = ":%s 412 %s :No text to send\r\n"
