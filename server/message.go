@@ -89,7 +89,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 			if ch, ok := s.Channels[v]; ok { // channel already exists
 				ch.Members[c.Nick] = channel.NewMember(c, "")
 				// send JOIN to all participants of channel
-				ch.Write(fmt.Sprintf(":%s JOIN %s\r\n", c.Prefix(), v))
+				ch.Write(fmt.Sprintf(":%s JOIN %s\r\n", c, v))
 
 				// TODO: send RPL_TOPIC/RPL_NOTOPIC and RPL_NAMREPLY to current joiner
 			} else { // create new channel
@@ -105,7 +105,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 				ch := channel.New(chanName, chanChar)
 				s.Channels[ch.String()] = ch
 				ch.Members[c.Nick] = channel.NewMember(c, string(channel.Founder))
-				c.Write(fmt.Sprintf(":%s JOIN %s\r\n", c.Prefix(), ch))
+				c.Write(fmt.Sprintf(":%s JOIN %s\r\n", c, ch))
 			}
 		}
 	case "PART":
@@ -191,7 +191,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		// send QUIT to all channels that client is connected to, and
 		// remove that client from the channel
 		for _, v := range s.channelsOf(c) {
-			s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :%s\r\n", c.Prefix(), reason))
+			s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :%s\r\n", c, reason))
 		}
 
 		c.Cancel()
@@ -239,13 +239,13 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 	for _, v := range recipients {
 		if isChannel(v) {
 			if ch, ok := s.Channels[v]; ok {
-				ch.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c.Prefix(), command, v, msg))
+				ch.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c, command, v, msg))
 			} else if !notice {
 				c.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), c.Nick, v))
 			}
 		} else {
 			if client, ok := s.Clients[v]; ok {
-				client.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c.Prefix(), command, v, msg))
+				client.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c, command, v, msg))
 			} else if !notice {
 				c.Write(fmt.Sprintf(ERR_NOSUCHNICK, s.Listener.Addr(), c.Nick, v))
 			}
@@ -282,7 +282,7 @@ func (s *Server) PART(client *client.Client, chanStr string) {
 			return
 		}
 
-		s.removeFromChannel(client, ch, fmt.Sprintf("%s PART %s\r\n", client.Prefix(), ch))
+		s.removeFromChannel(client, ch, fmt.Sprintf("%s PART %s\r\n", client, ch))
 	}
 }
 
@@ -294,7 +294,7 @@ func (s *Server) endRegistration(c *client.Client) {
 		s.Clients[c.Nick] = c
 
 		// send RPL_WELCOME and friends in acceptance
-		c.Write(fmt.Sprintf(RPL_WELCOME, s.Listener.Addr(), c.Nick, c.Prefix()) +
+		c.Write(fmt.Sprintf(RPL_WELCOME, s.Listener.Addr(), c.Nick, c) +
 			fmt.Sprintf(RPL_YOURHOST, s.Listener.Addr(), c.Nick, s.Listener.Addr()) +
 			fmt.Sprintf(RPL_CREATED, s.Listener.Addr(), c.Nick, s.Created) +
 			// TODO: send proper response messages

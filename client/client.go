@@ -42,7 +42,7 @@ func New(conn net.Conn) *Client {
 	return c
 }
 
-func (c *Client) Prefix() string {
+func (c Client) String() string {
 	if c.User != "" {
 		return fmt.Sprintf("%s!%s@%s", c.Nick, c.User, c.Host)
 	} else if c.Host.String() != "" {
