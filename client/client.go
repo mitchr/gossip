@@ -42,17 +42,6 @@ func New(conn net.Conn) *Client {
 	return c
 }
 
-func (c Client) Equals(i interface{}) bool {
-	switch v := i.(type) {
-	case Client:
-		return c.Nick == v.Nick
-	case *Client:
-		return c.Nick == v.Nick
-	default:
-		return c.Nick == v
-	}
-}
-
 func (c *Client) Prefix() string {
 	if c.User != "" {
 		return fmt.Sprintf("%s!%s@%s", c.Nick, c.User, c.Host)
