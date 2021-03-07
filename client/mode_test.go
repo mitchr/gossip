@@ -1,23 +1,26 @@
 package client
 
 import (
-	"fmt"
 	"testing"
 )
 
 func TestModeApplication(t *testing.T) {
-	tests := [][]byte{
-		[]byte("+i"),
-		[]byte("+ir"),
-	}
-	for _, v := range tests {
-		c := &Client{}
-		c.ApplyMode(v)
-		fmt.Println(c.Mode)
+	tests := []struct {
+		in   string
+		mode Mode
+	}{
+		{"+i", Invisible},
+		{"+ir", Invisible | Registered},
+		{"+i-i", None},
+		{"+abcdefg", None}, //nonexistant modes
+		{"-abcdefg", None}, //nonexistant modes
 	}
 
-	c := &Client{}
-	c.ApplyMode([]byte("+i-i"))
-	// c.ApplyMode([]byte("-i"))
-	fmt.Println(c.Mode, uint(c.Mode))
+	for _, v := range tests {
+		c := &Client{}
+		c.ApplyMode([]byte(v.in))
+		if c.Mode != v.mode {
+			t.Error(uint(c.Mode), uint(v.mode))
+		}
+	}
 }
