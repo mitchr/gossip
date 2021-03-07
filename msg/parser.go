@@ -53,7 +53,7 @@ func ParseMessage(b []byte) *Message {
 	}
 	m.Command = p.command(p.next())
 	if p.peek().tokenType == space {
-		m.middle, m.trailing = p.params()
+		m.middle, m.trailing, m.trailingSet = p.params()
 	}
 	if !p.expect(crlf) {
 		log.Println("no crlf; ignoring")
@@ -103,7 +103,7 @@ func (p *parser) command(t token) string {
 }
 
 // *( SPACE middle ) [ SPACE ":" trailing ]
-func (p *parser) params() (middle []string, trailing string) {
+func (p *parser) params() (middle []string, trailing string, trailingSet bool) {
 	for {
 		// found end, so we are done
 		if r := p.peek().tokenType; r == crlf || r == eof {
@@ -115,6 +115,7 @@ func (p *parser) params() (middle []string, trailing string) {
 		r := p.next()
 		if r.tokenType == colon {
 			trailing = p.trailing()
+			trailingSet = true
 		} else if r.tokenType == nospcrlfcl {
 			middle = append(middle, p.middle(r))
 		}

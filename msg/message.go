@@ -9,6 +9,9 @@ type Message struct {
 	Command          string
 	middle           []string // command parameters
 	trailing         string   // also a command parameter but after ':'
+	// true if a trailing lexeme is found, even if trailing itself is blank
+	// this is used for TOPIC, in which a blank trailing message is significant
+	trailingSet bool
 }
 
 // TODO: print tags as well
@@ -39,7 +42,7 @@ func (m Message) String() string {
 
 // merge middle and trailing into one slice
 func (m Message) Parameters() []string {
-	if m.trailing == "" {
+	if !m.trailingSet {
 		return m.middle
 	}
 	return append(m.middle, m.trailing)

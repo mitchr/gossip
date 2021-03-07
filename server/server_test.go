@@ -142,6 +142,8 @@ func TestTOPIC(t *testing.T) {
 	c.Write([]byte("TOPIC &test\r\n"))
 	c.Write([]byte("TOPIC &test :This is a test\r\n"))
 	c.Write([]byte("TOPIC &test\r\n"))
+	c.Write([]byte("TOPIC &test :\r\n"))
+	c.Write([]byte("TOPIC &test\r\n"))
 
 	unchanged, _ := r.ReadBytes('\n')
 	assertResponse(unchanged, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Listener.Addr()), t)
@@ -149,6 +151,11 @@ func TestTOPIC(t *testing.T) {
 	assertResponse(changed, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Listener.Addr()), t)
 	retrieve, _ := r.ReadBytes('\n')
 	assertResponse(retrieve, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Listener.Addr()), t)
+
+	r.ReadBytes('\n')
+	clear, _ := r.ReadBytes('\n')
+	fmt.Println(string(clear))
+	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Listener.Addr()), t)
 }
 
 func TestPRIVMSG(t *testing.T) {

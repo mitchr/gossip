@@ -120,9 +120,6 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 			return
 		}
 
-		// TODO: allow 'TOPIC &chan :' to clear the channel's topic. this
-		// is difficult because the parser currently discards a trailing
-		// parameter if it's empty
 		if ch := s.Channels[params[0]]; ch != nil {
 			if _, belongs := ch.Members[c.Nick]; belongs {
 				if len(params) == 2 { // modify topic
