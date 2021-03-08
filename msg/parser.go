@@ -105,18 +105,18 @@ func (p *parser) command(t token) string {
 // *( SPACE middle ) [ SPACE ":" trailing ]
 func (p *parser) params() (middle []string, trailing string, trailingSet bool) {
 	for {
-		// found end, so we are done
-		if r := p.peek().tokenType; r == crlf || r == eof {
+		if p.peek().tokenType == space {
+			p.next() // consume space
+		} else {
 			return
 		}
 
-		// else, there is another parameter
-		p.expect(space)
 		r := p.next()
 		if r.tokenType == colon {
 			trailing = p.trailing()
 			trailingSet = true
-		} else if r.tokenType == nospcrlfcl {
+			return // trailing has to be at the end, so we're done
+		} else {
 			middle = append(middle, p.middle(r))
 		}
 	}
