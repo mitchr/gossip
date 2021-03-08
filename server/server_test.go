@@ -104,19 +104,28 @@ func TestChannelCreation(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, _ := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
 	defer c1.Close()
-	c2, _ := connectAndRegister("bob", "Bob Smith")
+	c2, r2 := connectAndRegister("bob", "Bob Smith")
 	defer c2.Close()
 	c1.Write([]byte("JOIN #local\r\n"))
+	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
+	r2.ReadBytes('\n')
+	r1.ReadBytes('\n') // alice reading bob's join msg
 
 	if !poll(&s.Channels, 1) {
 		t.Fatal("Could not create channel")
 	}
 
+	t.Run("TestChannelPART", func(t *testing.T) {
+		// c1 leaves, c2 should receive a PARTing message from them
+		c1.Write([]byte("PART #local :Goodbye\r\n"))
+		response, _ := r2.ReadBytes('\n')
+		assertResponse(response, fmt.Sprintf("%s PART #local :Goodbye\r\n", s.Clients["alice"]), t)
+	})
+
 	t.Run("TestChannelDestruction", func(t *testing.T) {
-		c1.Write([]byte("PART #local\r\n"))
 		c2.Write([]byte("PART #local\r\n"))
 
 		if !poll(&s.Channels, 0) {

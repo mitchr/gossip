@@ -77,7 +77,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		//when 'JOIN 0', PART from every channel client is a member of
 		if params[0] == "0" {
 			for _, v := range s.channelsOf(c) {
-				s.PART(c, v.String())
+				s.PART(c, v.String(), "")
 			}
 			return
 		}
@@ -109,10 +109,13 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 			}
 		}
 	case "PART":
-		// TODO: support <reason> parameter
 		chans := strings.Split(params[0], ",")
+		var reason string
+		if len(params) >= 2 {
+			reason = params[1]
+		}
 		for _, v := range chans {
-			s.PART(c, v)
+			s.PART(c, v, reason)
 		}
 	case "TOPIC":
 		if len(params) < 1 {
@@ -267,7 +270,7 @@ func (s *Server) MOTD(c *client.Client) {
 	c.Write(fmt.Sprintf(RPL_ENDOFMOTD, s.Listener.Addr(), c.Nick))
 }
 
-func (s *Server) PART(client *client.Client, chanStr string) {
+func (s *Server) PART(client *client.Client, chanStr string, reason string) {
 	// TODO: could refactor this below if check into a func like
 	// 'chanExistsandUserBelongs'; this logic is also used in TOPIC and
 	// will probably be used elsewhere!
@@ -279,7 +282,11 @@ func (s *Server) PART(client *client.Client, chanStr string) {
 			return
 		}
 
-		s.removeFromChannel(client, ch, fmt.Sprintf("%s PART %s\r\n", client, ch))
+		if reason == "" {
+			s.removeFromChannel(client, ch, fmt.Sprintf("%s PART %s\r\n", client, ch))
+		} else {
+			s.removeFromChannel(client, ch, fmt.Sprintf("%s PART %s :%s\r\n", client, ch, reason))
+		}
 	}
 }
 
