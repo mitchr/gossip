@@ -167,19 +167,24 @@ func TestPRIVMSG(t *testing.T) {
 	c2, r2 := connectAndRegister("bob", "Bob Smith")
 	defer c2.Close()
 	c1.Write([]byte("JOIN #local\r\n"))
-	c2.Write([]byte("JOIN #local\r\n"))
 	r1.ReadBytes('\n')
+	c2.Write([]byte("JOIN #local\r\n"))
 	r2.ReadBytes('\n')
+	r1.ReadBytes('\n')
 
 	t.Run("TestClientPRIVMSG", func(t *testing.T) {
+		// alice sends message to bob
 		c1.Write([]byte("PRIVMSG bob :hello\r\n"))
 		msgResp, _ := r2.ReadBytes('\n')
-		fmt.Println(string(msgResp))
+		assertResponse(msgResp, fmt.Sprintf(":%s PRIVMSG bob :hello\r\n", s.Clients["alice"]), t)
 	})
 	t.Run("TestChannelPRIVMSG", func(t *testing.T) {
+		// message sent to channel should broadcast to all members
 		c1.Write([]byte("PRIVMSG #local :hello\r\n"))
-		msgResp, _ := r2.ReadBytes('\n')
-		fmt.Println(string(msgResp))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hello\r\n", s.Clients["alice"]), t)
+		resp, _ = r2.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hello\r\n", s.Clients["alice"]), t)
 	})
 }
 
