@@ -19,48 +19,12 @@ func TestRegistration(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	conn, err := net.Dial("tcp", ":6667")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer conn.Close()
-
 	t.Run("RegisterClient", func(t *testing.T) {
-		_, err := conn.Write([]byte("NICK alice\r\n"))
-		if err != nil {
-			t.Error(err)
-		}
-
-		_, err = conn.Write([]byte("USER alice 0 * :Alice Smith\r\n"))
-		if err != nil {
-			t.Error(err)
-		}
-
-		r := bufio.NewReader(conn)
-		welcome, err := r.ReadBytes('\n')
-		if err != nil {
-			t.Error(err)
-		}
-		fmt.Println(string(welcome))
-
-		host, err := r.ReadBytes('\n')
-		if err != nil {
-			t.Error(err)
-		}
-		fmt.Println(string(host))
-
-		created, err := r.ReadBytes('\n')
-		if err != nil {
-			t.Error(err)
-		}
-		fmt.Println(string(created))
+		conn, _ := connectAndRegister("alice", "Alice Smith")
+		defer conn.Close()
 
 		// check to see if server is in correct state
 		c := s.Clients["alice"]
-
-		if c == nil {
-			t.Fatal("No client connection made")
-		}
 		if c.Nick != "alice" {
 			t.Errorf("Nick registered incorrectly. Got %s\n", c.Nick)
 		}
