@@ -64,6 +64,54 @@ func TestRegistration(t *testing.T) {
 	})
 }
 
+// test cases are taken from https://www.irc.com/dev/docs/refs/commands/pass
+func TestPASS(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	s.password = "letmein"
+	go s.Serve()
+
+	t.Run("TestPASSNotGiven", func(t *testing.T) {
+		c, _ := net.Dial("tcp", ":6667")
+		defer c.Close()
+		c.Write([]byte("NICK chris\r\n"))
+		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
+		resp, _ := bufio.NewReader(c).ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Listener.Addr()), t)
+		if !poll(&s.Clients, 0) {
+			t.Error("Could not kick client after icnorrect password")
+		}
+	})
+	t.Run("TestPASSIncorrect", func(t *testing.T) {
+		c, _ := net.Dial("tcp", ":6667")
+		defer c.Close()
+		c.Write([]byte("PASS opensesame\r\n"))
+		c.Write([]byte("NICK chris\r\n"))
+		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
+		resp, _ := bufio.NewReader(c).ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Listener.Addr()), t)
+		if !poll(&s.Clients, 0) {
+			t.Error("Could not kick client after icnorrect password")
+		}
+	})
+	t.Run("TestPASSCorrect", func(t *testing.T) {
+		c, _ := net.Dial("tcp", ":6667")
+		defer c.Close()
+		c.Write([]byte("PASS letmein\r\n"))
+		c.Write([]byte("NICK chris\r\n"))
+		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
+
+		if !poll(&s.Clients, 1) {
+			t.Error("Could not register, despite correct password")
+		}
+	})
+}
+
 func TestQUIT(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {

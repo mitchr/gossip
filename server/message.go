@@ -20,7 +20,22 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	params := m.Parameters()
 
 	switch m.Command {
+	case "PASS":
+		if c.BarredFromPass {
+			return
+		}
+		if c.Registered {
+			c.Write(fmt.Sprintf(ERR_ALREADYREGISTRED, s.Listener.Addr(), c.Nick))
+			return
+		} else if len(params) != 1 {
+			c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, m.Command))
+			return
+		}
+
+		c.ServerPassAttempt = params[0]
 	case "NICK":
+		c.BarredFromPass = true
+
 		if len(params) != 1 {
 			c.Write(fmt.Sprintf(ERR_NONICKNAMEGIVEN, s.Listener.Addr(), c.Nick))
 			return
@@ -41,6 +56,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		c.Nick = nick
 		s.endRegistration(c)
 	case "USER":
+		c.BarredFromPass = true
 		// TODO: Ident Protocol
 
 		if c.Registered {
@@ -288,9 +304,14 @@ func (s *Server) PART(client *client.Client, chanStr string, reason string) {
 }
 
 // TODO: If we add capability negotiation, then that logic will have to go here as well
-// when a client successfully calls USER/NICK, they are registered
 func (s *Server) endRegistration(c *client.Client) {
 	if c.Nick != "" && c.User != "" {
+		if c.ServerPassAttempt != s.password {
+			c.Write(fmt.Sprintf(ERR_PASSWDMISMATCH, s.Listener.Addr(), c.Nick))
+			// TODO: before cancel, send ERROR :Closing Link
+			c.Cancel()
+			return
+		}
 		c.Registered = true
 		s.Clients[c.Nick] = c
 

@@ -18,6 +18,7 @@ import (
 type Server struct {
 	Listener net.Listener
 	Created  time.Time
+	password string
 	// nick to underlying client
 	Clients map[string]*client.Client
 	// ChanType + name to channel

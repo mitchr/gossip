@@ -16,6 +16,9 @@ type Client struct {
 	Host     net.Addr
 	Mode     Mode
 
+	ServerPassAttempt string
+	BarredFromPass    bool // true if client has executed NICK/USER
+
 	conn          net.Conn
 	ExpectingPONG bool
 	Cancel        context.CancelFunc // need to store for QUIT

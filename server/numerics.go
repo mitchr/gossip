@@ -36,6 +36,7 @@ const (
 	ERR_NICKNAMEINUSE    = ":%s 433 %s %s :Nickname is already in use\r\n"
 	ERR_NEEDMOREPARAMS   = ":%s 461 %s %s :Not enough parameters\r\n"
 	ERR_ALREADYREGISTRED = ":%s 462 %s :You may not reregister\r\n"
+	ERR_PASSWDMISMATCH   = ":%s 464 %s :Password Incorrect\r\n"
 
 	ERR_UMODEUNKNOWNFLAG = ":%s 501 %s :Unknown MODE flag\r\n"
 	ERR_USERSDONTMATCH   = ":%s 502 %s :Can't change mode for other users\r\n"
