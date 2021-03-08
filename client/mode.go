@@ -49,7 +49,7 @@ func (c *Client) ApplyMode(b []byte) bool {
 
 	for _, v := range sub {
 		if mode, ok := letter[v]; ok {
-			c.Mode &= ^mode
+			c.Mode &^= mode // this is hilarious
 		} else {
 			return false
 		}
