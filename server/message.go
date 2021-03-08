@@ -211,7 +211,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		// TODO: params can contain other servers, in which case the PING
 		// will have to be redirected. For now, we can just assume that any
 		// PING from a connected client is meant for this server
-		c.Write(fmt.Sprintf(":%s PONG", s.Listener.Addr()))
+		c.Write(fmt.Sprintf(":%s PONG\r\n", s.Listener.Addr()))
 	case "PONG":
 		c.ExpectingPONG = false
 		// TODO: ignore for now, but like PING, PONG can be meant for
