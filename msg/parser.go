@@ -29,13 +29,12 @@ func (p *parser) peek() token {
 	return t
 }
 
-// TODO: whenever expect fails, then the entire message should fail
 func (p *parser) expect(t tokenType) bool {
 	return p.next().tokenType == t
 }
 
 // given a slice of tokens, produce a corresponding irc message
-// uses recursive descent obv
+//["@" tags SPACE] [":" source SPACE] command [params] crlf
 func ParseMessage(b []byte) *Message {
 	p := &parser{tokens: lex(b, lexMessage)}
 	m := &Message{}
@@ -52,9 +51,7 @@ func ParseMessage(b []byte) *Message {
 		}
 	}
 	m.Command = p.command(p.next())
-	if p.peek().tokenType == space {
-		m.middle, m.trailing, m.trailingSet = p.params()
-	}
+	m.middle, m.trailing, m.trailingSet = p.params()
 	if !p.expect(crlf) {
 		log.Println("no crlf; ignoring")
 		return nil

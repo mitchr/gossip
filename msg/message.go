@@ -42,8 +42,8 @@ func (m Message) String() string {
 
 // merge middle and trailing into one slice
 func (m Message) Parameters() []string {
-	if !m.trailingSet {
-		return m.middle
+	if m.trailingSet {
+		return append(m.middle, m.trailing)
 	}
-	return append(m.middle, m.trailing)
+	return m.middle
 }
