@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -54,9 +53,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 
 		modeBits, err := strconv.Atoi(params[1])
 		if err != nil {
-			// TODO: really, no error code for this?
-			log.Println(err)
-			return
+			return // fail silently if we can't parse mode param
 		}
 
 		// only allow user to make themselves invis or wallops
