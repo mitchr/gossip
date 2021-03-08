@@ -38,6 +38,30 @@ func TestRegistration(t *testing.T) {
 			t.Error("Client not registered")
 		}
 	})
+
+	t.Run("RegisterClientModes", func(t *testing.T) {
+		tests := []struct {
+			name    string
+			modeArg uint
+			mode    client.Mode
+		}{
+			{"a", 4, client.Invisible},
+			{"b", 8, client.Wallops},
+			{"c", 12, client.Invisible | client.Wallops},
+		}
+		for _, v := range tests {
+			conn, _ := net.Dial("tcp", ":6667")
+			conn.Write([]byte("NICK " + v.name + "\r\n"))
+			conn.Write([]byte(fmt.Sprintf("USER %s %v 0 :%s\r\n", v.name, v.modeArg, v.name)))
+			bufio.NewReader(conn).ReadBytes('\n') // reading the response guarantees that registration finishes
+
+			c := s.Clients[v.name]
+			if c.Mode != v.mode {
+				t.Error("Mode set incorrectly", c.Mode, v.modeArg, v.mode)
+			}
+			conn.Close()
+		}
+	})
 }
 
 func TestQUIT(t *testing.T) {
@@ -127,7 +151,6 @@ func TestTOPIC(t *testing.T) {
 
 	r.ReadBytes('\n')
 	clear, _ := r.ReadBytes('\n')
-	fmt.Println(string(clear))
 	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Listener.Addr()), t)
 }
 
