@@ -6,6 +6,7 @@ import (
 
 type Mode uint
 
+// Modes are represented as bit masks
 const (
 	None       Mode = 0
 	Registered Mode = 1 << iota
