@@ -68,12 +68,11 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		}
 
 		modeBits, err := strconv.Atoi(params[1])
-		if err != nil {
-			return // fail silently if we can't parse mode param
-		}
-
+		if err == nil {
 		// only allow user to make themselves invis or wallops
 		c.Mode = client.Mode(modeBits) & (client.Invisible | client.Wallops)
+		}
+
 		c.User = params[0]
 		c.Realname = params[3]
 		s.endRegistration(c)
