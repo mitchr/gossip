@@ -123,7 +123,7 @@ func (s *Server) endRegistration(c *client.Client) {
 	if c.Nick != "" && c.User != "" {
 		if c.ServerPassAttempt != s.password {
 			s.numericReply(c, ERR_PASSWDMISMATCH)
-			// TODO: before cancel, send ERROR :Closing Link
+			s.ERROR(c, "Closing Link: "+s.Listener.Addr().String()+" (Bad Password)")
 			c.Cancel()
 			return
 		}
@@ -362,6 +362,12 @@ func PONG(s *Server, c *client.Client, params []string) {
 	c.ExpectingPONG = false
 	// TODO: ignore for now, but like PING, PONG can be meant for
 	// multiple servers so we need to investigate params
+	return
+}
+
+// TODO: this is currently a noop, as a server should only accept ERROR
+// commands from other servers
+func ERROR(s *Server, c *client.Client, params []string) {
 	return
 }
 

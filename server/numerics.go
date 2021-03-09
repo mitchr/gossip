@@ -45,3 +45,7 @@ func (s *Server) numericReply(c *client.Client, format string, f ...interface{})
 	args = append(args, f...)
 	c.Write(fmt.Sprintf(format, args...))
 }
+
+func (s *Server) ERROR(c *client.Client, msg string) {
+	c.Write(fmt.Sprintf("ERROR :%s\r\n", msg))
+}

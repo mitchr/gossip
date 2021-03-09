@@ -80,8 +80,10 @@ func TestPASS(t *testing.T) {
 		c.Write([]byte("NICK chris\r\n"))
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
 		resp, _ := bufio.NewReader(c).ReadBytes('\n')
+		err, _ := bufio.NewReader(c).ReadBytes('\n')
 
 		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Listener.Addr()), t)
+		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Listener.Addr()), t)
 		if !poll(&s.Clients, 0) {
 			t.Error("Could not kick client after icnorrect password")
 		}
@@ -93,8 +95,10 @@ func TestPASS(t *testing.T) {
 		c.Write([]byte("NICK chris\r\n"))
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
 		resp, _ := bufio.NewReader(c).ReadBytes('\n')
+		err, _ := bufio.NewReader(c).ReadBytes('\n')
 
 		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Listener.Addr()), t)
+		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Listener.Addr()), t)
 		if !poll(&s.Clients, 0) {
 			t.Error("Could not kick client after icnorrect password")
 		}
