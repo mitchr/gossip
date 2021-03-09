@@ -46,10 +46,10 @@ func PASS(s *Server, c *client.Client, params []string) {
 		return
 	}
 	if c.Registered {
-		c.Write(fmt.Sprintf(ERR_ALREADYREGISTRED, s.Listener.Addr(), c.Nick))
+		s.numericReply(c, ERR_ALREADYREGISTRED)
 		return
 	} else if len(params) != 1 {
-		c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, "PASS"))
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "PASS")
 		return
 	}
 
@@ -60,7 +60,7 @@ func NICK(s *Server, c *client.Client, params []string) {
 	c.BarredFromPass = true
 
 	if len(params) != 1 {
-		c.Write(fmt.Sprintf(ERR_NONICKNAMEGIVEN, s.Listener.Addr(), c.Nick))
+		s.numericReply(c, ERR_NONICKNAMEGIVEN)
 		return
 	}
 
@@ -72,7 +72,7 @@ func NICK(s *Server, c *client.Client, params []string) {
 		// this will be fine. otherwise, trying to send back c.Nick will
 		// just be an empty string, whereas the spec says you should give
 		// back a '*' for an unused/unitialized parameter
-		c.Write(fmt.Sprintf(ERR_NICKNAMEINUSE, s.Listener.Addr(), c.Nick, nick))
+		s.numericReply(c, ERR_NICKNAMEINUSE, nick)
 		return
 	}
 
@@ -85,10 +85,10 @@ func USER(s *Server, c *client.Client, params []string) {
 	// TODO: Ident Protocol
 
 	if c.Registered {
-		c.Write(fmt.Sprintf(ERR_ALREADYREGISTRED, s.Listener.Addr(), c.Nick))
+		s.numericReply(c, ERR_ALREADYREGISTRED)
 		return
 	} else if len(params) != 4 {
-		c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, "USER"))
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "USER")
 		return
 	}
 
@@ -122,7 +122,7 @@ func QUIT(s *Server, c *client.Client, params []string) {
 func (s *Server) endRegistration(c *client.Client) {
 	if c.Nick != "" && c.User != "" {
 		if c.ServerPassAttempt != s.password {
-			c.Write(fmt.Sprintf(ERR_PASSWDMISMATCH, s.Listener.Addr(), c.Nick))
+			s.numericReply(c, ERR_PASSWDMISMATCH)
 			// TODO: before cancel, send ERROR :Closing Link
 			c.Cancel()
 			return
@@ -131,13 +131,13 @@ func (s *Server) endRegistration(c *client.Client) {
 		s.Clients[c.Nick] = c
 
 		// send RPL_WELCOME and friends in acceptance
-		c.Write(fmt.Sprintf(RPL_WELCOME, s.Listener.Addr(), c.Nick, c) +
-			fmt.Sprintf(RPL_YOURHOST, s.Listener.Addr(), c.Nick, s.Listener.Addr()) +
-			fmt.Sprintf(RPL_CREATED, s.Listener.Addr(), c.Nick, s.Created) +
-			// TODO: send proper response messages
-			fmt.Sprintf(RPL_MYINFO, s.Listener.Addr(), c.Nick, s.Listener.Addr(), "", "", "") +
-			fmt.Sprintf(RPL_ISUPPORT, s.Listener.Addr(), c.Nick, ""),
-		)
+		s.numericReply(c, RPL_WELCOME, c)
+		s.numericReply(c, RPL_YOURHOST, s.Listener.Addr())
+		s.numericReply(c, RPL_CREATED, s.Created)
+		// TODO: send proper response messages
+		s.numericReply(c, RPL_MYINFO, s.Listener.Addr(), "", "", "")
+		s.numericReply(c, RPL_ISUPPORT, "")
+
 		LUSERS(s, c, nil)
 		MOTD(s, c, nil)
 
@@ -163,7 +163,7 @@ func (s *Server) endRegistration(c *client.Client) {
 
 func JOIN(s *Server, c *client.Client, params []string) {
 	if len(params) < 1 {
-		c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, "JOIN"))
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "JOIN")
 		return
 	}
 
@@ -214,10 +214,10 @@ func PART(s *Server, c *client.Client, params []string) {
 		// 'chanExistsandUserBelongs'; this logic is also used in TOPIC and
 		// will probably be used elsewhere!
 		if ch, ok := s.Channels[v]; !ok { // channel not found
-			c.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), c.Nick, ch))
+			s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
 		} else {
 			if ch.Members[c.Nick] == nil { // client does not belong to channel
-				c.Write(fmt.Sprintf(ERR_NOTONCHANNEL, s.Listener.Addr(), c.Nick, v))
+				s.numericReply(c, ERR_NOTONCHANNEL, v)
 				return
 			}
 
@@ -232,7 +232,7 @@ func PART(s *Server, c *client.Client, params []string) {
 
 func TOPIC(s *Server, c *client.Client, params []string) {
 	if len(params) < 1 {
-		c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, "TOPIC"))
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "TOPIC")
 		return
 	}
 
@@ -242,50 +242,49 @@ func TOPIC(s *Server, c *client.Client, params []string) {
 				// TODO: don't allow modifying topic if client doesn't have
 				// proper privileges 'ERR_CHANOPRIVSNEEDED'
 				ch.Topic = params[1]
-				c.Write(fmt.Sprintf(RPL_TOPIC, s.Listener.Addr(), c.Nick, ch, ch.Topic))
+				s.numericReply(c, RPL_TOPIC, ch, ch.Topic)
 			} else {
 				if ch.Topic == "" {
-					c.Write(fmt.Sprintf(RPL_NOTOPIC, s.Listener.Addr(), c.Nick, ch))
+					s.numericReply(c, RPL_NOTOPIC, ch)
 				} else { // give back existing topic
-					c.Write(fmt.Sprintf(RPL_TOPIC, s.Listener.Addr(), c.Nick, ch, ch.Topic))
+					s.numericReply(c, RPL_TOPIC, ch, ch.Topic)
 				}
 			}
 
 		} else {
-			c.Write(fmt.Sprintf(ERR_NOTONCHANNEL, s.Listener.Addr(), c.Nick, ch))
+			s.numericReply(c, ERR_NOTONCHANNEL, ch)
 			return
 		}
 	} else {
-		c.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), c.Nick, ch))
+		s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
 		return
 	}
 }
 
 func NAMES(s *Server, c *client.Client, params []string) {
 	if len(params) != 1 {
-		c.Write(fmt.Sprintf(RPL_ENDOFNAMES, s.Listener.Addr(), c.Nick, "*"))
+		s.numericReply(c, RPL_ENDOFNAMES, "*")
 	}
 }
 
 func MOTD(s *Server, c *client.Client, params []string) {
 	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
-	c.Write(fmt.Sprintf(RPL_MOTDSTART, s.Listener.Addr(), c.Nick, s.Listener.Addr()))
-	c.Write(fmt.Sprintf(RPL_MOTD, s.Listener.Addr(), c.Nick, "")) // TODO: parse MOTD from config file or something
-	c.Write(fmt.Sprintf(RPL_ENDOFMOTD, s.Listener.Addr(), c.Nick))
+	s.numericReply(c, RPL_MOTDSTART, s.Listener.Addr())
+	s.numericReply(c, RPL_MOTD, "") // TODO: parse MOTD from config file or something
+	s.numericReply(c, RPL_ENDOFMOTD)
 }
 
 func LUSERS(s *Server, c *client.Client, params []string) {
-	c.Write(fmt.Sprintf(RPL_LUSERCLIENT, s.Listener.Addr(), c.Nick, len(s.Clients), 0, 0) +
-		fmt.Sprintf(RPL_LUSEROP, s.Listener.Addr(), c.Nick, 0) +
-		fmt.Sprintf(RPL_LUSERUNKNOWN, s.Listener.Addr(), c.Nick, 0) +
-		fmt.Sprintf(RPL_LUSERCHANNELS, s.Listener.Addr(), c.Nick, len(s.Channels)) +
-		fmt.Sprintf(RPL_LUSERME, s.Listener.Addr(), c.Nick, len(s.Clients), 0),
-	)
+	s.numericReply(c, RPL_LUSERCLIENT, len(s.Clients), 0, 0)
+	s.numericReply(c, RPL_LUSEROP, 0)
+	s.numericReply(c, RPL_LUSERUNKNOWN, 0)
+	s.numericReply(c, RPL_LUSERCHANNELS, len(s.Channels))
+	s.numericReply(c, RPL_LUSERME, len(s.Clients), 0)
 }
 
 func MODE(s *Server, c *client.Client, params []string) {
 	if len(params) < 1 {
-		c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, "MODE"))
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "MODE")
 		return
 	}
 
@@ -293,21 +292,21 @@ func MODE(s *Server, c *client.Client, params []string) {
 	if !isChannel(target) {
 		if client, ok := s.Clients[target]; ok {
 			if client.Nick != c.Nick { // can't mofidy another user
-				c.Write(fmt.Sprintf(ERR_USERSDONTMATCH, s.Listener.Addr(), c.Nick))
+				s.numericReply(c, ERR_USERSDONTMATCH)
 				return
 			}
 
 			if len(params) == 2 { // modify own mode
 				found := c.ApplyMode([]byte(params[1]))
 				if !found {
-					c.Write(fmt.Sprintf(ERR_UMODEUNKNOWNFLAG, s.Listener.Addr(), c.Nick))
+					s.numericReply(c, ERR_UMODEUNKNOWNFLAG)
 				}
 				c.Write(fmt.Sprintf(":%s MODE %s %s\r\n", s.Listener.Addr(), c.Nick, params[1]))
 			} else { // give back own mode
-				c.Write(fmt.Sprintf(RPL_UMODEIS, s.Listener.Addr(), c.Nick, c.Mode))
+				s.numericReply(c, RPL_UMODEIS, c.Mode)
 			}
 		} else {
-			c.Write(fmt.Sprintf(ERR_NOSUCHNICK, s.Listener.Addr(), c.Nick, target))
+			s.numericReply(c, ERR_NOSUCHNICK, target)
 		}
 	}
 }
@@ -329,7 +328,7 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 	}
 
 	if !notice && len(params) < 2 {
-		c.Write(fmt.Sprintf(ERR_NOTEXTTOSEND, s.Listener.Addr(), c.Nick))
+		s.numericReply(c, ERR_NOTEXTTOSEND)
 		return
 	}
 
@@ -340,13 +339,13 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 			if ch, ok := s.Channels[v]; ok {
 				ch.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c, command, v, msg))
 			} else if !notice {
-				c.Write(fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Listener.Addr(), c.Nick, v))
+				s.numericReply(c, ERR_NOSUCHCHANNEL, v)
 			}
 		} else {
 			if client, ok := s.Clients[v]; ok {
 				client.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c, command, v, msg))
 			} else if !notice {
-				c.Write(fmt.Sprintf(ERR_NOSUCHNICK, s.Listener.Addr(), c.Nick, v))
+				s.numericReply(c, ERR_NOSUCHNICK, v)
 			}
 		}
 	}
@@ -368,7 +367,7 @@ func PONG(s *Server, c *client.Client, params []string) {
 
 func WALLOPS(s *Server, c *client.Client, params []string) {
 	if len(params) != 1 {
-		c.Write(fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Listener.Addr(), c.Nick, "WALLOPS"))
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "WALLOPS")
 		return
 	}
 	// TODO: only allows WALLOPS from another server; can be abused by clients
@@ -388,7 +387,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	if e, ok := commandMap[m.Command]; ok {
 		e(s, c, m.Parameters())
 	} else {
-		c.Write(fmt.Sprintf(ERR_UNKNOWNCOMMAND, s.Listener.Addr(), c.Nick, m.Command))
+		s.numericReply(c, ERR_UNKNOWNCOMMAND, m.Command)
 	}
 }
 
