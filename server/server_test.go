@@ -79,8 +79,9 @@ func TestPASS(t *testing.T) {
 		defer c.Close()
 		c.Write([]byte("NICK chris\r\n"))
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
-		resp, _ := bufio.NewReader(c).ReadBytes('\n')
-		err, _ := bufio.NewReader(c).ReadBytes('\n')
+		r := bufio.NewReader(c)
+		resp, _ := r.ReadBytes('\n')
+		err, _ := r.ReadBytes('\n')
 
 		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Listener.Addr()), t)
 		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Listener.Addr()), t)
@@ -94,8 +95,9 @@ func TestPASS(t *testing.T) {
 		c.Write([]byte("PASS opensesame\r\n"))
 		c.Write([]byte("NICK chris\r\n"))
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
-		resp, _ := bufio.NewReader(c).ReadBytes('\n')
-		err, _ := bufio.NewReader(c).ReadBytes('\n')
+		r := bufio.NewReader(c)
+		resp, _ := r.ReadBytes('\n')
+		err, _ := r.ReadBytes('\n')
 
 		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Listener.Addr()), t)
 		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Listener.Addr()), t)
