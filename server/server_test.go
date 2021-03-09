@@ -255,7 +255,7 @@ func connectAndRegister(nick, realname string) (net.Conn, *bufio.Reader) {
 
 func assertResponse(resp []byte, eq string, t *testing.T) {
 	if string(resp) != eq {
-		t.Fail()
+		t.Error("expected", eq, "got", string(resp))
 	}
 }
 
