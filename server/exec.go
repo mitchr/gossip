@@ -113,7 +113,7 @@ func QUIT(s *Server, c *client.Client, params []string) {
 	// send QUIT to all channels that client is connected to, and
 	// remove that client from the channel
 	for _, v := range s.channelsOf(c) {
-		s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :%s\r\n", c, reason))
+		s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :%s", c, reason))
 	}
 
 	c.Cancel()
@@ -150,7 +150,7 @@ func (s *Server) endRegistration(c *client.Client) {
 			for {
 				<-ticker.C
 				c.ExpectingPONG = true
-				c.Write(fmt.Sprintf(":%s PING %s\r\n", s.Listener.Addr(), c.Nick))
+				c.Write(fmt.Sprintf(":%s PING %s", s.Listener.Addr(), c.Nick))
 				time.Sleep(time.Second * 10)
 				if c.ExpectingPONG {
 					c.Cancel()
@@ -183,7 +183,7 @@ func JOIN(s *Server, c *client.Client, params []string) {
 		if ch, ok := s.Channels[v]; ok { // channel already exists
 			ch.Members[c.Nick] = channel.NewMember(c, "")
 			// send JOIN to all participants of channel
-			ch.Write(fmt.Sprintf(":%s JOIN %s\r\n", c, v))
+			ch.Write(fmt.Sprintf(":%s JOIN %s", c, v))
 
 			// TODO: send RPL_TOPIC/RPL_NOTOPIC and RPL_NAMREPLY to current joiner
 		} else { // create new channel
@@ -199,7 +199,7 @@ func JOIN(s *Server, c *client.Client, params []string) {
 			ch := channel.New(chanName, chanChar)
 			s.Channels[ch.String()] = ch
 			ch.Members[c.Nick] = channel.NewMember(c, string(channel.Founder))
-			c.Write(fmt.Sprintf(":%s JOIN %s\r\n", c, ch))
+			c.Write(fmt.Sprintf(":%s JOIN %s", c, ch))
 		}
 	}
 }
@@ -223,9 +223,9 @@ func PART(s *Server, c *client.Client, params []string) {
 			}
 
 			if reason == "" {
-				s.removeFromChannel(c, ch, fmt.Sprintf("%s PART %s\r\n", c, ch))
+				s.removeFromChannel(c, ch, fmt.Sprintf("%s PART %s", c, ch))
 			} else {
-				s.removeFromChannel(c, ch, fmt.Sprintf("%s PART %s :%s\r\n", c, ch, reason))
+				s.removeFromChannel(c, ch, fmt.Sprintf("%s PART %s :%s", c, ch, reason))
 			}
 		}
 	}
@@ -302,7 +302,7 @@ func MODE(s *Server, c *client.Client, params []string) {
 				if !found {
 					s.numericReply(c, ERR_UMODEUNKNOWNFLAG)
 				}
-				c.Write(fmt.Sprintf(":%s MODE %s %s\r\n", s.Listener.Addr(), c.Nick, params[1]))
+				c.Write(fmt.Sprintf(":%s MODE %s %s", s.Listener.Addr(), c.Nick, params[1]))
 			} else { // give back own mode
 				s.numericReply(c, RPL_UMODEIS, c.Mode)
 			}
@@ -338,13 +338,13 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 	for _, v := range recipients {
 		if isChannel(v) {
 			if ch, ok := s.Channels[v]; ok {
-				ch.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c, command, v, msg))
+				ch.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
 			} else if !notice {
 				s.numericReply(c, ERR_NOSUCHCHANNEL, v)
 			}
 		} else {
 			if client, ok := s.Clients[v]; ok {
-				client.Write(fmt.Sprintf(":%s %s %s :%s\r\n", c, command, v, msg))
+				client.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
 			} else if !notice {
 				s.numericReply(c, ERR_NOSUCHNICK, v)
 			}
@@ -356,7 +356,7 @@ func PING(s *Server, c *client.Client, params []string) {
 	// TODO: params can contain other servers, in which case the PING
 	// will have to be redirected. For now, we can just assume that any
 	// PING from a connected client is meant for this server
-	c.Write(fmt.Sprintf(":%s PONG\r\n", s.Listener.Addr()))
+	c.Write(fmt.Sprintf(":%s PONG", s.Listener.Addr()))
 }
 
 func PONG(s *Server, c *client.Client, params []string) {
@@ -380,7 +380,7 @@ func WALLOPS(s *Server, c *client.Client, params []string) {
 	// TODO: only allows WALLOPS from another server; can be abused by clients
 	for _, v := range s.Clients {
 		if v.Mode&client.Wallops == client.Wallops {
-			v.Write(fmt.Sprintf("%s WALLOPS %s\r\n", s.Listener.Addr(), params[1]))
+			v.Write(fmt.Sprintf("%s WALLOPS %s", s.Listener.Addr(), params[1]))
 		}
 	}
 }

@@ -132,7 +132,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				// command, so we need to remove them from all the channels they
 				// are still connected to
 				for _, v := range s.channelsOf(c) {
-					s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(\r\n", c))
+					s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(", c))
 				}
 
 				c.Close()

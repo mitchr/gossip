@@ -62,11 +62,9 @@ func (c Client) String() string {
 func (c *Client) Write(i interface{}) (int, error) {
 	switch b := i.(type) {
 	case []byte:
-		return c.conn.Write(b)
+		return c.conn.Write(append(b, []byte{'\r', '\n'}...))
 	case string:
-		return c.conn.Write([]byte(b))
-	case error:
-		return c.conn.Write([]byte(b.Error()))
+		return c.Write([]byte(b))
 	}
 	return 0, errors.New("Couldn't write: message parameter type unknown")
 }
