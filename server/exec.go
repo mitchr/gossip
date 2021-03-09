@@ -39,6 +39,7 @@ var commandMap = map[string]executor{
 	"PING":    PING,
 	"PONG":    PONG,
 	"WALLOPS": WALLOPS,
+	"ERROR":   ERROR,
 }
 
 func PASS(s *Server, c *client.Client, params []string) {
