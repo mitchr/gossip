@@ -58,7 +58,7 @@ func (c Client) String() string {
 	}
 }
 
-// wrap Read/Write/Close for the connection
+// Write appends a crlf to the end of each message
 func (c *Client) Write(i interface{}) (int, error) {
 	switch b := i.(type) {
 	case []byte:
