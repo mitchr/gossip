@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -10,26 +11,29 @@ import (
 )
 
 type Client struct {
-	Nick     string
-	User     string
-	Realname string
-	Host     net.Addr
-	Mode     Mode
+	Nick       string
+	User       string
+	Realname   string
+	Host       net.Addr
+	Mode       Mode
+	Registered bool
+
+	conn   net.Conn
+	reader *bufio.Reader
 
 	ServerPassAttempt string
 	BarredFromPass    bool // true if client has executed NICK/USER
 
-	conn          net.Conn
 	ExpectingPONG bool
 	Cancel        context.CancelFunc // need to store for QUIT
-	Registered    bool
 }
 
 // TODO: default values for Nick, User, and Realname? (maybe '*')
 func New(conn net.Conn) *Client {
 	c := &Client{
-		Host: conn.RemoteAddr(),
-		conn: conn,
+		Host:   conn.RemoteAddr(),
+		conn:   conn,
+		reader: bufio.NewReader(conn),
 	}
 
 	// give a small window for client to register before kicking them off
@@ -69,8 +73,9 @@ func (c *Client) Write(i interface{}) (int, error) {
 	return 0, errors.New("Couldn't write: message parameter type unknown")
 }
 
-func (c *Client) Read(b []byte) (int, error) {
-	return c.conn.Read(b)
+// Read until encountering a newline
+func (c *Client) ReadMsg() ([]byte, error) {
+	return c.reader.ReadBytes('\n')
 }
 
 func (c *Client) Close() error {
