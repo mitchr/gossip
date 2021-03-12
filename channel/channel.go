@@ -1,7 +1,7 @@
 package channel
 
 import (
-	"fmt"
+	"errors"
 	"log"
 	"strings"
 )
@@ -53,5 +53,5 @@ func (c *Channel) Write(b interface{}) (int, error) {
 		n += written
 	}
 
-	return n, fmt.Errorf(strings.Join(errStrings, "\n"))
+	return n, errors.New(strings.Join(errStrings, "\n"))
 }
