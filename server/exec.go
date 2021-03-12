@@ -168,7 +168,7 @@ func JOIN(s *Server, c *client.Client, params []string) {
 		return
 	}
 
-	//when 'JOIN 0', PART from every channel client is a member of
+	// when 'JOIN 0', PART from every channel client is a member of
 	if params[0] == "0" {
 		for _, v := range s.channelsOf(c) {
 			PART(s, c, []string{v.String()})
@@ -176,19 +176,28 @@ func JOIN(s *Server, c *client.Client, params []string) {
 		return
 	}
 
-	// TODO: support channel keys
-	// split all given channels by comma separator
-	chans := strings.Split(params[0], ",")
-	for _, v := range chans {
-		if ch, ok := s.Channels[v]; ok { // channel already exists
+	var chansWithKeys map[string]string
+	if len(params) >= 2 {
+		chansWithKeys = constructKeyMap(strings.Split(params[0], ","), strings.Split(params[1], ","))
+	} else {
+		chansWithKeys = constructKeyMap(strings.Split(params[0], ","), nil)
+	}
+
+	for chanStr, key := range chansWithKeys {
+		if ch, ok := s.Channels[chanStr]; ok { // channel already exists
+			if ch.Key != key {
+				s.numericReply(c, ERR_BADCHANNELKEY, ch)
+				return
+			}
+
 			ch.Members[c.Nick] = channel.NewMember(c, "")
 			// send JOIN to all participants of channel
-			ch.Write(fmt.Sprintf(":%s JOIN %s", c, v))
+			ch.Write(fmt.Sprintf(":%s JOIN %s", c, chanStr))
 
 			// TODO: send RPL_TOPIC/RPL_NOTOPIC and RPL_NAMREPLY to current joiner
 		} else { // create new channel
-			chanChar := channel.ChanType(v[0])
-			chanName := v[1:]
+			chanChar := channel.ChanType(chanStr[0])
+			chanName := chanStr[1:]
 
 			if chanChar != channel.Remote && chanChar != channel.Local {
 				// TODO: is there a response code for this case?
@@ -197,11 +206,25 @@ func JOIN(s *Server, c *client.Client, params []string) {
 			}
 
 			ch := channel.New(chanName, chanChar)
-			s.Channels[ch.String()] = ch
+			s.Channels[chanStr] = ch
 			ch.Members[c.Nick] = channel.NewMember(c, string(channel.Founder))
 			c.Write(fmt.Sprintf(":%s JOIN %s", c, ch))
 		}
 	}
+}
+
+// rather annoyingly, the key of the map is a chanStr, and the value is
+// the chanKey
+func constructKeyMap(chans, keys []string) map[string]string {
+	m := make(map[string]string)
+	for i := range chans {
+		if i > len(keys)-1 {
+			m[chans[i]] = ""
+		} else {
+			m[chans[i]] = keys[i]
+		}
+	}
+	return m
 }
 
 func PART(s *Server, c *client.Client, params []string) {
