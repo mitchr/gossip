@@ -229,27 +229,17 @@ func constructKeyMap(chans, keys []string) map[string]string {
 
 func PART(s *Server, c *client.Client, params []string) {
 	chans := strings.Split(params[0], ",")
-	var reason string
-	if len(params) >= 2 {
-		reason = params[1]
-	}
-	for _, v := range chans {
-		// TODO: could refactor this below if check into a func like
-		// 'chanExistsandUserBelongs'; this logic is also used in TOPIC and
-		// will probably be used elsewhere!
-		if ch, ok := s.Channels[v]; !ok { // channel not found
-			s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
-		} else {
-			if ch.Members[c.Nick] == nil { // client does not belong to channel
-				s.numericReply(c, ERR_NOTONCHANNEL, v)
-				return
-			}
 
-			if reason == "" {
-				s.removeFromChannel(c, ch, fmt.Sprintf("%s PART %s", c, ch))
-			} else {
-				s.removeFromChannel(c, ch, fmt.Sprintf("%s PART %s :%s", c, ch, reason))
-			}
+	for _, v := range chans {
+		ch := s.clientBelongstoChan(c, v)
+		if ch == nil {
+			return
+		}
+
+		if len(params) >= 2 { // reason given
+			s.removeFromChannel(c, ch, fmt.Sprintf("%s PART %s :%s", c, ch, params[1]))
+		} else {
+			s.removeFromChannel(c, ch, fmt.Sprintf("%s PART %s", c, ch))
 		}
 	}
 }
@@ -260,29 +250,38 @@ func TOPIC(s *Server, c *client.Client, params []string) {
 		return
 	}
 
-	if ch := s.Channels[params[0]]; ch != nil {
-		if _, belongs := ch.Members[c.Nick]; belongs {
-			if len(params) == 2 { // modify topic
-				// TODO: don't allow modifying topic if client doesn't have
-				// proper privileges 'ERR_CHANOPRIVSNEEDED'
-				ch.Topic = params[1]
-				s.numericReply(c, RPL_TOPIC, ch, ch.Topic)
-			} else {
-				if ch.Topic == "" {
-					s.numericReply(c, RPL_NOTOPIC, ch)
-				} else { // give back existing topic
-					s.numericReply(c, RPL_TOPIC, ch, ch.Topic)
-				}
-			}
-
-		} else {
-			s.numericReply(c, ERR_NOTONCHANNEL, ch)
-			return
-		}
-	} else {
-		s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
+	ch := s.clientBelongstoChan(c, params[0])
+	if ch == nil {
 		return
 	}
+
+	if len(params) >= 2 { // modify topic
+		// TODO: don't allow modifying topic if client doesn't have
+		// proper privileges 'ERR_CHANOPRIVSNEEDED'
+		ch.Topic = params[1]
+		s.numericReply(c, RPL_TOPIC, ch, ch.Topic)
+	} else {
+		if ch.Topic == "" {
+			s.numericReply(c, RPL_NOTOPIC, ch)
+		} else { // give back existing topic
+			s.numericReply(c, RPL_TOPIC, ch, ch.Topic)
+		}
+	}
+}
+
+// if c belongs to the channel associated with chanName, return that
+// channel. If it doesn't, or if the channel doesn't exist, write a
+// numeric reply to the client and return nil.
+func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel.Channel {
+	ch, ok := s.Channels[chanName]
+	if !ok { // channel not found
+		s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
+	} else {
+		if ch.Members[c.Nick] == nil { // client does not belong to channel
+			s.numericReply(c, ERR_NOTONCHANNEL, ch)
+		}
+	}
+	return ch
 }
 
 func NAMES(s *Server, c *client.Client, params []string) {
