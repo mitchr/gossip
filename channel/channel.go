@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/mitchr/gossip/msg"
+	"github.com/mitchr/gossip/scan/mode"
 )
 
 type ChanType rune
@@ -59,7 +59,7 @@ func (c *Channel) ApplyMode(b [2]string) bool {
 	modeStr := b[0]
 	modeArgs := b[1]
 
-	add, sub := msg.ParseMode([]byte(modeStr))
+	add, sub := mode.Parse([]byte(modeStr))
 	for _, v := range add {
 		if p, ok := channelLetter[v]; ok {
 			p(c, modeArgs, true)

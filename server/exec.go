@@ -8,7 +8,7 @@ import (
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
-	"github.com/mitchr/gossip/msg"
+	"github.com/mitchr/gossip/scan/msg"
 )
 
 type executor func(*Server, *client.Client, []string)

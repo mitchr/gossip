@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/mitchr/gossip/msg"
+	"github.com/mitchr/gossip/scan/mode"
 )
 
 type Mode uint
@@ -38,7 +38,7 @@ func (m Mode) String() string {
 // given a modeStr, apply the modes to c. If one of the runes does not
 // correspond to a user mode, return it
 func (c *Client) ApplyMode(b []byte) bool {
-	add, sub := msg.ParseMode(b)
+	add, sub := mode.Parse(b)
 	for _, v := range add {
 		if mode, ok := letter[v]; ok {
 			c.Mode |= mode

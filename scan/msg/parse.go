@@ -3,56 +3,30 @@ package msg
 import (
 	"log"
 	"strings"
+
+	"github.com/mitchr/gossip/scan"
 )
-
-type parser struct {
-	tokens []token
-	start  int
-	pos    int
-}
-
-func (p *parser) next() token {
-	if p.pos == len(p.tokens) {
-		return token{eof, ""} // nil token
-	}
-	t := p.tokens[p.pos]
-	p.pos++
-	return t
-}
-
-func (p *parser) peek() token {
-	if p.pos == len(p.tokens) {
-		return token{eof, ""} // nil token
-	}
-	t := p.next()
-	p.pos--
-	return t
-}
-
-func (p *parser) expect(t tokenType) bool {
-	return p.next().tokenType == t
-}
 
 // given a slice of tokens, produce a corresponding irc message
 //["@" tags SPACE] [":" source SPACE] command [params] crlf
-func ParseMessage(b []byte) *Message {
-	p := &parser{tokens: lex(b, lexMessage)}
+func Parse(b []byte) *Message {
+	p := &scan.Parser{Tokens: scan.Lex(b, lexMessage)}
 	m := &Message{}
 
-	if p.peek().tokenType == at {
+	if p.Peek().TokenType == at {
 		// TODO: p.tags()
 	}
-	if p.peek().tokenType == colon {
-		p.next() // consume colon
-		m.nick, m.user, m.host = p.source()
-		if !p.expect(space) {
+	if p.Peek().TokenType == colon {
+		p.Next() // consume colon
+		m.nick, m.user, m.host = source(p)
+		if !p.Expect(space) {
 			log.Println("expected space")
 			return nil
 		}
 	}
-	m.Command = p.command()
-	m.middle, m.trailing, m.trailingSet = p.params()
-	if !p.expect(crlf) {
+	m.Command = command(p)
+	m.middle, m.trailing, m.trailingSet = params(p)
+	if !p.Expect(crlf) {
 		log.Println("no crlf; ignoring")
 		return nil
 	}
@@ -68,8 +42,8 @@ func ParseMessage(b []byte) *Message {
 // a rule for the lexer that would allow them to be tokenized. as far as
 // I can tell, the IRC spec leaves handling of nick/user/host name up to
 // the server implementation, but I think restricting to ASCII is fair
-func (p *parser) source() (nick, user, host string) {
-	source := p.next().value
+func source(p *scan.Parser) (nick, user, host string) {
+	source := p.Next().Value
 	sourceInfo := strings.Split(source, "!")
 
 	loc := 0
@@ -95,50 +69,50 @@ func (p *parser) source() (nick, user, host string) {
 }
 
 // either a valid IRC command, or a 3 digit numeric reply
-func (p *parser) command() string {
-	return p.next().value
+func command(p *scan.Parser) string {
+	return p.Next().Value
 }
 
 // *( SPACE middle ) [ SPACE ":" trailing ]
-func (p *parser) params() (middle []string, trailing string, trailingSet bool) {
+func params(p *scan.Parser) (m []string, t string, trailingSet bool) {
 	for {
-		if p.peek().tokenType == space {
-			p.next() // consume space
+		if p.Peek().TokenType == space {
+			p.Next() // consume space
 		} else {
 			return
 		}
 
-		if p.peek().tokenType == colon {
-			p.next() // consume ':'
-			trailing = p.trailing()
+		if p.Peek().TokenType == colon {
+			p.Next() // consume ':'
+			t = trailing(p)
 			trailingSet = true
 			return // trailing has to be at the end, so we're done
 		} else {
-			middle = append(middle, p.middle())
+			m = append(m, middle(p))
 		}
 	}
 }
 
 // nospcrlfcl *( ":" / nospcrlfcl )
-func (p *parser) middle() string {
-	m := p.peek().value
-	if !p.expect(nospcrlfcl) {
+func middle(p *scan.Parser) string {
+	m := p.Peek().Value
+	if !p.Expect(nospcrlfcl) {
 		return ""
 	}
 
-	for t := p.peek(); t.tokenType == nospcrlfcl || t.tokenType == colon; t = p.peek() {
-		m += t.value
-		p.next()
+	for t := p.Peek(); t.TokenType == nospcrlfcl || t.TokenType == colon; t = p.Peek() {
+		m += t.Value
+		p.Next()
 	}
 	return m
 }
 
 // *( ":" / " " / nospcrlfcl )
-func (p *parser) trailing() string {
+func trailing(p *scan.Parser) string {
 	m := ""
-	for t := p.peek(); t.tokenType == colon || t.tokenType == space || t.tokenType == nospcrlfcl; t = p.peek() {
-		m += t.value
-		p.next()
+	for t := p.Peek(); t.TokenType == colon || t.TokenType == space || t.TokenType == nospcrlfcl; t = p.Peek() {
+		m += t.Value
+		p.Next()
 	}
 	return m
 }

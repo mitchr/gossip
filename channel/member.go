@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/mitchr/gossip/client"
-	"github.com/mitchr/gossip/msg"
+	"github.com/mitchr/gossip/scan/mode"
 )
 
 // Member is a Client that belongs to a channel. Members, unlike
@@ -19,7 +19,7 @@ func NewMember(c *client.Client, p string) *Member {
 }
 
 func (m *Member) ApplyMode(b []byte) bool {
-	add, sub := msg.ParseMode(b)
+	add, sub := mode.Parse(b)
 	for _, v := range add {
 		if p, ok := memberLetter[v]; ok {
 			m.prefixes += string(p)
