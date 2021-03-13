@@ -50,7 +50,7 @@ func ParseMessage(b []byte) *Message {
 			return nil
 		}
 	}
-	m.Command = p.command(p.next())
+	m.Command = p.command()
 	m.middle, m.trailing, m.trailingSet = p.params()
 	if !p.expect(crlf) {
 		log.Println("no crlf; ignoring")
@@ -95,8 +95,8 @@ func (p *parser) source() (nick, user, host string) {
 }
 
 // either a valid IRC command, or a 3 digit numeric reply
-func (p *parser) command(t token) string {
-	return t.value
+func (p *parser) command() string {
+	return p.next().value
 }
 
 // *( SPACE middle ) [ SPACE ":" trailing ]
@@ -108,20 +108,24 @@ func (p *parser) params() (middle []string, trailing string, trailingSet bool) {
 			return
 		}
 
-		r := p.next()
-		if r.tokenType == colon {
+		if p.peek().tokenType == colon {
+			p.next() // consume ':'
 			trailing = p.trailing()
 			trailingSet = true
 			return // trailing has to be at the end, so we're done
 		} else {
-			middle = append(middle, p.middle(r))
+			middle = append(middle, p.middle())
 		}
 	}
 }
 
-// space already consumed, current token is nospcrlfcl
-func (p *parser) middle(s token) string {
-	m := s.value
+// nospcrlfcl *( ":" / nospcrlfcl )
+func (p *parser) middle() string {
+	m := p.peek().value
+	if !p.expect(nospcrlfcl) {
+		return ""
+	}
+
 	for t := p.peek(); t.tokenType == nospcrlfcl || t.tokenType == colon; t = p.peek() {
 		m += t.value
 		p.next()
