@@ -2,8 +2,6 @@ package msg
 
 import (
 	"fmt"
-
-	"github.com/mitchr/gossip/scan"
 )
 
 // a Message represents a single irc Message
@@ -51,12 +49,3 @@ func (m Message) Parameters() []string {
 	}
 	return m.middle
 }
-
-const (
-	nospcrlfcl scan.TokenType = iota
-	at
-	colon
-	exclam
-	space
-	crlf
-)

@@ -6,6 +6,15 @@ import (
 	"github.com/mitchr/gossip/scan"
 )
 
+const (
+	nospcrlfcl scan.TokenType = iota
+	at
+	colon
+	exclam
+	space
+	crlf
+)
+
 func lexMessage(l *scan.Lexer) scan.State {
 	switch r := l.Next(); {
 	case r == scan.EOF:
