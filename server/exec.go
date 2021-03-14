@@ -130,6 +130,7 @@ func (s *Server) endRegistration(c *client.Client) {
 		}
 		c.Registered = true
 		s.clients[c.Nick] = c
+		s.unknowns--
 
 		// send RPL_WELCOME and friends in acceptance
 		s.numericReply(c, RPL_WELCOME, c)
@@ -300,7 +301,7 @@ func MOTD(s *Server, c *client.Client, params []string) {
 func LUSERS(s *Server, c *client.Client, params []string) {
 	s.numericReply(c, RPL_LUSERCLIENT, len(s.clients), 0, 0)
 	s.numericReply(c, RPL_LUSEROP, 0)
-	s.numericReply(c, RPL_LUSERUNKNOWN, 0)
+	s.numericReply(c, RPL_LUSERUNKNOWN, s.unknowns)
 	s.numericReply(c, RPL_LUSERCHANNELS, len(s.channels))
 	s.numericReply(c, RPL_LUSERME, len(s.clients), 0)
 }

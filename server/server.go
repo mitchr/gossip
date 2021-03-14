@@ -23,6 +23,10 @@ type Server struct {
 	// ChanType + name to channel
 	channels map[string]*channel.Channel
 
+	// a running count of connected users who are unregistered
+	// (used for LUSER replies)
+	unknowns int
+
 	// calling this cancel also cancels all the child client's contexts
 	cancel   context.CancelFunc
 	msgQueue chan func()
@@ -104,6 +108,8 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	clientCtx, cancel := context.WithCancel(ctx)
 	c.Cancel = cancel
 
+	s.unknowns++
+
 	// continuously try to read from the client. this will implicitly end
 	// when c.Cancel is called because the client will be closed
 	input := make(chan []byte)
@@ -129,8 +135,12 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				// client may have been kicked off without first sending a QUIT
 				// command, so we need to remove them from all the channels they
 				// are still connected to
-				for _, v := range s.channelsOf(c) {
-					s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(", c))
+				if !c.Registered {
+					s.unknowns--
+				} else {
+					for _, v := range s.channelsOf(c) {
+						s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(", c))
+					}
 				}
 
 				c.Close()
