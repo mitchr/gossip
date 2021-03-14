@@ -42,7 +42,7 @@ const (
 )
 
 func (s *Server) numericReply(c *client.Client, format string, f ...interface{}) {
-	args := []interface{}{s.Listener.Addr(), c.Nick}
+	args := []interface{}{s.listener.Addr(), c.Nick}
 	args = append(args, f...)
 	c.Write(fmt.Sprintf(format, args...))
 }

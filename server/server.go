@@ -15,13 +15,13 @@ import (
 )
 
 type Server struct {
-	Listener net.Listener
-	Created  time.Time
+	listener net.Listener
+	created  time.Time
 	password string
 	// nick to underlying client
-	Clients map[string]*client.Client
+	clients map[string]*client.Client
 	// ChanType + name to channel
-	Channels map[string]*channel.Channel
+	channels map[string]*channel.Channel
 
 	// calling this cancel also cancels all the child client's contexts
 	cancel   context.CancelFunc
@@ -35,10 +35,10 @@ func New(port string) (*Server, error) {
 		return nil, err
 	}
 	return &Server{
-		Listener: l,
-		Created:  time.Now(),
-		Clients:  make(map[string]*client.Client),
-		Channels: make(map[string]*channel.Channel),
+		listener: l,
+		created:  time.Now(),
+		clients:  make(map[string]*client.Client),
+		channels: make(map[string]*channel.Channel),
 		msgQueue: make(chan func(), 2),
 	}, nil
 }
@@ -50,7 +50,7 @@ func (s *Server) Serve() {
 	conChan := make(chan net.Conn)
 	go func() { // accepts a connection and sends on chan
 		for {
-			conn, err := s.Listener.Accept()
+			conn, err := s.listener.Accept()
 			if err == nil {
 				conChan <- conn
 			}
@@ -94,7 +94,7 @@ func (s *Server) Serve() {
 // 3. wait until all clients have canceled AND Serve() receives cancel signal
 // graceful shutdown from https://blog.golang.org/context
 func (s *Server) Close() {
-	s.Listener.Close()
+	s.listener.Close()
 	s.cancel()
 	s.wg.Wait()
 }
@@ -134,7 +134,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				}
 
 				c.Close()
-				delete(s.Clients, c.Nick)
+				delete(s.clients, c.Nick)
 			}
 			return
 		case msgBuf := <-input:
@@ -150,7 +150,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 func (s *Server) removeFromChannel(c *client.Client, ch *channel.Channel, msg string) {
 	// if this was the last client in the channel, destroy it
 	if len(ch.Members) == 1 {
-		delete(s.Channels, ch.String())
+		delete(s.channels, ch.String())
 	} else {
 		// message all remaining channel participants
 		delete(ch.Members, c.Nick)
@@ -161,7 +161,7 @@ func (s *Server) removeFromChannel(c *client.Client, ch *channel.Channel, msg st
 func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 	l := []*channel.Channel{}
 
-	for _, v := range s.Channels {
+	for _, v := range s.channels {
 		if v.Members[c.Nick] != nil {
 			l = append(l, v)
 		}

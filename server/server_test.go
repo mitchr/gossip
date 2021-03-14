@@ -24,7 +24,7 @@ func TestRegistration(t *testing.T) {
 		defer conn.Close()
 
 		// check to see if server is in correct state
-		c := s.Clients["alice"]
+		c := s.clients["alice"]
 		if c.Nick != "alice" {
 			t.Errorf("Nick registered incorrectly. Got %s\n", c.Nick)
 		}
@@ -55,7 +55,7 @@ func TestRegistration(t *testing.T) {
 			conn.Write([]byte(fmt.Sprintf("USER %s %v 0 :%s\r\n", v.name, v.modeArg, v.name)))
 			bufio.NewReader(conn).ReadBytes('\n') // reading the response guarantees that registration finishes
 
-			c := s.Clients[v.name]
+			c := s.clients[v.name]
 			if c.Mode != v.mode {
 				t.Error("Mode set incorrectly", c.Mode, v.modeArg, v.mode)
 			}
@@ -83,9 +83,9 @@ func TestPASS(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		err, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Listener.Addr()), t)
-		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Listener.Addr()), t)
-		if !poll(&s.Clients, 0) {
+		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.listener.Addr()), t)
+		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.listener.Addr()), t)
+		if !poll(&s.clients, 0) {
 			t.Error("Could not kick client after icnorrect password")
 		}
 	})
@@ -99,9 +99,9 @@ func TestPASS(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		err, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Listener.Addr()), t)
-		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Listener.Addr()), t)
-		if !poll(&s.Clients, 0) {
+		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.listener.Addr()), t)
+		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.listener.Addr()), t)
+		if !poll(&s.clients, 0) {
 			t.Error("Could not kick client after icnorrect password")
 		}
 	})
@@ -112,7 +112,7 @@ func TestPASS(t *testing.T) {
 		c.Write([]byte("NICK chris\r\n"))
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
 
-		if !poll(&s.Clients, 1) {
+		if !poll(&s.clients, 1) {
 			t.Error("Could not register, despite correct password")
 		}
 	})
@@ -133,7 +133,7 @@ func TestQUIT(t *testing.T) {
 	c1.Write([]byte("QUIT\r\n"))
 	c2.Write([]byte("QUIT\r\n"))
 
-	if !poll(&s.Clients, 0) {
+	if !poll(&s.clients, 0) {
 		t.Error("client could not quit")
 	}
 }
@@ -156,7 +156,7 @@ func TestChannelCreation(t *testing.T) {
 	r2.ReadBytes('\n')
 	r1.ReadBytes('\n') // alice reading bob's join msg
 
-	if !poll(&s.Channels, 1) {
+	if !poll(&s.channels, 1) {
 		t.Fatal("Could not create channel")
 	}
 
@@ -164,13 +164,13 @@ func TestChannelCreation(t *testing.T) {
 		// c1 leaves, c2 should receive a PARTing message from them
 		c1.Write([]byte("PART #local :Goodbye\r\n"))
 		response, _ := r2.ReadBytes('\n')
-		assertResponse(response, fmt.Sprintf("%s PART #local :Goodbye\r\n", s.Clients["alice"]), t)
+		assertResponse(response, fmt.Sprintf("%s PART #local :Goodbye\r\n", s.clients["alice"]), t)
 	})
 
 	t.Run("TestChannelDestruction", func(t *testing.T) {
 		c2.Write([]byte("PART #local\r\n"))
 
-		if !poll(&s.Channels, 0) {
+		if !poll(&s.channels, 0) {
 			t.Error("Could not destroy channel")
 		}
 	})
@@ -197,15 +197,15 @@ func TestTOPIC(t *testing.T) {
 	c.Write([]byte("TOPIC &test\r\n"))
 
 	unchanged, _ := r.ReadBytes('\n')
-	assertResponse(unchanged, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Listener.Addr()), t)
+	assertResponse(unchanged, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.listener.Addr()), t)
 	changed, _ := r.ReadBytes('\n')
-	assertResponse(changed, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Listener.Addr()), t)
+	assertResponse(changed, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.listener.Addr()), t)
 	retrieve, _ := r.ReadBytes('\n')
-	assertResponse(retrieve, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Listener.Addr()), t)
+	assertResponse(retrieve, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.listener.Addr()), t)
 
 	r.ReadBytes('\n')
 	clear, _ := r.ReadBytes('\n')
-	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Listener.Addr()), t)
+	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.listener.Addr()), t)
 }
 
 func TestPRIVMSG(t *testing.T) {
@@ -230,15 +230,15 @@ func TestPRIVMSG(t *testing.T) {
 		// alice sends message to bob
 		c1.Write([]byte("PRIVMSG bob :hello\r\n"))
 		msgResp, _ := r2.ReadBytes('\n')
-		assertResponse(msgResp, fmt.Sprintf(":%s PRIVMSG bob :hello\r\n", s.Clients["alice"]), t)
+		assertResponse(msgResp, fmt.Sprintf(":%s PRIVMSG bob :hello\r\n", s.clients["alice"]), t)
 	})
 	t.Run("TestChannelPRIVMSG", func(t *testing.T) {
 		// message sent to channel should broadcast to all members
 		c1.Write([]byte("PRIVMSG #local :hello\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hello\r\n", s.Clients["alice"]), t)
+		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hello\r\n", s.clients["alice"]), t)
 		resp, _ = r2.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hello\r\n", s.Clients["alice"]), t)
+		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hello\r\n", s.clients["alice"]), t)
 	})
 }
 
