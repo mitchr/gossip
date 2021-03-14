@@ -84,10 +84,7 @@ func (s *Server) Serve() {
 			return
 		case conn := <-conChan:
 			s.wg.Add(1)
-			go func() {
-				s.handleConn(conn, ctx)
-				s.wg.Done()
-			}()
+			go s.handleConn(conn, ctx)
 		}
 	}
 }
@@ -145,6 +142,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 
 				c.Close()
 				delete(s.clients, c.Nick)
+				s.wg.Done()
 			}
 			return
 		case msgBuf := <-input:
