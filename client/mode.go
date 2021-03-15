@@ -38,18 +38,14 @@ func (m Mode) String() string {
 // given a modeStr, apply the modes to c. If one of the runes does not
 // correspond to a user mode, return it
 func (c *Client) ApplyMode(b []byte) bool {
-	add, sub := mode.Parse(b)
-	for _, v := range add {
-		if mode, ok := letter[v]; ok {
-			c.Mode |= mode
-		} else {
-			return false
-		}
-	}
-
-	for _, v := range sub {
-		if mode, ok := letter[v]; ok {
-			c.Mode &^= mode // this is hilarious
+	m := mode.Parse(b)
+	for _, v := range m {
+		if mode, ok := letter[v.ModeChar]; ok {
+			if v.Add {
+				c.Mode |= mode
+			} else {
+				c.Mode &^= mode // this is hilarious
+			}
 		} else {
 			return false
 		}

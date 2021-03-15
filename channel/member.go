@@ -19,18 +19,14 @@ func NewMember(c *client.Client, p string) *Member {
 }
 
 func (m *Member) ApplyMode(b []byte) bool {
-	add, sub := mode.Parse(b)
-	for _, v := range add {
-		if p, ok := memberLetter[v]; ok {
-			m.prefixes += string(p)
-		} else {
-			return false
-		}
-	}
-
-	for _, v := range sub {
-		if p, ok := memberLetter[v]; ok {
-			m.prefixes = strings.Replace(m.prefixes, string(p), "", -1)
+	modes := mode.Parse(b)
+	for _, v := range modes {
+		if r, ok := memberLetter[v.ModeChar]; ok {
+			if v.Add {
+				m.prefixes += string(r)
+			} else {
+				m.prefixes = strings.Replace(m.prefixes, string(r), "", -1)
+			}
 		} else {
 			return false
 		}

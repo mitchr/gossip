@@ -34,7 +34,7 @@ var channelLetter = map[rune]modeFunc{
 	'k': key,
 	// 'm': Moderated,
 	// 's': Secret,
-	// 't': Protected,
+	// 't': protected,
 	// 'n': NoExternalMsgs,
 }
 

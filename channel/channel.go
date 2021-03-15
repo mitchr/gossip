@@ -59,20 +59,16 @@ func (c *Channel) ApplyMode(b [2]string) bool {
 	modeStr := b[0]
 	modeArgs := b[1]
 
-	add, sub := mode.Parse([]byte(modeStr))
-	for _, v := range add {
-		if p, ok := channelLetter[v]; ok {
-			p(c, modeArgs, true)
-			c.Modes += string(v)
-		} else {
-			return false
-		}
-	}
-
-	for _, v := range sub {
-		if p, ok := channelLetter[v]; ok {
-			p(c, modeArgs, false)
-			c.Modes = strings.Replace(c.Modes, string(v), "", -1)
+	m := mode.Parse([]byte(modeStr))
+	for _, v := range m {
+		if p, ok := channelLetter[v.ModeChar]; ok {
+			if v.Add {
+				p(c, modeArgs, true)
+				c.Modes += string(v.ModeChar)
+			} else {
+				p(c, modeArgs, false)
+				c.Modes = strings.Replace(c.Modes, string(v.ModeChar), "", -1)
+			}
 		} else {
 			return false
 		}

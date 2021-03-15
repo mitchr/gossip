@@ -7,21 +7,21 @@ import (
 
 func TestParseMode(t *testing.T) {
 	tests := []struct {
-		i        string
-		add, sub []rune
+		i string
+		m []Mode
 	}{
-		{"+m", []rune{'m'}, nil},
-		{"+mb", []rune{'m', 'b'}, nil},
-		{"-i", nil, []rune{'i'}},
-		{"+a-i", []rune{'a'}, []rune{'i'}},
-		{"+a+b+c-de+f-g", []rune{'a', 'b', 'c', 'f'}, []rune{'d', 'e', 'g'}},
+		{"+m", []Mode{{'m', true, ""}}},
+		{"+mb", []Mode{{'m', true, ""}, {'b', true, ""}}},
+		{"-i", []Mode{{'i', false, ""}}},
+		{"+a-i", []Mode{{'a', true, ""}, {'i', false, ""}}},
+		// {"+a+b+c-de+f-g", []rune{'a', 'b', 'c', 'f'}, []rune{'d', 'e', 'g'}},
 	}
 
 	for _, v := range tests {
 		t.Run(v.i, func(t *testing.T) {
-			a, s := Parse([]byte(v.i))
-			if !reflect.DeepEqual(a, v.add) || !reflect.DeepEqual(s, v.sub) {
-				t.Error(a, v.add, s, v.sub)
+			m := Parse([]byte(v.i))
+			if !reflect.DeepEqual(m, v.m) {
+				t.Error(m, v.m)
 			}
 		})
 	}

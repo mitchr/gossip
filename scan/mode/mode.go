@@ -32,27 +32,31 @@ func lexMode(l *scan.Lexer) scan.State {
 	}
 }
 
+type Mode struct {
+	ModeChar rune
+	Add      bool
+	// accepts a param if nonempty (used for channel modes)
+	Param string
+}
+
 // modestring  =  1*( modeset )
-func Parse(b []byte) (addSet []rune, subSet []rune) {
+func Parse(b []byte) []Mode {
 	p := &scan.Parser{Tokens: scan.Lex(b, lexMode)}
+	m := []Mode{}
 
 	// must have atleast one modeset
 	chars, op := modeset(p)
-	if op == plus {
-		addSet = append(addSet, chars...)
-	} else {
-		subSet = append(subSet, chars...)
+	for _, v := range chars {
+		m = append(m, Mode{ModeChar: v, Add: op == plus})
 	}
 	for {
 		if r := p.Peek().TokenType; r == plus || r == minus {
 			chars, op := modeset(p)
-			if op == plus {
-				addSet = append(addSet, chars...)
-			} else {
-				subSet = append(subSet, chars...)
+			for _, v := range chars {
+				m = append(m, Mode{ModeChar: v, Add: op == plus})
 			}
 		} else {
-			return addSet, subSet
+			return m
 		}
 	}
 }
