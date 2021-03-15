@@ -31,21 +31,23 @@ func TestLexParams(t *testing.T) {
 
 func TestParseMessage(t *testing.T) {
 	tests := []struct {
-		b []byte
+		s string
 		m *Message
 	}{
-		{[]byte(":dan!d@localhost PRIVMSG #chan :Hey!\r\n"), &Message{nil, "dan", "d", "localhost", "PRIVMSG", []string{"#chan"}, "Hey!", true}},
-		{[]byte("NICK alice\r\n"), &Message{nil, "", "", "", "NICK", []string{"alice"}, "", false}},
-		{[]byte(":dan!d@localhost QUIT :Quit: Bye for now!\r\n"), &Message{nil, "dan", "d", "localhost", "QUIT", nil, "Quit: Bye for now!", true}},
-		{[]byte("USER alice 0 * :Alice Smith\r\n"), &Message{nil, "", "", "", "USER", []string{"alice", "0", "*"}, "Alice Smith", true}},
-		{nil, nil},
+		{":dan!d@localhost PRIVMSG #chan :Hey!\r\n", &Message{nil, "dan", "d", "localhost", "PRIVMSG", []string{"#chan"}, "Hey!", true}},
+		{"NICK alice\r\n", &Message{nil, "", "", "", "NICK", []string{"alice"}, "", false}},
+		{":dan!d@localhost QUIT :Quit: Bye for now!\r\n", &Message{nil, "dan", "d", "localhost", "QUIT", nil, "Quit: Bye for now!", true}},
+		{"USER alice 0 * :Alice Smith\r\n", &Message{nil, "", "", "", "USER", []string{"alice", "0", "*"}, "Alice Smith", true}},
+		{"", nil},
 		// {lex([]byte("CAP * LS :multi-prefix sasl\r\n"))},
 		// {lex([]byte("CAP REQ :sasl message-tags foo\r\n"))},
 	}
 
 	for _, v := range tests {
-		if !reflect.DeepEqual(Parse(v.b), v.m) {
-			t.Fatal("parse error", Parse(v.b), v.m)
-		}
+		t.Run(v.s, func(t *testing.T) {
+			if !reflect.DeepEqual(Parse([]byte(v.s)), v.m) {
+				t.Fatal("parse error", Parse([]byte(v.s)), v.m)
+			}
+		})
 	}
 }

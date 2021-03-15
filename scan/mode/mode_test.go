@@ -18,9 +18,11 @@ func TestParseMode(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		a, s := Parse([]byte(v.i))
-		if !reflect.DeepEqual(a, v.add) || !reflect.DeepEqual(s, v.sub) {
-			t.Error(a, v.add, s, v.sub)
-		}
+		t.Run(v.i, func(t *testing.T) {
+			a, s := Parse([]byte(v.i))
+			if !reflect.DeepEqual(a, v.add) || !reflect.DeepEqual(s, v.sub) {
+				t.Error(a, v.add, s, v.sub)
+			}
+		})
 	}
 }
