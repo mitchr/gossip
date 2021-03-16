@@ -308,7 +308,7 @@ func LUSERS(s *Server, c *client.Client, params []string) {
 
 func MODE(s *Server, c *client.Client, params []string) {
 	if len(params) < 1 {
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "MODE")
+		s.numericReply(c, RPL_UMODEIS, c.Mode)
 		return
 	}
 
