@@ -18,6 +18,7 @@ const (
 	RPL_LUSERUNKNOWN     = ":%s 253 %s %d :unknown connection(s)"
 	RPL_LUSERCHANNELS    = ":%s 254 %s %d :channels formed"
 	RPL_LUSERME          = ":%s 255 %s :I have %d clients and %d servers"
+	RPL_CHANNELMODEIS    = ":%s 324 %s %s %s"
 	RPL_NOTOPIC          = ":%s 331 %s %s :No topic is set"
 	RPL_TOPIC            = ":%s 332 %s %s :%s"
 	RPL_NAMREPLY         = ":%s 353 %s %s %s :$s"

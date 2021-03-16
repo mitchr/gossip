@@ -332,6 +332,19 @@ func MODE(s *Server, c *client.Client, params []string) {
 		} else {
 			s.numericReply(c, ERR_NOSUCHNICK, target)
 		}
+	} else {
+		ch, ok := s.channels[target]
+		if !ok {
+			s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
+			return
+		}
+
+		if len(params) == 1 { // modeStr not given, give back channel modes
+			// TODO: format mode arguments correctly
+			s.numericReply(c, RPL_CHANNELMODEIS, ch, ch.Modes, "")
+		} else { // modeStr given
+			ch.ApplyMode([]byte(params[1]), params[2:])
+		}
 	}
 }
 
