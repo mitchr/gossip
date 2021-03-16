@@ -80,6 +80,11 @@ func (c *Channel) ApplyMode(b []byte, params []string) bool {
 				p.apply(c, param, false)
 				c.Modes = strings.Replace(c.Modes, string(v.ModeChar), "", -1)
 			}
+		} else if _, ok := memberLetter[v.ModeChar]; ok {
+			// should apply this prefix to a member, not the channel
+			// TODO: if the nick given is not a member of this channel, return false
+			c.Members[params[pos]].ApplyMode(v)
+			pos++
 		} else {
 			return false
 		}

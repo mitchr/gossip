@@ -208,6 +208,27 @@ func TestTOPIC(t *testing.T) {
 	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.listener.Addr()), t)
 }
 
+func TestMODE(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("alice", "Alice Smith")
+	defer c.Close()
+
+	c.Write([]byte("JOIN #local\r\n"))
+	r.ReadBytes('\n')
+	c.Write([]byte("MODE #local +k pass\r\n"))
+	c.Write([]byte("MODE #local\r\n"))
+	resp, _ := r.ReadBytes('\n')
+	fmt.Println(string(resp))
+
+	fmt.Println(s.channels["#local"].Key)
+}
+
 func TestPRIVMSG(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {
