@@ -25,13 +25,18 @@ var memberLetter = map[rune]prefix{
 // mode.
 type modeFunc func(*Channel, string, bool)
 
-var channelLetter = map[rune]modeFunc{
+var channelLetter = map[rune]struct {
+	apply modeFunc
+	// addConsumes is true if '+modeChar' takes a parameter, same for
+	// remConsumes just '-modeChar'
+	addConsumes, remConsumes bool
+}{
 	// 'b': Ban,
 	// 'e': Exception,
 	// 'l': ChanLimit,
 	// 'i': InviteOnly,
 	// 'I': InviteException,
-	'k': key,
+	'k': {key, true, false},
 	// 'm': Moderated,
 	// 's': Secret,
 	// 't': protected,

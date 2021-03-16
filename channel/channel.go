@@ -55,18 +55,29 @@ func (c *Channel) Write(b interface{}) (int, error) {
 	return n, errors.New(strings.Join(errStrings, "\n"))
 }
 
-func (c *Channel) ApplyMode(b [2]string) bool {
-	modeStr := b[0]
-	modeArgs := b[1]
+func (c *Channel) ApplyMode(b []byte, params []string) bool {
+	m := mode.Parse(b)
 
-	m := mode.Parse([]byte(modeStr))
+	// keep track of which param we are currently looking at
+	pos := 0
+
 	for _, v := range m {
 		if p, ok := channelLetter[v.ModeChar]; ok {
+			param := ""
+
 			if v.Add {
-				p(c, modeArgs, true)
+				if p.addConsumes {
+					param = params[pos]
+					pos++
+				}
+				p.apply(c, param, true)
 				c.Modes += string(v.ModeChar)
 			} else {
-				p(c, modeArgs, false)
+				if p.remConsumes {
+					param = params[pos]
+					pos++
+				}
+				p.apply(c, param, false)
 				c.Modes = strings.Replace(c.Modes, string(v.ModeChar), "", -1)
 			}
 		} else {
