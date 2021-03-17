@@ -216,17 +216,26 @@ func TestMODE(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice", "Alice Smith")
-	defer c.Close()
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("bob", "Bob")
+	defer c2.Close()
 
-	c.Write([]byte("JOIN #local\r\n"))
-	r.ReadBytes('\n')
-	c.Write([]byte("MODE #local +k pass\r\n"))
-	c.Write([]byte("MODE #local\r\n"))
-	resp, _ := r.ReadBytes('\n')
+	c1.Write([]byte("JOIN #local\r\n"))
+	r1.ReadBytes('\n')
+	c2.Write([]byte("JOIN #local\r\n"))
+	r1.ReadBytes('\n')
+	r2.ReadBytes('\n')
+
+	c1.Write([]byte("MODE #local +k pass\r\n"))
+	c1.Write([]byte("MODE #local +o bob\r\n"))
+	c1.Write([]byte("MODE #local\r\n"))
+	resp, _ := r1.ReadBytes('\n')
 	fmt.Println(string(resp))
 
-	fmt.Println(s.channels["#local"].Key)
+	if s.channels["#local"].Members["bob"].Mode != "@" {
+		t.Error("Failed to set member mode")
+	}
 }
 
 func TestPRIVMSG(t *testing.T) {
