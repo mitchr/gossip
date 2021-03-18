@@ -5,7 +5,9 @@ import (
 	"log"
 	"strings"
 
+	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/mode"
+	"github.com/mitchr/gossip/scan/wild"
 )
 
 type ChanType rune
@@ -19,8 +21,12 @@ type Channel struct {
 	Name     string
 	ChanType ChanType
 	Topic    string
-	Modes    string
-	Key      string
+
+	Modes string
+	// array of nickmasks
+	Ban    []string
+	Except []string
+	Key    string
 
 	// map of Nick to undelying client
 	Members map[string]*Member
@@ -53,6 +59,27 @@ func (c *Channel) Write(b interface{}) (int, error) {
 	}
 
 	return n, errors.New(strings.Join(errStrings, "\n"))
+}
+
+// Admit adds a client to this channel. A client c is admitted to enter
+// a channel if their nickmask is not included in the banlist, or if
+// they are in the banlist, they are in the except list. They are also
+// admitted if adding this client does not put the channel over the
+// chanlimit.
+func (ch *Channel) Admit(c *client.Client) bool {
+	for _, v := range ch.Ban {
+		if wild.Match(v, c.String()) { // nickmask found in banlist
+			for _, k := range ch.Except {
+				if wild.Match(k, c.Nick) { // nickmask is an exception, so admit
+					ch.Members[c.Nick] = &Member{Client: c}
+					return true
+				}
+			}
+			return false
+		}
+	}
+	ch.Members[c.Nick] = &Member{Client: c}
+	return true
 }
 
 func (c *Channel) ApplyMode(b []byte, params []string) bool {

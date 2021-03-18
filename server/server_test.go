@@ -238,6 +238,31 @@ func TestMODE(t *testing.T) {
 	}
 }
 
+func TestBan(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, _ := connectAndRegister("bob", "Bob")
+	defer c2.Close()
+
+	c1.Write([]byte("JOIN #local\r\n"))
+	c1.Write([]byte("MODE #local +b bob!*@*\r\n")) // ban all nicks named bob
+	c1.Write([]byte("MODE #local\r\n"))
+	r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
+	c2.Write([]byte("JOIN #local\r\n"))
+
+	if !poll(&s.channels, 1) {
+		t.Error("Failed to ban user")
+	}
+}
+
 func TestPRIVMSG(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {

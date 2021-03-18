@@ -73,6 +73,7 @@ func TestMatchWilmany(t *testing.T) {
 		{"a*c", "a anything goes c", true},
 		{"a*c", "a never got there", false},
 		{"100.*.*.*", "100.9.1.9", true},
+		{"bob!*@*", "bob!Bob@127.0.0.1:99023", true},
 		{"*@127.0.0.1", "james@127.0.0.1", true},
 		{"*@127.0.0.1", "@127.0.0.1", true},
 		{"*", "", true},

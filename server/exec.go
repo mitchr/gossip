@@ -190,8 +190,10 @@ func JOIN(s *Server, c *client.Client, params []string) {
 				s.numericReply(c, ERR_BADCHANNELKEY, ch)
 				return
 			}
-
-			ch.Members[c.Nick] = channel.NewMember(c, "")
+			if !ch.Admit(c) {
+				// TODO: send back appropriate error response
+				return
+			}
 			// send JOIN to all participants of channel
 			ch.Write(fmt.Sprintf(":%s JOIN %s", c, chanStr))
 
@@ -208,7 +210,7 @@ func JOIN(s *Server, c *client.Client, params []string) {
 
 			ch := channel.New(chanName, chanChar)
 			s.channels[chanStr] = ch
-			ch.Members[c.Nick] = channel.NewMember(c, string(channel.Founder))
+			ch.Members[c.Nick] = &channel.Member{c, string(channel.Founder)}
 			c.Write(fmt.Sprintf(":%s JOIN %s", c, ch))
 		}
 	}

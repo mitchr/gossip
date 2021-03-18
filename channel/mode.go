@@ -31,8 +31,8 @@ var channelLetter = map[rune]struct {
 	// remConsumes just '-modeChar'
 	addConsumes, remConsumes bool
 }{
-	// 'b': Ban,
-	// 'e': Exception,
+	'b': {ban, true, true},
+	'e': {except, true, true},
 	// 'l': ChanLimit,
 	// 'i': InviteOnly,
 	// 'I': InviteException,
@@ -48,5 +48,31 @@ func key(ch *Channel, param string, add bool) {
 		ch.Key = param
 	} else {
 		ch.Key = ""
+	}
+}
+
+func ban(ch *Channel, mask string, add bool) {
+	if add {
+		ch.Ban = append(ch.Ban, mask)
+	} else {
+		for i := range ch.Ban {
+			if ch.Ban[i] == mask {
+				ch.Ban = append(ch.Ban[:i], ch.Ban[i+1:]...)
+				return
+			}
+		}
+	}
+}
+
+func except(ch *Channel, mask string, add bool) {
+	if add {
+		ch.Except = append(ch.Except, mask)
+	} else {
+		for i := range ch.Except {
+			if ch.Except[i] == mask {
+				ch.Except = append(ch.Except[:i], ch.Except[i+1:]...)
+				return
+			}
+		}
 	}
 }
