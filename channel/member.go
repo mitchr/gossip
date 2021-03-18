@@ -14,10 +14,6 @@ type Member struct {
 	Mode string
 }
 
-func NewMember(c *client.Client, p string) *Member {
-	return &Member{c, p}
-}
-
 func (m *Member) ApplyMode(mode mode.Mode) bool {
 	if r, ok := memberLetter[mode.ModeChar]; ok {
 		if mode.Add {
