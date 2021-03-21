@@ -1,5 +1,10 @@
 package channel
 
+import (
+	"math"
+	"strconv"
+)
+
 type prefix rune
 
 const (
@@ -32,23 +37,15 @@ var channelLetter = map[rune]struct {
 	addConsumes, remConsumes bool
 }{
 	'b': {ban, true, true},
-	'e': {except, true, true},
-	// 'l': ChanLimit,
-	// 'i': InviteOnly,
-	// 'I': InviteException,
+	'e': {banExcept, true, true},
+	'l': {limit, true, false},
+	'i': {invite, false, false},
+	'I': {inviteExcept, true, true},
 	'k': {key, true, false},
-	// 'm': Moderated,
-	// 's': Secret,
-	// 't': protected,
-	// 'n': NoExternalMsgs,
-}
-
-func key(ch *Channel, param string, add bool) {
-	if add {
-		ch.Key = param
-	} else {
-		ch.Key = ""
-	}
+	'm': {moderated, false, false},
+	's': {secret, false, false},
+	't': {protected, false, false},
+	'n': {noExternal, false, false},
 }
 
 func ban(ch *Channel, mask string, add bool) {
@@ -64,15 +61,51 @@ func ban(ch *Channel, mask string, add bool) {
 	}
 }
 
-func except(ch *Channel, mask string, add bool) {
+func banExcept(ch *Channel, mask string, add bool) {
 	if add {
-		ch.Except = append(ch.Except, mask)
+		ch.BanExcept = append(ch.BanExcept, mask)
 	} else {
-		for i := range ch.Except {
-			if ch.Except[i] == mask {
-				ch.Except = append(ch.Except[:i], ch.Except[i+1:]...)
+		for i := range ch.BanExcept {
+			if ch.BanExcept[i] == mask {
+				ch.BanExcept = append(ch.BanExcept[:i], ch.BanExcept[i+1:]...)
 				return
 			}
 		}
 	}
 }
+
+func limit(ch *Channel, param string, add bool) {
+	if add {
+		ch.Limit, _ = strconv.Atoi(param)
+	} else {
+		ch.Limit = math.MaxUint32
+	}
+}
+
+func invite(ch *Channel, p string, add bool) { ch.Invite = add }
+
+func inviteExcept(ch *Channel, mask string, add bool) {
+	if add {
+		ch.InviteExcept = append(ch.InviteExcept, mask)
+	} else {
+		for i := range ch.InviteExcept {
+			if ch.InviteExcept[i] == mask {
+				ch.InviteExcept = append(ch.InviteExcept[:i], ch.InviteExcept[i+1:]...)
+				return
+			}
+		}
+	}
+}
+
+func key(ch *Channel, param string, add bool) {
+	if add {
+		ch.Key = param
+	} else {
+		ch.Key = ""
+	}
+}
+
+func moderated(ch *Channel, p string, add bool)  { ch.Moderated = add }
+func secret(ch *Channel, p string, add bool)     { ch.Secret = add }
+func protected(ch *Channel, p string, add bool)  { ch.Protected = add }
+func noExternal(ch *Channel, p string, add bool) { ch.NoExternal = add }

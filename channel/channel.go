@@ -3,6 +3,7 @@ package channel
 import (
 	"errors"
 	"log"
+	"math"
 	"strings"
 
 	"github.com/mitchr/gossip/client"
@@ -24,9 +25,16 @@ type Channel struct {
 
 	Modes string
 	// array of nickmasks
-	Ban    []string
-	Except []string
-	Key    string
+	Ban          []string
+	BanExcept    []string
+	Limit        int
+	Invite       bool
+	InviteExcept []string
+	Key          string
+	Moderated    bool
+	Secret       bool
+	Protected    bool
+	NoExternal   bool
 
 	// map of Nick to undelying client
 	Members map[string]*Member
@@ -36,6 +44,7 @@ func New(name string, t ChanType) *Channel {
 	return &Channel{
 		Name:     name,
 		ChanType: t,
+		Limit:    math.MaxUint32,
 		Members:  make(map[string]*Member),
 	}
 }
@@ -67,9 +76,13 @@ func (c *Channel) Write(b interface{}) (int, error) {
 // admitted if adding this client does not put the channel over the
 // chanlimit.
 func (ch *Channel) Admit(c *client.Client) bool {
+	if len(ch.Members) >= ch.Limit {
+		// TODO: send ERR_CHANNELISFULL
+		return false
+	}
 	for _, v := range ch.Ban {
 		if wild.Match(v, c.String()) { // nickmask found in banlist
-			for _, k := range ch.Except {
+			for _, k := range ch.BanExcept {
 				if wild.Match(k, c.Nick) { // nickmask is an exception, so admit
 					ch.Members[c.Nick] = &Member{Client: c}
 					return true
