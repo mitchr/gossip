@@ -190,8 +190,13 @@ func JOIN(s *Server, c *client.Client, params []string) {
 				s.numericReply(c, ERR_BADCHANNELKEY, ch)
 				return
 			}
-			if !ch.Admit(c) {
-				// TODO: send back appropriate error response
+			err := ch.Admit(c)
+			if err != nil {
+				if err == channel.LimitErr { // not aceepting new clients
+					s.numericReply(c, ERR_CHANNELISFULL, ch)
+				} else if err == channel.BanErr { // client is banned
+					s.numericReply(c, ERR_BANNEDFROMCHAN, ch)
+				}
 				return
 			}
 			// send JOIN to all participants of channel

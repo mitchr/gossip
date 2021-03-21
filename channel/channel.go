@@ -70,29 +70,34 @@ func (c *Channel) Write(b interface{}) (int, error) {
 	return n, errors.New(strings.Join(errStrings, "\n"))
 }
 
+var (
+	LimitErr = errors.New("ERR_CHANNELISFULL")
+	BanErr   = errors.New("ERR_BANNEDFROMCHAN")
+)
+
 // Admit adds a client to this channel. A client c is admitted to enter
 // a channel if their nickmask is not included in the banlist, or if
 // they are in the banlist, they are in the except list. They are also
 // admitted if adding this client does not put the channel over the
 // chanlimit.
-func (ch *Channel) Admit(c *client.Client) bool {
+func (ch *Channel) Admit(c *client.Client) error {
 	if len(ch.Members) >= ch.Limit {
 		// TODO: send ERR_CHANNELISFULL
-		return false
+		return LimitErr
 	}
 	for _, v := range ch.Ban {
 		if wild.Match(v, c.String()) { // nickmask found in banlist
 			for _, k := range ch.BanExcept {
 				if wild.Match(k, c.Nick) { // nickmask is an exception, so admit
 					ch.Members[c.Nick] = &Member{Client: c}
-					return true
+					return nil
 				}
 			}
-			return false
+			return BanErr
 		}
 	}
 	ch.Members[c.Nick] = &Member{Client: c}
-	return true
+	return nil
 }
 
 func (c *Channel) ApplyMode(b []byte, params []string) bool {

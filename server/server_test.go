@@ -238,6 +238,28 @@ func TestMODE(t *testing.T) {
 	}
 }
 
+func TestChanFull(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("bob", "Bob")
+	defer c2.Close()
+
+	c1.Write([]byte("JOIN #l\r\n"))
+	c1.Write([]byte("MODE #l +l 0\r\n"))
+	r1.ReadBytes('\n')
+	c2.Write([]byte("JOIN #l\r\n"))
+	resp, _ := r2.ReadBytes('\n')
+
+	assertResponse(resp, fmt.Sprintf(":%s 471 bob #l :Cannot join channel (+l)\r\n", s.listener.Addr()), t)
+}
+
 func TestBan(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {
@@ -248,7 +270,7 @@ func TestBan(t *testing.T) {
 
 	c1, r1 := connectAndRegister("alice", "Alice Smith")
 	defer c1.Close()
-	c2, _ := connectAndRegister("bob", "Bob")
+	c2, r2 := connectAndRegister("bob", "Bob")
 	defer c2.Close()
 
 	c1.Write([]byte("JOIN #local\r\n"))
@@ -257,10 +279,9 @@ func TestBan(t *testing.T) {
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
+	resp, _ := r2.ReadBytes('\n')
 
-	if !poll(&s.channels, 1) {
-		t.Error("Failed to ban user")
-	}
+	assertResponse(resp, fmt.Sprintf(":%s 474 bob #local :Cannot join channel (+b)\r\n", s.listener.Addr()), t)
 }
 
 func TestPRIVMSG(t *testing.T) {

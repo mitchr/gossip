@@ -37,6 +37,8 @@ const (
 	ERR_NEEDMOREPARAMS   = ":%s 461 %s %s :Not enough parameters"
 	ERR_ALREADYREGISTRED = ":%s 462 %s :You may not reregister"
 	ERR_PASSWDMISMATCH   = ":%s 464 %s :Password Incorrect"
+	ERR_CHANNELISFULL    = ":%s 471 %s %s :Cannot join channel (+l)"
+	ERR_BANNEDFROMCHAN   = ":%s 474 %s %s :Cannot join channel (+b)"
 	ERR_BADCHANNELKEY    = ":%s 475 %s %s :Cannot join channel (+k)"
 	ERR_UMODEUNKNOWNFLAG = ":%s 501 %s :Unknown MODE flag"
 	ERR_USERSDONTMATCH   = ":%s 502 %s :Can't change mode for other users"
