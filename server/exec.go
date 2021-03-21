@@ -186,13 +186,11 @@ func JOIN(s *Server, c *client.Client, params []string) {
 
 	for chanStr, key := range chansWithKeys {
 		if ch, ok := s.channels[chanStr]; ok { // channel already exists
-			if ch.Key != key {
-				s.numericReply(c, ERR_BADCHANNELKEY, ch)
-				return
-			}
-			err := ch.Admit(c)
+			err := ch.Admit(c, key)
 			if err != nil {
-				if err == channel.LimitErr { // not aceepting new clients
+				if err == channel.KeyErr {
+					s.numericReply(c, ERR_BADCHANNELKEY, ch)
+				} else if err == channel.LimitErr { // not aceepting new clients
 					s.numericReply(c, ERR_CHANNELISFULL, ch)
 				} else if err == channel.BanErr { // client is banned
 					s.numericReply(c, ERR_BANNEDFROMCHAN, ch)

@@ -71,18 +71,22 @@ func (c *Channel) Write(b interface{}) (int, error) {
 }
 
 var (
+	KeyErr   = errors.New("ERR_BADCHANNELKEY")
 	LimitErr = errors.New("ERR_CHANNELISFULL")
 	BanErr   = errors.New("ERR_BANNEDFROMCHAN")
 )
 
 // Admit adds a client to this channel. A client c is admitted to enter
-// a channel if their nickmask is not included in the banlist, or if
-// they are in the banlist, they are in the except list. They are also
-// admitted if adding this client does not put the channel over the
-// chanlimit.
-func (ch *Channel) Admit(c *client.Client) error {
+// a channel if:
+//  1. If this channel has a key, the client supplies the correct key
+//  2. admitting this client does not put the channel over the chanlimit
+//  3. their nickmask is not included in the banlist
+//  4. if they are in the banlist, they are in the except list
+func (ch *Channel) Admit(c *client.Client, key string) error {
+	if ch.Key != key {
+		return KeyErr
+	}
 	if len(ch.Members) >= ch.Limit {
-		// TODO: send ERR_CHANNELISFULL
 		return LimitErr
 	}
 	for _, v := range ch.Ban {
