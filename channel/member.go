@@ -15,14 +15,13 @@ type Member struct {
 }
 
 func (m *Member) ApplyMode(mode mode.Mode) bool {
-	if r, ok := memberLetter[mode.ModeChar]; ok {
+	r, ok := memberLetter[mode.ModeChar]
+	if ok {
 		if mode.Add {
 			m.Mode += string(r)
 		} else {
 			m.Mode = strings.Replace(m.Mode, string(r), "", -1)
 		}
-	} else {
-		return false
 	}
-	return true
+	return ok
 }
