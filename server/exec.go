@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -375,9 +376,16 @@ func MODE(s *Server, c *client.Client, params []string) {
 			// TODO: format mode arguments correctly
 			s.numericReply(c, RPL_CHANNELMODEIS, ch, ch.Modes, "")
 		} else { // modeStr given
-			// TODO: write mode changes back to channel participants
-			ch.ApplyMode([]byte(params[1]), params[2:])
+			err := ch.ApplyMode([]byte(params[1]), params[2:])
+			var u *channel.UnknownModeErr
+			var n *channel.NotInChanErr
+			if errors.As(err, &u) {
+				s.numericReply(c, ERR_UNKNOWNMODE, u, ch)
+			} else if errors.As(err, &n) {
+				s.numericReply(c, ERR_USERNOTINCHANNEL, n, ch)
+			}
 		}
+		// TODO: write mode changes back to channel participants
 	}
 }
 

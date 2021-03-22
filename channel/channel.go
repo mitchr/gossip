@@ -129,7 +129,15 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 	return nil
 }
 
-func (c *Channel) ApplyMode(b []byte, params []string) bool {
+type NotInChanErr struct{ member string }
+
+func (n NotInChanErr) Error() string { return n.member }
+
+type UnknownModeErr struct{ char rune }
+
+func (u UnknownModeErr) Error() string { return string(u.char) }
+
+func (c *Channel) ApplyMode(b []byte, params []string) error {
 	m := mode.Parse(b)
 
 	// keep track of which param we are currently looking at
@@ -150,14 +158,20 @@ func (c *Channel) ApplyMode(b []byte, params []string) bool {
 				c.Modes = strings.Replace(c.Modes, string(v.ModeChar), "", -1)
 			}
 			p.apply(c, param, v.Add)
-		} else if _, ok := memberLetter[v.ModeChar]; ok {
-			// should apply this prefix to a member, not the channel
-			// TODO: if the nick given is not a member of this channel, return false
-			c.Members[params[pos]].ApplyMode(v)
+
+		} else if _, ok := memberLetter[v.ModeChar]; ok { // should apply this prefix to a member, not the channel
+			member, belongs := c.Members[params[pos]]
+			if !belongs {
+				// give back given nick
+				return NotInChanErr{params[pos]}
+			}
+
+			member.ApplyMode(v)
 			pos++
 		} else {
-			return false
+			// give back error with the unknown mode char
+			return UnknownModeErr{v.ModeChar}
 		}
 	}
-	return true
+	return nil
 }
