@@ -36,6 +36,9 @@ type Channel struct {
 	Protected    bool
 	NoExternal   bool
 
+	// Invited is a list of client nicks who have been INVITEd
+	Invited []string
+
 	// map of Nick to undelying client
 	Members map[string]*Member
 }
@@ -71,9 +74,10 @@ func (c *Channel) Write(b interface{}) (int, error) {
 }
 
 var (
-	KeyErr   = errors.New("ERR_BADCHANNELKEY")
-	LimitErr = errors.New("ERR_CHANNELISFULL")
-	BanErr   = errors.New("ERR_BANNEDFROMCHAN")
+	KeyErr    = errors.New("ERR_BADCHANNELKEY")
+	LimitErr  = errors.New("ERR_CHANNELISFULL")
+	InviteErr = errors.New("ERR_INVITEONLYCHAN")
+	BanErr    = errors.New("ERR_BANNEDFROMCHAN")
 )
 
 // Admit adds a client to this channel. A client c is admitted to enter
@@ -89,6 +93,25 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 	if len(ch.Members) >= ch.Limit {
 		return LimitErr
 	}
+
+	if ch.Invite {
+		for _, v := range ch.InviteExcept {
+			// client doesn't need an invite, add them
+			if wild.Match(v, c.String()) {
+				ch.Members[c.Nick] = &Member{Client: c}
+				return nil
+			}
+		}
+		for _, v := range ch.Invited {
+			// client was invited
+			if c.Nick == v {
+				ch.Members[c.Nick] = &Member{Client: c}
+				return nil
+			}
+		}
+		return InviteErr
+	}
+
 	for _, v := range ch.Ban {
 		if wild.Match(v, c.String()) { // nickmask found in banlist
 			for _, k := range ch.BanExcept {

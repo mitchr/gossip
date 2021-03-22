@@ -306,6 +306,30 @@ func TestNoExternal(t *testing.T) {
 	assertResponse(resp, fmt.Sprintf(":%s 404 bob #l :Cannot send to channel\r\n", s.listener.Addr()), t)
 }
 
+func TestInvite(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("bob", "Bob")
+	defer c2.Close()
+
+	c1.Write([]byte("JOIN #local\r\n"))
+	c1.Write([]byte("MODE #local +i\r\n"))
+	c1.Write([]byte("MODE #local\r\n"))
+	r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
+	c2.Write([]byte("JOIN #local\r\n"))
+	resp, _ := r2.ReadBytes('\n')
+
+	assertResponse(resp, fmt.Sprintf(":%s 473 bob #local :Cannot join channel (+i)\r\n", s.listener.Addr()), t)
+}
+
 func TestBan(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {

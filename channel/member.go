@@ -14,6 +14,10 @@ type Member struct {
 	Mode string
 }
 
+func (m Member) Is(p prefix) bool {
+	return strings.ContainsRune(m.Mode, rune(p))
+}
+
 func (m *Member) ApplyMode(mode mode.Mode) bool {
 	r, ok := memberLetter[mode.ModeChar]
 	if ok {

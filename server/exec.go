@@ -21,10 +21,11 @@ var commandMap = map[string]executor{
 	"QUIT": QUIT,
 
 	// chanOps
-	"JOIN":  JOIN,
-	"PART":  PART,
-	"TOPIC": TOPIC,
-	"NAMES": NAMES,
+	"JOIN":   JOIN,
+	"PART":   PART,
+	"TOPIC":  TOPIC,
+	"NAMES":  NAMES,
+	"INVITE": INVITE,
 
 	// server queries
 	"MOTD":   MOTD,
@@ -192,6 +193,8 @@ func JOIN(s *Server, c *client.Client, params []string) {
 					s.numericReply(c, ERR_BADCHANNELKEY, ch)
 				} else if err == channel.LimitErr { // not aceepting new clients
 					s.numericReply(c, ERR_CHANNELISFULL, ch)
+				} else if err == channel.InviteErr {
+					s.numericReply(c, ERR_INVITEONLYCHAN, ch)
 				} else if err == channel.BanErr { // client is banned
 					s.numericReply(c, ERR_BANNEDFROMCHAN, ch)
 				}
@@ -275,6 +278,30 @@ func TOPIC(s *Server, c *client.Client, params []string) {
 	}
 }
 
+func INVITE(s *Server, c *client.Client, params []string) {
+	if len(params) != 2 {
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "INVITE")
+		return
+	}
+
+	nick := params[0]
+	ch, ok := s.channels[params[1]]
+	if ok { // channel exists
+		if ch.Members[c.Nick] == nil { // only members can invite
+			s.numericReply(c, ERR_NOTONCHANNEL, ch)
+			return
+		} else if ch.Invite && ch.Members[c.Nick].Is(channel.Operator) { // if invite mode set, only ops can send an invite
+			s.numericReply(c, ERR_CHANOPRIVSNEEDED, ch)
+			return
+		} else if ch.Members[nick] != nil { // can't invite a member who is already on channel
+			s.numericReply(c, ERR_USERONCHANNEL, c, nick, ch)
+			return
+		}
+	}
+	ch.Invited = append(ch.Invited, nick)
+	s.numericReply(c, RPL_INVITING, ch, nick)
+}
+
 // if c belongs to the channel associated with chanName, return that
 // channel. If it doesn't, or if the channel doesn't exist, write a
 // numeric reply to the client and return nil.
@@ -348,6 +375,7 @@ func MODE(s *Server, c *client.Client, params []string) {
 			// TODO: format mode arguments correctly
 			s.numericReply(c, RPL_CHANNELMODEIS, ch, ch.Modes, "")
 		} else { // modeStr given
+			// TODO: write mode changes back to channel participants
 			ch.ApplyMode([]byte(params[1]), params[2:])
 		}
 	}
