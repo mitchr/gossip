@@ -378,11 +378,26 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 	msg := params[1]
 	for _, v := range recipients {
 		if isChannel(v) {
-			if ch, ok := s.channels[v]; ok {
-				ch.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
-			} else if !notice {
+			ch := s.channels[v]
+			if ch == nil && !notice { // channel doesn't exist
 				s.numericReply(c, ERR_NOSUCHCHANNEL, v)
+				return
 			}
+
+			m := ch.Members[c.Nick]
+			if m == nil {
+				if ch.NoExternal {
+					// chan does not allow external messages; client needs to join
+					s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
+					return
+				}
+			} else if ch.Moderated && m.Mode == "" {
+				// member has no mode, so they cannot speak in a moderated chan
+				s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
+				return
+			}
+
+			ch.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
 		} else {
 			if client, ok := s.clients[v]; ok {
 				client.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
