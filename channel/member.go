@@ -11,20 +11,20 @@ import (
 // Clients, have the capability to be given a mode/prefix.
 type Member struct {
 	*client.Client
-	Mode string
+	Prefix string
 }
 
 func (m Member) Is(p prefix) bool {
-	return strings.ContainsRune(m.Mode, rune(p))
+	return strings.ContainsRune(m.Prefix, rune(p))
 }
 
 func (m *Member) ApplyMode(mode mode.Mode) bool {
 	r, ok := memberLetter[mode.ModeChar]
 	if ok {
 		if mode.Add {
-			m.Mode += string(r)
+			m.Prefix += string(r)
 		} else {
-			m.Mode = strings.Replace(m.Mode, string(r), "", -1)
+			m.Prefix = strings.Replace(m.Prefix, string(r), "", -1)
 		}
 	}
 	return ok

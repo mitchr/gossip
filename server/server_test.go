@@ -233,7 +233,7 @@ func TestMODE(t *testing.T) {
 	resp, _ := r1.ReadBytes('\n')
 	fmt.Println(string(resp))
 
-	if s.channels["#local"].Members["bob"].Mode != "@" {
+	if s.channels["#local"].Members["bob"].Prefix != "@" {
 		t.Error("Failed to set member mode")
 	}
 }

@@ -427,7 +427,7 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 					s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
 					return
 				}
-			} else if ch.Moderated && m.Mode == "" {
+			} else if ch.Moderated && m.Prefix == "" {
 				// member has no mode, so they cannot speak in a moderated chan
 				s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
 				return
