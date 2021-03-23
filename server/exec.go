@@ -321,6 +321,7 @@ func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel
 func NAMES(s *Server, c *client.Client, params []string) {
 	if len(params) == 0 {
 		s.numericReply(c, RPL_ENDOFNAMES, "*")
+		return
 	}
 
 	chans := strings.Split(params[0], ",")
