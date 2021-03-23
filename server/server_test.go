@@ -208,6 +208,27 @@ func TestTOPIC(t *testing.T) {
 	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.listener.Addr()), t)
 }
 
+func TestNAMES(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("alice", "Alice Smith")
+	defer c.Close()
+
+	c.Write([]byte("JOIN &test\r\n"))
+	r.ReadBytes('\n')
+	c.Write([]byte("NAMES &test\r\n"))
+	namreply, _ := r.ReadBytes('\n')
+	end, _ := r.ReadBytes('\n')
+
+	assertResponse(namreply, fmt.Sprintf(":%s 353 alice = &test :~alice\r\n", s.listener.Addr()), t)
+	assertResponse(end, fmt.Sprintf(":%s 366 alice &test :End of /NAMES list\r\n", s.listener.Addr()), t)
+}
+
 func TestMODE(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {

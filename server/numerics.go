@@ -22,7 +22,7 @@ const (
 	RPL_NOTOPIC          = ":%s 331 %s %s :No topic is set"
 	RPL_TOPIC            = ":%s 332 %s %s :%s"
 	RPL_INVITING         = ":%s 341 %s %s"
-	RPL_NAMREPLY         = ":%s 353 %s %s %s :$s"
+	RPL_NAMREPLY         = ":%s 353 %s %s %s :%s"
 	RPL_ENDOFNAMES       = ":%s 366 %s %s :End of /NAMES list"
 	RPL_MOTDSTART        = ":%s 375 %s :- %s Message of the Day -"
 	RPL_MOTD             = ":%s 371 %s :%s"

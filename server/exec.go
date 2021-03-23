@@ -319,9 +319,50 @@ func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel
 }
 
 func NAMES(s *Server, c *client.Client, params []string) {
-	if len(params) != 1 {
+	if len(params) == 0 {
 		s.numericReply(c, RPL_ENDOFNAMES, "*")
 	}
+
+	chans := strings.Split(params[0], ",")
+	for _, v := range chans {
+		ch := s.channels[v]
+		if ch == nil {
+			s.numericReply(c, RPL_ENDOFNAMES, v)
+		} else {
+			_, ok := ch.Members[c.Nick]
+			if ch.Secret && !ok { // chan is secret and client does not belong
+				s.numericReply(c, RPL_ENDOFNAMES, v)
+			} else {
+				sym, members := constructNAMREPLY(ch, ok)
+				s.numericReply(c, RPL_NAMREPLY, sym, ch, members)
+				s.numericReply(c, RPL_ENDOFNAMES, v)
+			}
+		}
+	}
+}
+
+// given a channel, construct a NAMREPLY for all the members. if
+// invisibles is true, include invisible members in the response; this
+// should only be done if the requesting client is also a member of the
+// channel
+func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, members string) {
+	symbol = "="
+	if c.Secret {
+		symbol = "@"
+	}
+
+	for k, v := range c.Members {
+		// if not inluding invisible clients, and this client is invisible
+		if !invisibles && v.Mode&client.Invisible == client.Invisible {
+			continue
+		}
+		if v.Prefix != "" {
+			// TODO: only use the member's highest membership mode
+			members += string(v.Prefix[0])
+		}
+		members += k + " "
+	}
+	return symbol, members[0 : len(members)-1]
 }
 
 func MOTD(s *Server, c *client.Client, params []string) {
