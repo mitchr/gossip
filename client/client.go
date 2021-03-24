@@ -31,9 +31,13 @@ type Client struct {
 // TODO: default values for Nick, User, and Realname? (maybe '*')
 func New(conn net.Conn) *Client {
 	c := &Client{
-		Host:   conn.RemoteAddr(),
-		conn:   conn,
-		reader: bufio.NewReader(conn),
+		Host: conn.RemoteAddr(),
+		conn: conn,
+
+		// only read 512 bytes at a time
+		// TODO: an additional 512 bytes can be used for message tags, so
+		// this limit will have to be modified to accomodate that
+		reader: bufio.NewReaderSize(conn, 512),
 	}
 
 	// give a small window for client to register before kicking them off
@@ -75,7 +79,12 @@ func (c *Client) Write(i interface{}) (int, error) {
 
 // Read until encountering a newline
 func (c *Client) ReadMsg() ([]byte, error) {
-	return c.reader.ReadBytes('\n')
+	b, err := c.reader.ReadSlice('\n')
+
+	// need to copy because ReadSlice reuses the slice pointer on the next read
+	tmp := make([]byte, len(b))
+	copy(tmp, b)
+	return tmp, err
 }
 
 func (c *Client) Close() error {

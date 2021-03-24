@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net"
@@ -115,13 +116,13 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			// read until encountering a newline; the parser checks that \r exists
 			msgBuf, err := c.ReadMsg()
 			if err != nil {
-				// TODO: do something different if encountering a certain err? (io.EOF, net.OpErr)
-				// either client closed its own connection, or they disconnected without quit
-				c.Cancel()
-				return
-			} else {
-				input <- msgBuf
+				if err != bufio.ErrBufferFull {
+					// either client closed its own connection, or they disconnected without quit
+					c.Cancel()
+					return
+				}
 			}
+			input <- msgBuf
 		}
 	}()
 

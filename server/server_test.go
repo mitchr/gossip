@@ -11,6 +11,22 @@ import (
 	"github.com/mitchr/gossip/client"
 )
 
+func TestWriteMultiline(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, _ := net.Dial("tcp", ":6667")
+	defer c.Close()
+
+	c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice\r\n"))
+	resp, _ := bufio.NewReader(c).ReadBytes('\n')
+	assertResponse(resp, fmt.Sprintf(":%s 001 alice :Welcome to the Internet Relay Network %s\r\n", s.listener.Addr(), s.clients["alice"]), t)
+}
+
 func TestRegistration(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {
