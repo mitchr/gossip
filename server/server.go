@@ -3,7 +3,6 @@ package server
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -130,15 +129,13 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		select {
 		case <-clientCtx.Done():
 			s.msgQueue <- func() {
-				// client may have been kicked off without first sending a QUIT
-				// command, so we need to remove them from all the channels they
-				// are still connected to
 				if !c.Registered {
 					s.unknowns--
 				} else {
-					for _, v := range s.channelsOf(c) {
-						s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :Client left without saying goodbye :(", c))
-					}
+					// client may have been kicked off without first sending a QUIT
+					// command, so we need to remove them from all the channels they
+					// are still connected to
+					QUIT(s, c, "Client left without saying goodbye :(")
 				}
 
 				c.Close()
