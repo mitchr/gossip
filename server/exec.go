@@ -148,7 +148,7 @@ func (s *Server) endRegistration(c *client.Client) {
 
 		// start PING timer
 		go func() {
-			ticker := time.NewTicker(time.Minute * 3)
+			ticker := time.NewTicker(time.Minute * 5)
 			// wait 3 minutes, send PING
 			// if client doesn't respond with a PONG in 10 seconds, kick them
 			for {
