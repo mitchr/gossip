@@ -181,15 +181,13 @@ func TestChannelCreation(t *testing.T) {
 		// c1 leaves, c2 should receive a PARTing message from them
 		c1.Write([]byte("PART #local :Goodbye\r\n"))
 		response, _ := r2.ReadBytes('\n')
-		assertResponse(response, fmt.Sprintf("%s PART #local :Goodbye\r\n", s.clients["alice"]), t)
+		assertResponse(response, fmt.Sprintf(":%s PART #local :Goodbye\r\n", s.clients["alice"]), t)
 	})
 
 	t.Run("TestChannelDestruction", func(t *testing.T) {
 		c2.Write([]byte("PART #local\r\n"))
-
-		if !poll(&s.channels, 0) {
-			t.Error("Could not destroy channel")
-		}
+		response, _ := r2.ReadBytes('\n')
+		assertResponse(response, fmt.Sprintf(":%s PART #local\r\n", s.clients["bob"]), t)
 	})
 }
 

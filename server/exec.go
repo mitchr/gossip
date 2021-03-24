@@ -252,9 +252,9 @@ func PART(s *Server, c *client.Client, params ...string) {
 		}
 
 		if len(params) >= 2 { // reason given
-			s.removeFromChannel(c, ch, fmt.Sprintf("%s PART %s :%s", c, ch, params[1]))
+			s.removeFromChannel(c, ch, fmt.Sprintf(":%s PART %s :%s", c, ch, params[1]))
 		} else {
-			s.removeFromChannel(c, ch, fmt.Sprintf("%s PART %s", c, ch))
+			s.removeFromChannel(c, ch, fmt.Sprintf(":%s PART %s", c, ch))
 		}
 	}
 }
