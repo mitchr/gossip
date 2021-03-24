@@ -204,8 +204,12 @@ func JOIN(s *Server, c *client.Client, params []string) {
 			}
 			// send JOIN to all participants of channel
 			ch.Write(fmt.Sprintf(":%s JOIN %s", c, chanStr))
-
-			// TODO: send RPL_TOPIC/RPL_NOTOPIC and RPL_NAMREPLY to current joiner
+			if ch.Topic != "" {
+				// only send topic if it exists
+				TOPIC(s, c, []string{ch.String()})
+			}
+			sym, members := constructNAMREPLY(ch, ok)
+			s.numericReply(c, RPL_NAMREPLY, sym, ch, members)
 		} else { // create new channel
 			chanChar := channel.ChanType(chanStr[0])
 			chanName := chanStr[1:]

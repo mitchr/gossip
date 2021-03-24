@@ -154,6 +154,7 @@ func TestChannelCreation(t *testing.T) {
 	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
 	r2.ReadBytes('\n')
+	r2.ReadBytes('\n')
 	r1.ReadBytes('\n') // alice reading bob's join msg
 
 	if !poll(&s.channels, 1) {
@@ -321,6 +322,7 @@ func TestModerated(t *testing.T) {
 	c2.Write([]byte("JOIN #l\r\n"))
 	c2.Write([]byte("PRIVMSG #l :hey\r\n"))
 	r2.ReadBytes('\n')
+	r2.ReadBytes('\n')
 	resp, _ := r2.ReadBytes('\n')
 
 	assertResponse(resp, fmt.Sprintf(":%s 404 bob #l :Cannot send to channel\r\n", s.listener.Addr()), t)
@@ -411,6 +413,7 @@ func TestPRIVMSG(t *testing.T) {
 	c1.Write([]byte("JOIN #local\r\n"))
 	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
+	r2.ReadBytes('\n')
 	r2.ReadBytes('\n')
 	r1.ReadBytes('\n')
 
