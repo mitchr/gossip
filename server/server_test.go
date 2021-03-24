@@ -442,9 +442,7 @@ func TestPRIVMSG(t *testing.T) {
 	t.Run("TestChannelPRIVMSG", func(t *testing.T) {
 		// message sent to channel should broadcast to all members
 		c1.Write([]byte("PRIVMSG #local :hello\r\n"))
-		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hello\r\n", s.clients["alice"]), t)
-		resp, _ = r2.ReadBytes('\n')
+		resp, _ := r2.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hello\r\n", s.clients["alice"]), t)
 	})
 }

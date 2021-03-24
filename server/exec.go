@@ -494,7 +494,13 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 				return
 			}
 
-			ch.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
+			// write to everybody else in the chan besides self
+			for _, m := range ch.Members {
+				if m.Client == c {
+					continue
+				}
+				m.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
+			}
 		} else {
 			if client, ok := s.clients[v]; ok {
 				client.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
