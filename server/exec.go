@@ -26,6 +26,7 @@ var commandMap = map[string]executor{
 	"PART":   PART,
 	"TOPIC":  TOPIC,
 	"NAMES":  NAMES,
+	"LIST":   LIST,
 	"INVITE": INVITE,
 
 	// server queries
@@ -366,6 +367,25 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, memb
 	return symbol, members[0 : len(members)-1]
 }
 
+// TODO: support ELIST params
+func LIST(s *Server, c *client.Client, params []string) {
+	if len(params) == 0 {
+		// reply with all channels that aren't secret
+		for _, v := range s.channels {
+			if !v.Secret {
+				s.numericReply(c, RPL_LIST, v, len(v.Members), v.Topic)
+			}
+		}
+	} else {
+		for _, v := range strings.Split(params[0], ",") {
+			if ch, ok := s.channels[v]; ok {
+				s.numericReply(c, RPL_LIST, ch, len(ch.Members), ch.Topic)
+			}
+		}
+	}
+	s.numericReply(c, RPL_LISTEND)
+}
+
 func MOTD(s *Server, c *client.Client, params []string) {
 	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
 	s.numericReply(c, RPL_MOTDSTART, s.listener.Addr())
@@ -431,13 +451,8 @@ func MODE(s *Server, c *client.Client, params []string) {
 	}
 }
 
-func PRIVMSG(s *Server, c *client.Client, params []string) {
-	s.communicate(params, c, false)
-}
-
-func NOTICE(s *Server, c *client.Client, params []string) {
-	s.communicate(params, c, true)
-}
+func PRIVMSG(s *Server, c *client.Client, params []string) { s.communicate(params, c, false) }
+func NOTICE(s *Server, c *client.Client, params []string)  { s.communicate(params, c, true) }
 
 // communicate is used for PRIVMSG/NOTICE. if notice is set to true,
 // then error replies from the server will not be sent.
