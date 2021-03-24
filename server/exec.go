@@ -12,7 +12,7 @@ import (
 	"github.com/mitchr/gossip/scan/msg"
 )
 
-type executor func(*Server, *client.Client, []string)
+type executor func(*Server, *client.Client, ...string)
 
 var commandMap = map[string]executor{
 	// registration
@@ -45,7 +45,7 @@ var commandMap = map[string]executor{
 	"ERROR":   ERROR,
 }
 
-func PASS(s *Server, c *client.Client, params []string) {
+func PASS(s *Server, c *client.Client, params ...string) {
 	if c.BarredFromPass {
 		return
 	}
@@ -60,7 +60,7 @@ func PASS(s *Server, c *client.Client, params []string) {
 	c.ServerPassAttempt = params[0]
 }
 
-func NICK(s *Server, c *client.Client, params []string) {
+func NICK(s *Server, c *client.Client, params ...string) {
 	c.BarredFromPass = true
 
 	if len(params) != 1 {
@@ -84,7 +84,7 @@ func NICK(s *Server, c *client.Client, params []string) {
 	s.endRegistration(c)
 }
 
-func USER(s *Server, c *client.Client, params []string) {
+func USER(s *Server, c *client.Client, params ...string) {
 	c.BarredFromPass = true
 	// TODO: Ident Protocol
 
@@ -107,7 +107,7 @@ func USER(s *Server, c *client.Client, params []string) {
 	s.endRegistration(c)
 }
 
-func QUIT(s *Server, c *client.Client, params []string) {
+func QUIT(s *Server, c *client.Client, params ...string) {
 	reason := "" // assume client does not send a reason for quit
 	if len(params) > 0 {
 		reason = params[0]
@@ -143,8 +143,8 @@ func (s *Server) endRegistration(c *client.Client) {
 		s.numericReply(c, RPL_MYINFO, s.listener.Addr(), "", "", "")
 		s.numericReply(c, RPL_ISUPPORT, "")
 
-		LUSERS(s, c, nil)
-		MOTD(s, c, nil)
+		LUSERS(s, c)
+		MOTD(s, c)
 
 		// start PING timer
 		go func() {
@@ -166,7 +166,7 @@ func (s *Server) endRegistration(c *client.Client) {
 	}
 }
 
-func JOIN(s *Server, c *client.Client, params []string) {
+func JOIN(s *Server, c *client.Client, params ...string) {
 	if len(params) < 1 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "JOIN")
 		return
@@ -175,7 +175,7 @@ func JOIN(s *Server, c *client.Client, params []string) {
 	// when 'JOIN 0', PART from every channel client is a member of
 	if params[0] == "0" {
 		for _, v := range s.channelsOf(c) {
-			PART(s, c, []string{v.String()})
+			PART(s, c, v.String())
 		}
 		return
 	}
@@ -206,7 +206,7 @@ func JOIN(s *Server, c *client.Client, params []string) {
 			ch.Write(fmt.Sprintf(":%s JOIN %s", c, chanStr))
 			if ch.Topic != "" {
 				// only send topic if it exists
-				TOPIC(s, c, []string{ch.String()})
+				TOPIC(s, c, ch.String())
 			}
 			sym, members := constructNAMREPLY(ch, ok)
 			s.numericReply(c, RPL_NAMREPLY, sym, ch, members)
@@ -242,7 +242,7 @@ func constructKeyMap(chans, keys []string) map[string]string {
 	return m
 }
 
-func PART(s *Server, c *client.Client, params []string) {
+func PART(s *Server, c *client.Client, params ...string) {
 	chans := strings.Split(params[0], ",")
 
 	for _, v := range chans {
@@ -259,7 +259,7 @@ func PART(s *Server, c *client.Client, params []string) {
 	}
 }
 
-func TOPIC(s *Server, c *client.Client, params []string) {
+func TOPIC(s *Server, c *client.Client, params ...string) {
 	if len(params) < 1 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "TOPIC")
 		return
@@ -284,7 +284,7 @@ func TOPIC(s *Server, c *client.Client, params []string) {
 	}
 }
 
-func INVITE(s *Server, c *client.Client, params []string) {
+func INVITE(s *Server, c *client.Client, params ...string) {
 	if len(params) != 2 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "INVITE")
 		return
@@ -323,7 +323,7 @@ func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel
 	return ch
 }
 
-func NAMES(s *Server, c *client.Client, params []string) {
+func NAMES(s *Server, c *client.Client, params ...string) {
 	if len(params) == 0 {
 		s.numericReply(c, RPL_ENDOFNAMES, "*")
 		return
@@ -372,7 +372,7 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, memb
 }
 
 // TODO: support ELIST params
-func LIST(s *Server, c *client.Client, params []string) {
+func LIST(s *Server, c *client.Client, params ...string) {
 	if len(params) == 0 {
 		// reply with all channels that aren't secret
 		for _, v := range s.channels {
@@ -390,14 +390,14 @@ func LIST(s *Server, c *client.Client, params []string) {
 	s.numericReply(c, RPL_LISTEND)
 }
 
-func MOTD(s *Server, c *client.Client, params []string) {
+func MOTD(s *Server, c *client.Client, params ...string) {
 	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
 	s.numericReply(c, RPL_MOTDSTART, s.listener.Addr())
 	s.numericReply(c, RPL_MOTD, "") // TODO: parse MOTD from config file or something
 	s.numericReply(c, RPL_ENDOFMOTD)
 }
 
-func LUSERS(s *Server, c *client.Client, params []string) {
+func LUSERS(s *Server, c *client.Client, params ...string) {
 	s.numericReply(c, RPL_LUSERCLIENT, len(s.clients), 0, 0)
 	s.numericReply(c, RPL_LUSEROP, 0)
 	s.numericReply(c, RPL_LUSERUNKNOWN, s.unknowns)
@@ -405,7 +405,7 @@ func LUSERS(s *Server, c *client.Client, params []string) {
 	s.numericReply(c, RPL_LUSERME, len(s.clients), 0)
 }
 
-func MODE(s *Server, c *client.Client, params []string) {
+func MODE(s *Server, c *client.Client, params ...string) {
 	if len(params) < 1 {
 		s.numericReply(c, RPL_UMODEIS, c.Mode)
 		return
@@ -455,8 +455,8 @@ func MODE(s *Server, c *client.Client, params []string) {
 	}
 }
 
-func PRIVMSG(s *Server, c *client.Client, params []string) { s.communicate(params, c, false) }
-func NOTICE(s *Server, c *client.Client, params []string)  { s.communicate(params, c, true) }
+func PRIVMSG(s *Server, c *client.Client, params ...string) { s.communicate(params, c, false) }
+func NOTICE(s *Server, c *client.Client, params ...string)  { s.communicate(params, c, true) }
 
 // communicate is used for PRIVMSG/NOTICE. if notice is set to true,
 // then error replies from the server will not be sent.
@@ -505,14 +505,14 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 	}
 }
 
-func PING(s *Server, c *client.Client, params []string) {
+func PING(s *Server, c *client.Client, params ...string) {
 	// TODO: params can contain other servers, in which case the PING
 	// will have to be redirected. For now, we can just assume that any
 	// PING from a connected client is meant for this server
 	c.Write(fmt.Sprintf(":%s PONG", s.listener.Addr()))
 }
 
-func PONG(s *Server, c *client.Client, params []string) {
+func PONG(s *Server, c *client.Client, params ...string) {
 	c.ExpectingPONG = false
 	// TODO: ignore for now, but like PING, PONG can be meant for
 	// multiple servers so we need to investigate params
@@ -521,11 +521,11 @@ func PONG(s *Server, c *client.Client, params []string) {
 
 // TODO: this is currently a noop, as a server should only accept ERROR
 // commands from other servers
-func ERROR(s *Server, c *client.Client, params []string) {
+func ERROR(s *Server, c *client.Client, params ...string) {
 	return
 }
 
-func WALLOPS(s *Server, c *client.Client, params []string) {
+func WALLOPS(s *Server, c *client.Client, params ...string) {
 	if len(params) != 1 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "WALLOPS")
 		return
@@ -545,7 +545,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	}
 
 	if e, ok := commandMap[m.Command]; ok {
-		e(s, c, m.Parameters())
+		e(s, c, m.Parameters()...)
 	} else {
 		s.numericReply(c, ERR_UNKNOWNCOMMAND, m.Command)
 	}
