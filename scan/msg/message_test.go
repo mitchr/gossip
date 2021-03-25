@@ -10,13 +10,27 @@ import (
 
 func TestLexParams(t *testing.T) {
 	tests := map[string][]scan.Token{
-		" CAP * LIST\r\n":              {{space, " "}, {nospcrlfcl, "CAP"}, {space, " "}, {nospcrlfcl, "*"}, {space, " "}, {nospcrlfcl, "LIST"}, {crlf, "\r\n"}},
-		" * LS :multi-prefix sasl\r\n": {{space, " "}, {nospcrlfcl, "*"}, {space, " "}, {nospcrlfcl, "LS"}, {space, " "}, {colon, ":"}, {nospcrlfcl, "multi-prefix"}, {space, " "}, {nospcrlfcl, "sasl"}, {crlf, "\r\n"}},
-
-		// " REQ :sasl message-tags foo": {{middle, "REQ"}, {trailing, "sasl message-tags foo"}},
-		// " #chan :Hey!":                {{middle, "#chan"}, {trailing, "Hey!"}},
-		// " #chan Hey!":                 {{middle, "#chan"}, {middle, "Hey!"}},
-		// "        #chan       Hey!":    {{middle, "#chan"}, {middle, "Hey!"}}, // variation with extra whitespace
+		" CAP * LIST\r\n": {
+			{TokenType: space, Value: " "},
+			{TokenType: nospcrlfcl, Value: "CAP"},
+			{TokenType: space, Value: " "},
+			{TokenType: nospcrlfcl, Value: "*"},
+			{TokenType: space, Value: " "},
+			{TokenType: nospcrlfcl, Value: "LIST"},
+			{TokenType: crlf, Value: "\r\n"},
+		},
+		" * LS :multi-prefix sasl\r\n": {
+			{TokenType: space, Value: " "},
+			{TokenType: nospcrlfcl, Value: "*"},
+			{TokenType: space, Value: " "},
+			{TokenType: nospcrlfcl, Value: "LS"},
+			{TokenType: space, Value: " "},
+			{TokenType: colon, Value: ":"},
+			{TokenType: nospcrlfcl, Value: "multi-prefix"},
+			{TokenType: space, Value: " "},
+			{TokenType: nospcrlfcl, Value: "sasl"},
+			{TokenType: crlf, Value: "\r\n"},
+		},
 	}
 
 	for k, v := range tests {
@@ -34,10 +48,36 @@ func TestParseMessage(t *testing.T) {
 		s string
 		m *Message
 	}{
-		{":dan!d@localhost PRIVMSG #chan :Hey!\r\n", &Message{nil, "dan", "d", "localhost", "PRIVMSG", []string{"#chan"}, "Hey!", true}},
-		{"NICK alice\r\n", &Message{nil, "", "", "", "NICK", []string{"alice"}, "", false}},
-		{":dan!d@localhost QUIT :Quit: Bye for now!\r\n", &Message{nil, "dan", "d", "localhost", "QUIT", nil, "Quit: Bye for now!", true}},
-		{"USER alice 0 * :Alice Smith\r\n", &Message{nil, "", "", "", "USER", []string{"alice", "0", "*"}, "Alice Smith", true}},
+		{":dan!d@localhost PRIVMSG #chan :Hey!\r\n",
+			&Message{
+				nick:        "dan",
+				user:        "d",
+				host:        "localhost",
+				Command:     "PRIVMSG",
+				middle:      []string{"#chan"},
+				trailing:    "Hey!",
+				trailingSet: true,
+			},
+		},
+		{"NICK alice\r\n", &Message{Command: "NICK", middle: []string{"alice"}}},
+		{":dan!d@123.456.789 QUIT :Quit: Bye for now!\r\n",
+			&Message{
+				nick:        "dan",
+				user:        "d",
+				host:        "123.456.789",
+				Command:     "QUIT",
+				trailing:    "Quit: Bye for now!",
+				trailingSet: true,
+			},
+		},
+		{"USER alice 0 * :Alice Smith\r\n",
+			&Message{
+				Command:     "USER",
+				middle:      []string{"alice", "0", "*"},
+				trailing:    "Alice Smith",
+				trailingSet: true,
+			},
+		},
 		{"", nil},
 		// {lex([]byte("CAP * LS :multi-prefix sasl\r\n"))},
 		// {lex([]byte("CAP REQ :sasl message-tags foo\r\n"))},
