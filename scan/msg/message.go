@@ -4,9 +4,16 @@ import (
 	"fmt"
 )
 
+// A TagVal represents the value associated with a message tag
+type TagVal struct {
+	// true if this tag is a client only tag
+	ClientPrefix  bool
+	Vendor, Value string
+}
+
 // a Message represents a single irc Message
 type Message struct {
-	tags             map[string]string
+	tags             map[string]TagVal
 	nick, user, host string // source/prefix information
 	Command          string
 	middle           []string // command parameters

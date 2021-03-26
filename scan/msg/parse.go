@@ -18,7 +18,12 @@ func Parse(b []byte) *Message {
 	m := &Message{}
 
 	if p.Peek().TokenType == at {
-		// TODO: p.tags()
+		p.Next() // consume '@'
+		m.tags = tags(p)
+		if !p.Expect(space) {
+			log.Println("expected space")
+			return nil
+		}
 	}
 	if p.Peek().TokenType == colon {
 		p.Next() // consume colon
@@ -42,6 +47,74 @@ func Parse(b []byte) *Message {
 	}
 
 	return m
+}
+
+// <tag> *[';' <tag>]
+func tags(p *scan.Parser) map[string]TagVal {
+	t := make(map[string]TagVal)
+
+	// expect atleast 1 tag
+	k, v := tag(p)
+	t[k] = v
+
+	for {
+		if p.Peek().TokenType == semicolon {
+			p.Next() // consume ';'
+			k, v := tag(p)
+			t[k] = v
+		} else {
+			break
+		}
+	}
+
+	return t
+}
+
+// [ <client_prefix> ] [ <vendor> '/' ] <key_name> ['=' <escaped_value>]
+func tag(p *scan.Parser) (key string, val TagVal) {
+	if p.Peek().TokenType == clientPrefix {
+		val.ClientPrefix = true
+		p.Next() // consume '+'
+	}
+
+	// TODO parse vendor (this is nontrivial I think)
+
+	key = keyName(p)
+
+	if p.Peek().TokenType == equals {
+		p.Next() // consume '='
+		val.Value = escapedVal(p)
+	}
+
+	return
+}
+
+// <non-empty sequence of ascii letters, digits, hyphens ('-')>
+func keyName(p *scan.Parser) string {
+	key := ""
+	for {
+		k := p.Peek()
+		if r := rune(k.Value[0]); !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' {
+			break
+		}
+		key += k.Value
+		p.Next()
+	}
+	return key
+}
+
+// <sequence of zero or more utf8 characters except NUL, CR, LF, semicolon (`;`) and SPACE>
+func escapedVal(p *scan.Parser) string {
+	val := ""
+	for {
+		v := p.Peek()
+		if r := rune(v.Value[0]); !isEscaped(r) {
+			break
+		}
+		val += v.Value
+		p.Next()
+	}
+	return val
 }
 
 // TODO: one way we could make this better is by imposing some kind of
@@ -180,4 +253,8 @@ func nospcrlfcl(p *scan.Parser) string {
 func isNospcrlfcl(b byte) bool {
 	// use <= 0 to account for NUL and eof at same time
 	return b != 0 && b != '\r' && b != '\n' && b != ':' && b != ' '
+}
+
+func isEscaped(r rune) bool {
+	return r != 0 && r != '\r' && r != '\n' && r != ';' && r != ' '
 }

@@ -12,6 +12,12 @@ const (
 	space
 	cr
 	lf
+
+	// tags
+	semicolon
+	equals
+	fwdSlash
+	clientPrefix
 )
 
 func lexMessage(l *scan.Lexer) scan.State {
@@ -38,6 +44,18 @@ func lexMessage(l *scan.Lexer) scan.State {
 		return lexMessage
 	case r == '!':
 		l.Push(exclam)
+		return lexMessage
+	case r == ';':
+		l.Push(semicolon)
+		return lexMessage
+	case r == '=':
+		l.Push(equals)
+		return lexMessage
+	case r == '/':
+		l.Push(fwdSlash)
+		return lexMessage
+	case r == '+':
+		l.Push(clientPrefix)
 		return lexMessage
 	default:
 		l.Push(any)

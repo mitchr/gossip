@@ -35,9 +35,9 @@ func TestLexParams(t *testing.T) {
 
 	for k, v := range tests {
 		t.Run(k, func(t *testing.T) {
-			if !reflect.DeepEqual(scan.Lex([]byte(k), lexMessage), v) {
-				fmt.Println(scan.Lex([]byte(k), lexMessage))
-				t.Errorf("Failed to lex %s\n", k)
+			out := scan.Lex([]byte(k), lexMessage)
+			if !reflect.DeepEqual(out, v) {
+				t.Error("lex error:", out, v)
 			}
 		})
 	}
@@ -85,8 +85,35 @@ func TestParseMessage(t *testing.T) {
 
 	for _, v := range tests {
 		t.Run(v.s, func(t *testing.T) {
-			if !reflect.DeepEqual(Parse([]byte(v.s)), v.m) {
-				t.Fatal("parse error", Parse([]byte(v.s)), v.m)
+			out := Parse([]byte(v.s))
+			if !reflect.DeepEqual(out, v.m) {
+				t.Error("parse error", out, v.m)
+			}
+		})
+	}
+}
+
+func TestParseTags(t *testing.T) {
+	tests := []struct {
+		input string
+		tags  map[string]TagVal
+	}{
+		{":nick!ident@host.com PRIVMSG me :Hello\r\n", nil},
+		{"@aaa=bbb;ccc :nick!ident@host.com PRIVMSG me :Hello\r\n", map[string]TagVal{
+			"aaa": {Value: "bbb"},
+			"ccc": {Value: ""},
+		}},
+		{"@+example-client-tag=example-value TAGMSG @#channel\r\n", map[string]TagVal{
+			"example-client-tag": {Value: "example-value", ClientPrefix: true},
+		}},
+	}
+
+	for _, v := range tests {
+		t.Run(v.input, func(t *testing.T) {
+			out := Parse([]byte(v.input))
+			fmt.Println(out.tags)
+			if !reflect.DeepEqual(out.tags, v.tags) {
+				t.Error("parse error", out.tags, v.tags)
 			}
 		})
 	}
