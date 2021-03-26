@@ -1,18 +1,17 @@
 package msg
 
 import (
-	"log"
-
 	"github.com/mitchr/gossip/scan"
 )
 
 const (
-	nospcrlfcl scan.TokenType = iota
+	any scan.TokenType = iota
 	at
 	colon
 	exclam
 	space
-	crlf
+	cr
+	lf
 )
 
 func lexMessage(l *scan.Lexer) scan.State {
@@ -20,12 +19,12 @@ func lexMessage(l *scan.Lexer) scan.State {
 	case r == scan.EOF:
 		return nil
 	case r == '\r':
-		if l.Peek() == '\n' {
-			l.Next()
-			l.Push(crlf)
-		}
+		l.Push(cr)
 		return lexMessage
-	case r == ' ':
+	case r == '\n':
+		l.Push(lf)
+		return lexMessage
+	case r == ' ': // consome all space
 		for l.Peek() == ' ' {
 			l.Next()
 		}
@@ -40,20 +39,8 @@ func lexMessage(l *scan.Lexer) scan.State {
 	case r == '!':
 		l.Push(exclam)
 		return lexMessage
-	case isNospcrlfcl(r):
-		for s := l.Peek(); isNospcrlfcl(s) && s != scan.EOF; s = l.Peek() {
-			l.Next()
-		}
-		l.Push(nospcrlfcl)
-		return lexMessage
 	default:
-		log.Println("Unrecognized character: ", r, string(r))
-		return nil
+		l.Push(any)
+		return lexMessage
 	}
-}
-
-// is not space, cr, lf, or colon (or NULL)
-func isNospcrlfcl(r rune) bool {
-	// use <= 0 to account for NUL and eof at same time
-	return r != 0 && r != '\r' && r != '\n' && r != ':' && r != ' '
 }

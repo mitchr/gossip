@@ -10,27 +10,27 @@ import (
 
 func TestLexParams(t *testing.T) {
 	tests := map[string][]scan.Token{
-		" CAP * LIST\r\n": {
-			{TokenType: space, Value: " "},
-			{TokenType: nospcrlfcl, Value: "CAP"},
-			{TokenType: space, Value: " "},
-			{TokenType: nospcrlfcl, Value: "*"},
-			{TokenType: space, Value: " "},
-			{TokenType: nospcrlfcl, Value: "LIST"},
-			{TokenType: crlf, Value: "\r\n"},
-		},
-		" * LS :multi-prefix sasl\r\n": {
-			{TokenType: space, Value: " "},
-			{TokenType: nospcrlfcl, Value: "*"},
-			{TokenType: space, Value: " "},
-			{TokenType: nospcrlfcl, Value: "LS"},
-			{TokenType: space, Value: " "},
-			{TokenType: colon, Value: ":"},
-			{TokenType: nospcrlfcl, Value: "multi-prefix"},
-			{TokenType: space, Value: " "},
-			{TokenType: nospcrlfcl, Value: "sasl"},
-			{TokenType: crlf, Value: "\r\n"},
-		},
+		// 	" CAP * LIST\r\n": {
+		// 		{TokenType: space, Value: " "},
+		// 		{TokenType: nospcrlfcl, Value: "CAP"},
+		// 		{TokenType: space, Value: " "},
+		// 		{TokenType: nospcrlfcl, Value: "*"},
+		// 		{TokenType: space, Value: " "},
+		// 		{TokenType: nospcrlfcl, Value: "LIST"},
+		// 		{TokenType: crlf, Value: "\r\n"},
+		// 	},
+		// 	" * LS :multi-prefix sasl\r\n": {
+		// 		{TokenType: space, Value: " "},
+		// 		{TokenType: nospcrlfcl, Value: "*"},
+		// 		{TokenType: space, Value: " "},
+		// 		{TokenType: nospcrlfcl, Value: "LS"},
+		// 		{TokenType: space, Value: " "},
+		// 		{TokenType: colon, Value: ":"},
+		// 		{TokenType: nospcrlfcl, Value: "multi-prefix"},
+		// 		{TokenType: space, Value: " "},
+		// 		{TokenType: nospcrlfcl, Value: "sasl"},
+		// 		{TokenType: crlf, Value: "\r\n"},
+		// 	},
 	}
 
 	for k, v := range tests {
