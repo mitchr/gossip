@@ -54,11 +54,11 @@ func source(p *scan.Parser) (nick, user, host string) {
 	// get nickname
 	for {
 		n := p.Peek()
-		if n.TokenType != space && n.TokenType != exclam && n.TokenType != at {
-			nick += n.Value
-		} else {
+		if n.TokenType == space || n.TokenType == exclam || n.TokenType == at {
 			break
 		}
+
+		nick += n.Value
 		p.Next()
 	}
 	// get user
@@ -66,11 +66,11 @@ func source(p *scan.Parser) (nick, user, host string) {
 		p.Next() // consume '!'
 		for {
 			u := p.Peek()
-			if u.TokenType != space && u.TokenType != at {
-				user += u.Value
-			} else {
+			if u.TokenType == space || u.TokenType == at {
 				break
 			}
+
+			user += u.Value
 			p.Next()
 		}
 	}
@@ -79,11 +79,11 @@ func source(p *scan.Parser) (nick, user, host string) {
 		p.Next() // consume '@'
 		for {
 			h := p.Peek()
-			if h.TokenType != space {
-				host += h.Value
-			} else {
+			if h.TokenType == space {
 				break
 			}
+
+			host += h.Value
 			p.Next()
 		}
 	}
