@@ -28,6 +28,7 @@ var commandMap = map[string]executor{
 	"NAMES":  NAMES,
 	"LIST":   LIST,
 	"INVITE": INVITE,
+	"KICK":   KICK,
 
 	// server queries
 	"MOTD":   MOTD,
@@ -321,6 +322,82 @@ func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel
 		}
 	}
 	return ch
+}
+
+func KICK(s *Server, c *client.Client, params ...string) {
+	if len(params) != 2 {
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "KICK")
+		return
+	}
+
+	comment := c.Nick
+	if len(params) == 3 {
+		comment = params[2]
+	}
+
+	chans := strings.Split(params[0], ",")
+	users := strings.Split(params[1], ",")
+
+	if len(chans) == 1 {
+		ch := s.channels[chans[0]]
+		if ch == nil {
+			s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
+			return
+		}
+		self := ch.Members[c.Nick]
+		if self == nil {
+			s.numericReply(c, ERR_NOTONCHANNEL, ch)
+			return
+		} else if !self.Is(channel.Operator) {
+			s.numericReply(c, ERR_CHANOPRIVSNEEDED, ch)
+			return
+		}
+
+		for _, v := range users {
+			u := ch.Members[v]
+			if u == nil {
+				s.numericReply(c, ERR_USERNOTINCHANNEL, u, ch)
+				continue
+			}
+
+			ch.Write(fmt.Sprintf(":%s KICK %s %s :%s\r\n", c, ch, u.Nick, comment))
+			delete(ch.Members, u.Nick)
+		}
+	} else if len(chans) == len(users) {
+		for i := 0; i < len(chans); i++ {
+			ch := s.channels[chans[i]]
+			if ch == nil {
+				s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
+				continue
+			}
+			self := ch.Members[c.Nick]
+			if self == nil {
+				s.numericReply(c, ERR_NOTONCHANNEL, ch)
+				continue
+			} else if !self.Is(channel.Operator) {
+				s.numericReply(c, ERR_CHANOPRIVSNEEDED, ch)
+				continue
+			}
+
+			u := ch.Members[users[i]]
+			if u == nil {
+				s.numericReply(c, ERR_USERNOTINCHANNEL, u, ch)
+				continue
+			}
+
+			ch.Write(fmt.Sprintf(":%s KICK %s %s :%s\r\n", c, ch, u.Nick, comment))
+			delete(ch.Members, u.Nick)
+		}
+	} else {
+		// "there MUST be either one channel parameter and multiple user
+		// parameter, or as many channel parameters as there are user
+		// parameters" - RFC2812
+
+		// TODO: okay so the spec actually doesn't say what to do in this case
+		// I assume NEEDMOREPARAMS is sufficient
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "KICK")
+		return
+	}
 }
 
 func NAMES(s *Server, c *client.Client, params ...string) {

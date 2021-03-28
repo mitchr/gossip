@@ -15,7 +15,12 @@ type Member struct {
 }
 
 func (m Member) Is(p prefix) bool {
-	return strings.ContainsRune(m.Prefix, rune(p))
+	// a founder satisfies all prefixes
+	if strings.ContainsRune(m.Prefix, rune(Founder)) {
+		return true
+	} else {
+		return strings.ContainsRune(m.Prefix, rune(p))
+	}
 }
 
 func (m *Member) ApplyMode(mode mode.Mode) bool {

@@ -223,6 +223,39 @@ func TestTOPIC(t *testing.T) {
 	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.listener.Addr()), t)
 }
 
+func TestKICK(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("bob", "Bob")
+	defer c2.Close()
+
+	c1.Write([]byte("JOIN #local\r\n"))
+	r1.ReadBytes('\n')
+	c2.Write([]byte("JOIN #local\r\n"))
+	r1.ReadBytes('\n')
+	r2.ReadBytes('\n')
+	r2.ReadBytes('\n')
+	c1.Write([]byte("KICK #local bob\r\n"))
+	aliceKick, _ := r1.ReadBytes('\n')
+	bobKick, _ := r2.ReadBytes('\n')
+
+	// check received correct response
+	assertResponse(aliceKick, fmt.Sprintf(":%s KICK #local bob :alice\r\n", s.clients["alice"]), t)
+	assertResponse(bobKick, fmt.Sprintf(":%s KICK #local bob :alice\r\n", s.clients["alice"]), t)
+
+	// check actually bob removed from channel
+	if !poll(&s.channels["#local"].Members, 1) {
+		t.Fail()
+	}
+}
+
 func TestNAMES(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {
@@ -477,6 +510,11 @@ func poll(s interface{}, eq interface{}) bool {
 		for {
 			switch v := s.(type) {
 			case *map[string]*client.Client:
+				if len(*v) == eq {
+					c <- true
+					return
+				}
+			case *map[string]*channel.Member:
 				if len(*v) == eq {
 					c <- true
 					return
