@@ -78,6 +78,13 @@ func TestParseMessage(t *testing.T) {
 				trailingSet: true,
 			},
 		},
+		{"PING [::]:6667\r\n",
+			&Message{
+				Command:     "PING",
+				middle:      []string{"[::]:6667"},
+				trailingSet: false,
+			},
+		},
 		{"", nil},
 		// {lex([]byte("CAP * LS :multi-prefix sasl\r\n"))},
 		// {lex([]byte("CAP REQ :sasl message-tags foo\r\n"))},

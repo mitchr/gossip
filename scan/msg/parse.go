@@ -205,12 +205,12 @@ func middle(p *scan.Parser) string {
 		t := p.Peek()
 		if t.TokenType == colon {
 			m += t.Value
+			p.Next()
 		} else if isNospcrlfcl(t.Value[0]) {
 			m += nospcrlfcl(p)
 		} else {
 			break
 		}
-		p.Next()
 	}
 	return m
 }
