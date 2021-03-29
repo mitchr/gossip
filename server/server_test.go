@@ -55,6 +55,19 @@ func TestRegistration(t *testing.T) {
 		}
 	})
 
+	t.Run("NICKChange", func(t *testing.T) {
+		conn, r := connectAndRegister("alice", "Alice Smith")
+		defer conn.Close()
+
+		// sender should be the same user host, but with the previous nick
+		beforeChange := *s.clients["alice"]
+
+		conn.Write([]byte("NICK dan\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s NICK :dan\r\n", beforeChange), t)
+	})
+
 	t.Run("RegisterClientModes", func(t *testing.T) {
 		tests := []struct {
 			name    string

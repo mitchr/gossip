@@ -81,8 +81,19 @@ func NICK(s *Server, c *client.Client, params ...string) {
 		return
 	}
 
-	c.Nick = nick
-	s.endRegistration(c)
+	// nick has been set previously
+	if c.Nick != "" {
+		// give back NICK to the caller and notify all the channels this
+		// user is part of that their nick changed
+		c.Write(fmt.Sprintf(":%s NICK :%s", c, nick))
+		for _, v := range s.channelsOf(c) {
+			v.Write(fmt.Sprintf(":%s NICK :%s", c, nick))
+		}
+		c.Nick = nick
+	} else { // nick is being set for first time
+		c.Nick = nick
+		s.endRegistration(c)
+	}
 }
 
 func USER(s *Server, c *client.Client, params ...string) {
@@ -482,6 +493,7 @@ func LUSERS(s *Server, c *client.Client, params ...string) {
 	s.numericReply(c, RPL_LUSERME, len(s.clients), 0)
 }
 
+// TODO: support commands like this that intersperse the modechar and modeparams MODE &oulu +b *!*@*.edu +e *!*@*.bu.edu
 func MODE(s *Server, c *client.Client, params ...string) {
 	if len(params) < 1 {
 		s.numericReply(c, RPL_UMODEIS, c.Mode)
@@ -491,7 +503,7 @@ func MODE(s *Server, c *client.Client, params ...string) {
 	target := params[0]
 	if !isChannel(target) {
 		if client, ok := s.clients[target]; ok {
-			if client.Nick != c.Nick { // can't mofidy another user
+			if client.Nick != c.Nick { // can't modify another user
 				s.numericReply(c, ERR_USERSDONTMATCH)
 				return
 			}
