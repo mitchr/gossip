@@ -88,7 +88,16 @@ func NICK(s *Server, c *client.Client, params ...string) {
 		c.Write(fmt.Sprintf(":%s NICK :%s", c, nick))
 		for _, v := range s.channelsOf(c) {
 			v.Write(fmt.Sprintf(":%s NICK :%s", c, nick))
+
+			// update member map entry
+			m := v.Members[c.Nick]
+			delete(v.Members, c.Nick)
+			v.Members[nick] = m
 		}
+
+		// update client map entry
+		delete(s.clients, c.Nick)
+		s.clients[nick] = c
 		c.Nick = nick
 	} else { // nick is being set for first time
 		c.Nick = nick
