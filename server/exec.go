@@ -465,7 +465,7 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, memb
 
 	for k, v := range c.Members {
 		// if not inluding invisible clients, and this client is invisible
-		if !invisibles && v.Mode&client.Invisible == client.Invisible {
+		if !invisibles && v.Client.Is(client.Invisible) {
 			continue
 		}
 		if v.Prefix != "" {
@@ -645,7 +645,7 @@ func WALLOPS(s *Server, c *client.Client, params ...string) {
 	}
 	// TODO: only allows WALLOPS from another server; can be abused by clients
 	for _, v := range s.clients {
-		if v.Mode&client.Wallops == client.Wallops {
+		if v.Is(client.Wallops) {
 			v.Write(fmt.Sprintf("%s WALLOPS %s", s.listener.Addr(), params[1]))
 		}
 	}
