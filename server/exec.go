@@ -313,19 +313,28 @@ func INVITE(s *Server, c *client.Client, params ...string) {
 
 	nick := params[0]
 	ch, ok := s.channels[params[1]]
-	if ok { // channel exists
-		if ch.Members[c.Nick] == nil { // only members can invite
-			s.numericReply(c, ERR_NOTONCHANNEL, ch)
-			return
-		} else if ch.Invite && ch.Members[c.Nick].Is(channel.Operator) { // if invite mode set, only ops can send an invite
-			s.numericReply(c, ERR_CHANOPRIVSNEEDED, ch)
-			return
-		} else if ch.Members[nick] != nil { // can't invite a member who is already on channel
-			s.numericReply(c, ERR_USERONCHANNEL, c, nick, ch)
-			return
-		}
+	if !ok { // channel exists
+		return
 	}
+
+	sender := ch.Members[c.Nick]
+	recipient := s.clients[nick]
+	if sender == nil { // only members can invite
+		s.numericReply(c, ERR_NOTONCHANNEL, ch)
+		return
+	} else if ch.Invite && sender.Is(channel.Operator) { // if invite mode set, only ops can send an invite
+		s.numericReply(c, ERR_CHANOPRIVSNEEDED, ch)
+		return
+	} else if recipient == nil { // nick not on server
+		s.numericReply(c, ERR_NOSUCHNICK, nick)
+		return
+	} else if ch.Members[nick] != nil { // can't invite a member who is already on channel
+		s.numericReply(c, ERR_USERONCHANNEL, c, nick, ch)
+		return
+	}
+
 	ch.Invited = append(ch.Invited, nick)
+	recipient.Write(fmt.Sprintf(":%s INVITE %s %s\r\n", sender, nick, ch))
 	s.numericReply(c, RPL_INVITING, ch, nick)
 }
 
