@@ -33,6 +33,7 @@ var commandMap = map[string]executor{
 	// server queries
 	"MOTD":   MOTD,
 	"LUSERS": LUSERS,
+	"TIME":   TIME,
 	"MODE":   MODE,
 
 	// communication
@@ -509,6 +510,10 @@ func LUSERS(s *Server, c *client.Client, params ...string) {
 	s.numericReply(c, RPL_LUSERUNKNOWN, s.unknowns)
 	s.numericReply(c, RPL_LUSERCHANNELS, len(s.channels))
 	s.numericReply(c, RPL_LUSERME, len(s.clients), 0)
+}
+
+func TIME(s *Server, c *client.Client, params ...string) {
+	s.numericReply(c, RPL_TIME, s.listener.Addr(), s.created)
 }
 
 // TODO: support commands like this that intersperse the modechar and modeparams MODE &oulu +b *!*@*.edu +e *!*@*.bu.edu

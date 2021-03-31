@@ -29,6 +29,7 @@ const (
 	RPL_MOTDSTART        = ":%s 375 %s :- %s Message of the Day -"
 	RPL_MOTD             = ":%s 371 %s :%s"
 	RPL_ENDOFMOTD        = ":%s 376 %s :End of /MOTD command"
+	RPL_TIME             = ":%s 391 %s %s :%s"
 	ERR_NOSUCHNICK       = ":%s 401 %s %s :No such nick/channel"
 	ERR_NOSUCHCHANNEL    = ":%s 403 %s %s :No such channel"
 	ERR_CANNOTSENDTOCHAN = ":%s 404 %s %s :Cannot send to channel"
