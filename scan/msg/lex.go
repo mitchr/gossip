@@ -21,44 +21,40 @@ const (
 )
 
 func lexMessage(l *scan.Lexer) scan.State {
-	switch r := l.Next(); {
-	case r == scan.EOF:
-		return nil
-	case r == '\r':
-		l.Push(cr)
-		return lexMessage
-	case r == '\n':
-		l.Push(lf)
-		return lexMessage
-	case r == ' ': // consome all space
-		for l.Peek() == ' ' {
-			l.Next()
+	for r := l.Next(); r != scan.EOF; r = l.Next() {
+		switch r {
+		case '\r':
+			l.Push(cr)
+		case '\n':
+			l.Push(lf)
+		case ' ':
+			return lexSpace(l)
+		case ':':
+			l.Push(colon)
+		case '@':
+			l.Push(at)
+		case '!':
+			l.Push(exclam)
+		case ';':
+			l.Push(semicolon)
+		case '=':
+			l.Push(equals)
+		case '/':
+			l.Push(fwdSlash)
+		case '+':
+			l.Push(clientPrefix)
+		default:
+			l.Push(any)
 		}
-		l.Push(space)
-		return lexMessage
-	case r == ':':
-		l.Push(colon)
-		return lexMessage
-	case r == '@':
-		l.Push(at)
-		return lexMessage
-	case r == '!':
-		l.Push(exclam)
-		return lexMessage
-	case r == ';':
-		l.Push(semicolon)
-		return lexMessage
-	case r == '=':
-		l.Push(equals)
-		return lexMessage
-	case r == '/':
-		l.Push(fwdSlash)
-		return lexMessage
-	case r == '+':
-		l.Push(clientPrefix)
-		return lexMessage
-	default:
-		l.Push(any)
-		return lexMessage
 	}
+	return nil
+}
+
+// consume all space ' '
+func lexSpace(l *scan.Lexer) scan.State {
+	for l.Peek() == ' ' {
+		l.Next()
+	}
+	l.Push(space)
+	return lexMessage
 }
