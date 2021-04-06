@@ -56,11 +56,11 @@ func TestRegistration(t *testing.T) {
 	})
 
 	t.Run("NICKChange", func(t *testing.T) {
-		conn, r := connectAndRegister("alice", "Alice Smith")
+		conn, r := connectAndRegister("bob", "Bob Smith")
 		defer conn.Close()
 
 		// sender should be the same user host, but with the previous nick
-		beforeChange := *s.clients["alice"]
+		beforeChange := *s.clients["bob"]
 
 		conn.Write([]byte("NICK dan\r\n"))
 		resp, _ := r.ReadBytes('\n')
