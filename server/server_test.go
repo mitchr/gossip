@@ -204,6 +204,22 @@ func TestChannelCreation(t *testing.T) {
 		response, _ := r2.ReadBytes('\n')
 		assertResponse(response, fmt.Sprintf(":%s PART #local\r\n", s.clients["bob"]), t)
 	})
+
+	t.Run("TestJOIN0", func(t *testing.T) {
+		c1.Write([]byte("JOIN #chan1\r\nJOIN #chan2\r\nJOIN #chan3\r\n"))
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+
+		c1.Write([]byte("JOIN 0\r\n"))
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+
+		c1.Write([]byte("LIST\r\n"))
+		response, _ := r1.ReadBytes('\n')
+		assertResponse(response, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.listener.Addr()), t)
+	})
 }
 
 func TestTOPIC(t *testing.T) {
