@@ -12,22 +12,19 @@ const (
 )
 
 func lexWild(l *scan.Lexer) scan.State {
-	switch r := l.Next(); {
-	case r == scan.EOF:
-		return nil
-	case r == '?':
-		l.Push(wildone)
-		return lexWild
-	case r == '*':
-		l.Push(wildmany)
-		return lexWild
-	case r == '\\':
-		l.Push(esc)
-		return lexWild
-	default:
-		l.Push(nowildesc)
-		return lexWild
+	for r := l.Next(); r != scan.EOF; r = l.Next() {
+		switch r {
+		case '?':
+			l.Push(wildone)
+		case '*':
+			l.Push(wildmany)
+		case '\\':
+			l.Push(esc)
+		default:
+			l.Push(nowildesc)
+		}
 	}
+	return nil
 }
 
 func Match(regex, m string) bool {
