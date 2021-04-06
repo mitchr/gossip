@@ -39,7 +39,7 @@ func Match(regex, m string) bool {
 			if r.Value != string(getRune(m, pos)) {
 				return false
 			}
-			pos += len(r.Value)
+			pos++
 		case esc:
 			// if the next character is a '*' or '?', then disregard this '\'
 			// and compare m against the appropriate wildcard
