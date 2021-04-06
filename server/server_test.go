@@ -193,8 +193,10 @@ func TestChannelCreation(t *testing.T) {
 	t.Run("TestChannelPART", func(t *testing.T) {
 		// c1 leaves, c2 should receive a PARTing message from them
 		c1.Write([]byte("PART #local :Goodbye\r\n"))
-		response, _ := r2.ReadBytes('\n')
-		assertResponse(response, fmt.Sprintf(":%s PART #local :Goodbye\r\n", s.clients["alice"]), t)
+		aliceResp, _ := r1.ReadBytes('\n')
+		bobResp, _ := r2.ReadBytes('\n')
+		assertResponse(aliceResp, fmt.Sprintf(":%s PART #local :Goodbye\r\n", s.clients["alice"]), t)
+		assertResponse(bobResp, fmt.Sprintf(":%s PART #local :Goodbye\r\n", s.clients["alice"]), t)
 	})
 
 	t.Run("TestChannelDestruction", func(t *testing.T) {
