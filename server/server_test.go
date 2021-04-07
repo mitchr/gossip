@@ -155,12 +155,12 @@ func TestQUIT(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, _ := connectAndRegister("alice", "Alice Smith")
-	defer c1.Close()
-	c2, _ := connectAndRegister("bob", "Bob Smith")
-	defer c2.Close()
-	c1.Write([]byte("QUIT\r\n"))
-	c2.Write([]byte("QUIT\r\n"))
+	c, r := connectAndRegister("alice", "Alice Smith")
+	defer c.Close()
+	c.Write([]byte("QUIT\r\n"))
+
+	quitResp, _ := r.ReadBytes('\n')
+	assertResponse(quitResp, "ERROR :alice quit\r\n", t)
 
 	if !poll(&s.clients, 0) {
 		t.Error("client could not quit")

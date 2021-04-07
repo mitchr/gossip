@@ -138,9 +138,23 @@ func QUIT(s *Server, c *client.Client, params ...string) {
 	// send QUIT to all channels that client is connected to, and
 	// remove that client from the channel
 	for _, v := range s.channelsOf(c) {
-		s.removeFromChannel(c, v, fmt.Sprintf(":%s QUIT :%s", c, reason))
+		// as part of the JOIN contract, only members joined to the
+		// quitting clients channels receive their quit message, not the
+		// client themselves. isntead, they receive an error message from
+		// the server signifying their depature.
+		// TODO: we could use s.removeFromChannel here, but we don't want to
+		// write to the quitting client, so we should figure out how to
+		// modify removeFromChannel so it can be utilized here as well
+		if len(v.Members) == 1 {
+			delete(s.channels, v.String())
+		} else {
+			// message entire channel that client left
+			delete(v.Members, c.Nick)
+			v.Write(fmt.Sprintf(":%s QUIT :%s", c, reason))
+		}
 	}
 
+	s.ERROR(c, c.Nick+" quit")
 	c.Cancel()
 }
 
