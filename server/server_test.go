@@ -155,16 +155,45 @@ func TestQUIT(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice", "Alice Smith")
-	defer c.Close()
-	c.Write([]byte("QUIT\r\n"))
+	t.Run("TestNoReason", func(t *testing.T) {
+		c, r := connectAndRegister("alice", "Alice Smith")
+		defer c.Close()
+		c.Write([]byte("QUIT\r\n"))
 
-	quitResp, _ := r.ReadBytes('\n')
-	assertResponse(quitResp, "ERROR :alice quit\r\n", t)
+		quitResp, _ := r.ReadBytes('\n')
+		assertResponse(quitResp, "ERROR :alice quit\r\n", t)
 
-	if !poll(&s.clients, 0) {
-		t.Error("client could not quit")
-	}
+		if !poll(&s.clients, 0) {
+			t.Error("client could not quit")
+		}
+	})
+
+	t.Run("TestReason", func(t *testing.T) {
+		c1, r1 := connectAndRegister("bob", "Bob Smith")
+		defer c1.Close()
+		c2, r2 := connectAndRegister("dan", "Dan Jones")
+		defer c2.Close()
+		c1.Write([]byte("JOIN #l\r\n"))
+		r1.ReadBytes('\n')
+		c2.Write([]byte("JOIN #l\r\n"))
+		r1.ReadBytes('\n')
+		r2.ReadBytes('\n')
+		r2.ReadBytes('\n')
+
+		bobPrefix := s.clients["bob"].String()
+
+		c1.Write([]byte("QUIT :Done for the day\r\n"))
+
+		bobQuitErr, _ := r1.ReadBytes('\n')
+		assertResponse(bobQuitErr, "ERROR :bob quit\r\n", t)
+
+		danReceivesReason, _ := r2.ReadBytes('\n')
+		assertResponse(danReceivesReason, fmt.Sprintf(":%s QUIT :Done for the day\r\n", bobPrefix), t)
+
+		if !poll(&s.clients, 1) {
+			t.Error("client could not quit")
+		}
+	})
 }
 
 func TestChannelCreation(t *testing.T) {
