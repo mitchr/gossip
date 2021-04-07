@@ -281,17 +281,18 @@ func constructKeyMap(chans, keys []string) map[string]string {
 func PART(s *Server, c *client.Client, params ...string) {
 	chans := strings.Split(params[0], ",")
 
+	reason := ""
+	if len(params) > 1 {
+		reason = " :" + params[1]
+	}
+
 	for _, v := range chans {
 		ch := s.clientBelongstoChan(c, v)
 		if ch == nil {
 			return
 		}
 
-		if len(params) >= 2 { // reason given
-			s.removeFromChannel(c, ch, fmt.Sprintf(":%s PART %s :%s", c, ch, params[1]))
-		} else {
-			s.removeFromChannel(c, ch, fmt.Sprintf(":%s PART %s", c, ch))
-		}
+		s.removeFromChannel(c, ch, fmt.Sprintf(":%s PART %s%s", c, ch, reason))
 	}
 }
 
