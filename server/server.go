@@ -114,12 +114,16 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		for {
 			// read until encountering a newline; the parser checks that \r exists
 			msgBuf, err := c.ReadMsg()
-			if err != nil {
-				if err != bufio.ErrBufferFull {
-					// either client closed its own connection, or they disconnected without quit
-					c.Cancel()
-					return
-				}
+
+			// client went past the 512 message length requirement
+			if err == bufio.ErrBufferFull {
+				// TODO: discourage client from multiple buffer overflows in a
+				// row to try to prevent against denial of service attacks
+				continue
+			} else if err != nil {
+				// either client closed its own connection, or they disconnected without quit
+				c.Cancel()
+				return
 			}
 			input <- msgBuf
 		}
