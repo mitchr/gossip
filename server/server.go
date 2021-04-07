@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"context"
+	"errors"
 	"net"
 	"os"
 	"os/signal"
@@ -51,40 +52,38 @@ func (s *Server) Serve() {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.cancel = cancel
 
-	conChan := make(chan net.Conn)
-	go func() { // accepts a connection and sends on chan
+	// start accepting connections
+	go func() {
 		for {
 			conn, err := s.listener.Accept()
 			if err == nil {
-				conChan <- conn
+				s.wg.Add(1)
+				go s.handleConn(conn, ctx)
+			} else if errors.Is(err, net.ErrClosed) {
+				return
 			}
 		}
 	}()
 
 	// grabs messages from the queue and executes them in sequential order
 	go func() {
-		for {
-			(<-s.msgQueue)()
+		for msg, ok := <-s.msgQueue; ok; msg, ok = <-s.msgQueue {
+			msg()
 		}
 	}()
 
 	// capture OS interrupt signal so that we can gracefully shutdown server
 	interrupt := make(chan os.Signal)
 	signal.Notify(interrupt, os.Interrupt)
-	go func() {
-		<-interrupt
-		s.Close()
-	}()
 
 	s.wg.Add(1)
 	for {
 		select {
+		case <-interrupt:
+			go s.Close()
 		case <-ctx.Done():
 			s.wg.Done()
 			return
-		case conn := <-conChan:
-			s.wg.Add(1)
-			go s.handleConn(conn, ctx)
 		}
 	}
 }
@@ -93,11 +92,13 @@ func (s *Server) Serve() {
 // 1. close listener so that we stop accepting more connections
 // 2. s.cancel to exit serve loop
 // 3. wait until all clients have canceled AND Serve() receives cancel signal
+// 4. close s.msgQueue since we won't be receiving any more messages
 // graceful shutdown from https://blog.golang.org/context
 func (s *Server) Close() {
 	s.listener.Close()
 	s.cancel()
 	s.wg.Wait()
+	close(s.msgQueue)
 }
 
 func (s *Server) handleConn(u net.Conn, ctx context.Context) {
