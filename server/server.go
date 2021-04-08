@@ -5,8 +5,6 @@ import (
 	"context"
 	"errors"
 	"net"
-	"os"
-	"os/signal"
 	"sync"
 	"time"
 
@@ -72,20 +70,9 @@ func (s *Server) Serve() {
 		}
 	}()
 
-	// capture OS interrupt signal so that we can gracefully shutdown server
-	interrupt := make(chan os.Signal)
-	signal.Notify(interrupt, os.Interrupt)
-
 	s.wg.Add(1)
-	for {
-		select {
-		case <-interrupt:
-			go s.Close()
-		case <-ctx.Done():
-			s.wg.Done()
-			return
-		}
-	}
+	<-ctx.Done()
+	s.wg.Done()
 }
 
 // gracefully shutdown server:
