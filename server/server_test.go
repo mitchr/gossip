@@ -251,6 +251,35 @@ func TestChannelCreation(t *testing.T) {
 	})
 }
 
+func TestChannelKeys(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	s.channels["#1"] = channel.New("1", channel.Remote)
+	s.channels["#1"].Key = "Key1"
+	s.channels["#2"] = channel.New("2", channel.Remote)
+	s.channels["#2"].Key = "Key2"
+	s.channels["#3"] = channel.New("3", channel.Remote)
+
+	c, r := connectAndRegister("alice", "Alice Smith")
+	defer c.Close()
+
+	c.Write([]byte("JOIN #1,#2,#3 Key1,Key2\r\n"))
+	join1, _ := r.ReadBytes('\n')
+	r.ReadBytes('\n')
+	join2, _ := r.ReadBytes('\n')
+	r.ReadBytes('\n')
+	join3, _ := r.ReadBytes('\n')
+
+	assertResponse(join1, fmt.Sprintf(":%s JOIN #1\r\n", s.clients["alice"]), t)
+	assertResponse(join2, fmt.Sprintf(":%s JOIN #2\r\n", s.clients["alice"]), t)
+	assertResponse(join3, fmt.Sprintf(":%s JOIN #3\r\n", s.clients["alice"]), t)
+}
+
 func TestTOPIC(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {

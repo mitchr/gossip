@@ -216,16 +216,18 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 		return
 	}
 
-	var chansWithKeys map[string]string
+	chans := strings.Split(params[0], ",")
+	keys := make([]string, len(chans))
 	if len(params) >= 2 {
-		chansWithKeys = constructKeyMap(strings.Split(params[0], ","), strings.Split(params[1], ","))
-	} else {
-		chansWithKeys = constructKeyMap(strings.Split(params[0], ","), nil)
+		keys = strings.Split(params[1], ",")
+		// fill remaining slots with empty string, since no key was given
+		// for remaining channel params
+		keys = append(keys, make([]string, len(chans)-len(keys))...)
 	}
 
-	for chanStr, key := range chansWithKeys {
-		if ch, ok := s.channels[chanStr]; ok { // channel already exists
-			err := ch.Admit(c, key)
+	for i := range chans {
+		if ch, ok := s.channels[chans[i]]; ok { // channel already exists
+			err := ch.Admit(c, keys[i])
 			if err != nil {
 				if err == channel.KeyErr {
 					s.numericReply(c, ERR_BADCHANNELKEY, ch)
@@ -239,7 +241,7 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 				return
 			}
 			// send JOIN to all participants of channel
-			ch.Write(fmt.Sprintf(":%s JOIN %s", c, chanStr))
+			ch.Write(fmt.Sprintf(":%s JOIN %s", c, chans[i]))
 			if ch.Topic != "" {
 				// only send topic if it exists
 				TOPIC(s, c, ch.String())
@@ -247,8 +249,8 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 			sym, members := constructNAMREPLY(ch, ok)
 			s.numericReply(c, RPL_NAMREPLY, sym, ch, members)
 		} else { // create new channel
-			chanChar := channel.ChanType(chanStr[0])
-			chanName := chanStr[1:]
+			chanChar := channel.ChanType(chans[i][0])
+			chanName := chans[i][1:]
 
 			if chanChar != channel.Remote && chanChar != channel.Local {
 				// TODO: is there a response code for this case?
@@ -257,25 +259,11 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 			}
 
 			ch := channel.New(chanName, chanChar)
-			s.channels[chanStr] = ch
+			s.channels[chans[i]] = ch
 			ch.Members[c.Nick] = &channel.Member{c, string(channel.Founder)}
 			c.Write(fmt.Sprintf(":%s JOIN %s", c, ch))
 		}
 	}
-}
-
-// rather annoyingly, the key of the map is a chanStr, and the value is
-// the chanKey
-func constructKeyMap(chans, keys []string) map[string]string {
-	m := make(map[string]string)
-	for i := range chans {
-		if i > len(keys)-1 {
-			m[chans[i]] = ""
-		} else {
-			m[chans[i]] = keys[i]
-		}
-	}
-	return m
 }
 
 func PART(s *Server, c *client.Client, params ...string) {
