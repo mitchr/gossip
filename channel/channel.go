@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/mitchr/gossip/client"
@@ -23,7 +24,7 @@ type Channel struct {
 	ChanType ChanType
 	Topic    string
 
-	Modes string
+	// Modes string
 	// array of nickmasks
 	Ban          []string
 	BanExcept    []string
@@ -54,6 +55,44 @@ func New(name string, t ChanType) *Channel {
 
 func (c Channel) String() string {
 	return string(c.ChanType) + c.Name
+}
+
+func (c Channel) Modes() (modestr string, params []string) {
+	if len(c.Ban) != 0 {
+		modestr += "b"
+		params = append(params, strings.Join(c.Ban, ","))
+	}
+	if len(c.BanExcept) != 0 {
+		modestr += "e"
+		params = append(params, strings.Join(c.BanExcept, ","))
+	}
+	if c.Limit != math.MaxUint32 {
+		modestr += "l"
+		params = append(params, strconv.Itoa(c.Limit))
+	}
+	if c.Invite {
+		modestr += "i"
+	}
+	if len(c.InviteExcept) != 0 {
+		params = append(params, strings.Join(c.InviteExcept, ","))
+	}
+	// don't share key in mode params
+	if c.Key != "" {
+		modestr += "k"
+	}
+	if c.Moderated {
+		modestr += "m"
+	}
+	if c.Secret {
+		modestr += "s"
+	}
+	if c.Protected {
+		modestr += "t"
+	}
+	if c.NoExternal {
+		modestr += "n"
+	}
+	return
 }
 
 // broadcast message to each client in channel
@@ -152,13 +191,7 @@ func (c *Channel) ApplyMode(b []byte, params []string) error {
 				pos++
 			}
 
-			if v.Add {
-				c.Modes += string(v.ModeChar)
-			} else {
-				c.Modes = strings.Replace(c.Modes, string(v.ModeChar), "", -1)
-			}
 			p.apply(c, param, v.Add)
-
 		} else if _, ok := memberLetter[v.ModeChar]; ok { // should apply this prefix to a member, not the channel
 			member, belongs := c.Members[params[pos]]
 			if !belongs {

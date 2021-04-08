@@ -423,7 +423,7 @@ func TestMODE(t *testing.T) {
 	c1.Write([]byte("MODE #local +o bob\r\n"))
 	c1.Write([]byte("MODE #local\r\n"))
 	resp, _ := r1.ReadBytes('\n')
-	fmt.Println(string(resp))
+	assertResponse(resp, fmt.Sprintf(":%s 324 alice #local k\r\n", s.listener.Addr()), t)
 
 	if s.channels["#local"].Members["bob"].Prefix != "@" {
 		t.Error("Failed to set member mode")

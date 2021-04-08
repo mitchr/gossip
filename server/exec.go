@@ -554,8 +554,12 @@ func MODE(s *Server, c *client.Client, params ...string) {
 		}
 
 		if len(params) == 1 { // modeStr not given, give back channel modes
-			// TODO: format mode arguments correctly
-			s.numericReply(c, RPL_CHANNELMODEIS, ch, ch.Modes, "")
+			modeStr, params := ch.Modes()
+			if len(params) != 0 {
+				modeStr += " "
+			}
+
+			s.numericReply(c, RPL_CHANNELMODEIS, ch, modeStr, strings.Join(params, " "))
 		} else { // modeStr given
 			err := ch.ApplyMode([]byte(params[1]), params[2:])
 			var u *channel.UnknownModeErr
