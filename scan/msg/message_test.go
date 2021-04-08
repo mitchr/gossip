@@ -1,7 +1,6 @@
 package msg
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -118,7 +117,6 @@ func TestParseTags(t *testing.T) {
 	for _, v := range tests {
 		t.Run(v.input, func(t *testing.T) {
 			out := Parse([]byte(v.input))
-			fmt.Println(out.tags)
 			if !reflect.DeepEqual(out.tags, v.tags) {
 				t.Error("parse error", out.tags, v.tags)
 			}
