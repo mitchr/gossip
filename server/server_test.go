@@ -377,14 +377,27 @@ func TestLIST(t *testing.T) {
 	c, r := connectAndRegister("alice", "Alice Smith")
 	defer c.Close()
 
-	c.Write([]byte("JOIN &test\r\n"))
-	r.ReadBytes('\n')
-	c.Write([]byte("LIST &test\r\n"))
-	listReply, _ := r.ReadBytes('\n')
-	end, _ := r.ReadBytes('\n')
+	t.Run("TestNoParams", func(t *testing.T) {
+		c.Write([]byte("JOIN &test\r\n"))
+		r.ReadBytes('\n')
+		c.Write([]byte("LIST\r\n"))
+		listReply, _ := r.ReadBytes('\n')
+		end, _ := r.ReadBytes('\n')
 
-	assertResponse(listReply, fmt.Sprintf(":%s 322 alice &test 1 :\r\n", s.listener.Addr()), t)
-	assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.listener.Addr()), t)
+		assertResponse(listReply, fmt.Sprintf(":%s 322 alice &test 1 :\r\n", s.listener.Addr()), t)
+		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.listener.Addr()), t)
+	})
+
+	t.Run("TestParam", func(t *testing.T) {
+		c.Write([]byte("JOIN &params\r\n"))
+		r.ReadBytes('\n')
+		c.Write([]byte("LIST &params\r\n"))
+		listReply, _ := r.ReadBytes('\n')
+		end, _ := r.ReadBytes('\n')
+
+		assertResponse(listReply, fmt.Sprintf(":%s 322 alice &params 1 :\r\n", s.listener.Addr()), t)
+		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.listener.Addr()), t)
+	})
 }
 
 func TestMODE(t *testing.T) {
