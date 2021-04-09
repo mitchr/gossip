@@ -185,7 +185,9 @@ func (s *Server) endRegistration(c *client.Client) {
 		// start PING timer
 		go func() {
 			ticker := time.NewTicker(time.Minute * 5)
-			// wait 3 minutes, send PING
+			defer ticker.Stop()
+
+			// every 5 minutes, send PING
 			// if client doesn't respond with a PONG in 10 seconds, kick them
 			for {
 				<-ticker.C
@@ -194,7 +196,6 @@ func (s *Server) endRegistration(c *client.Client) {
 				time.Sleep(time.Second * 10)
 				if c.ExpectingPONG {
 					c.Cancel()
-					ticker.Stop()
 					return
 				}
 			}
