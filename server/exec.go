@@ -74,10 +74,6 @@ func NICK(s *Server, c *client.Client, params ...string) {
 
 	// if nickname is already in use, send back error
 	if s.clients[nick] != nil {
-		// TODO: if user is changing their already existing username,
-		// this will be fine. otherwise, trying to send back c.Nick will
-		// just be an empty string, whereas the spec says you should give
-		// back a '*' for an unused/unitialized parameter
 		s.numericReply(c, ERR_NICKNAMEINUSE, nick)
 		return
 	}
