@@ -562,7 +562,7 @@ func MODE(s *Server, c *client.Client, params ...string) {
 
 			s.numericReply(c, RPL_CHANNELMODEIS, ch, modeStr, strings.Join(params, " "))
 		} else { // modeStr given
-			err := ch.ApplyMode([]byte(params[1]), params[2:])
+			applied, err := ch.ApplyMode([]byte(params[1]), params[2:])
 			var u *channel.UnknownModeErr
 			var n *channel.NotInChanErr
 			if errors.As(err, &u) {
@@ -570,8 +570,8 @@ func MODE(s *Server, c *client.Client, params ...string) {
 			} else if errors.As(err, &n) {
 				s.numericReply(c, ERR_USERNOTINCHANNEL, n, ch)
 			}
+			ch.Write(fmt.Sprintf(":%s MODE %s", s.listener.Addr(), applied))
 		}
-		// TODO: write mode changes back to channel participants
 	}
 }
 

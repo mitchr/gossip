@@ -176,12 +176,16 @@ type UnknownModeErr struct{ char rune }
 
 func (u UnknownModeErr) Error() string { return string(u.char) }
 
-func (c *Channel) ApplyMode(b []byte, params []string) error {
+// ApplyMode applies the given modeStr to the channel. It does not
+// verify that the sending client has the proper permissions to make
+// those changes. It returns a string of all the modes that were
+// successfully applied.
+func (c *Channel) ApplyMode(b []byte, params []string) (string, error) {
 	m := mode.Parse(b)
 
 	// keep track of which param we are currently looking at
 	pos := 0
-
+	applied := ""
 	for _, v := range m {
 		if p, ok := channelLetter[v.ModeChar]; ok {
 			param := ""
@@ -192,19 +196,29 @@ func (c *Channel) ApplyMode(b []byte, params []string) error {
 			}
 
 			p.apply(c, param, v.Add)
+			if v.Add {
+				applied += "+" + string(v.ModeChar)
+			} else {
+				applied += "-" + string(v.ModeChar)
+			}
 		} else if _, ok := memberLetter[v.ModeChar]; ok { // should apply this prefix to a member, not the channel
 			member, belongs := c.Members[params[pos]]
 			if !belongs {
 				// give back given nick
-				return NotInChanErr{params[pos]}
+				return applied, NotInChanErr{params[pos]}
 			}
 
 			member.ApplyMode(v)
+			if v.Add {
+				applied += "+" + string(v.ModeChar) + " " + params[pos]
+			} else {
+				applied += "-" + string(v.ModeChar) + " " + params[pos]
+			}
 			pos++
 		} else {
 			// give back error with the unknown mode char
-			return UnknownModeErr{v.ModeChar}
+			return applied, UnknownModeErr{v.ModeChar}
 		}
 	}
-	return nil
+	return applied, nil
 }
