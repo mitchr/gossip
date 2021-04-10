@@ -181,43 +181,42 @@ func (u UnknownModeErr) Error() string { return string(u.char) }
 // those changes. It returns a string of all the modes that were
 // successfully applied.
 func (c *Channel) ApplyMode(b []byte, params []string) (string, error) {
-	m := mode.Parse(b)
-
 	// keep track of which param we are currently looking at
 	pos := 0
 	applied := ""
-	for _, v := range m {
-		if p, ok := channelLetter[v.ModeChar]; ok {
+	for _, m := range mode.Parse(b) {
+		if p, ok := channelLetter[m.ModeChar]; ok {
 			param := ""
 
-			if p.addConsumes || p.remConsumes {
+			// this is an add mode and it takes a param, or it is a remove mode and it takes a param
+			if (m.Add && p.addConsumes) || (!m.Add && p.remConsumes) {
 				param = params[pos]
 				pos++
 			}
 
-			p.apply(c, param, v.Add)
-			if v.Add {
-				applied += "+" + string(v.ModeChar)
+			p.apply(c, param, m.Add)
+			if m.Add {
+				applied += "+" + string(m.ModeChar)
 			} else {
-				applied += "-" + string(v.ModeChar)
+				applied += "-" + string(m.ModeChar)
 			}
-		} else if _, ok := memberLetter[v.ModeChar]; ok { // should apply this prefix to a member, not the channel
+		} else if _, ok := memberLetter[m.ModeChar]; ok { // should apply this prefix to a member, not the channel
 			member, belongs := c.Members[params[pos]]
 			if !belongs {
 				// give back given nick
 				return applied, NotInChanErr{params[pos]}
 			}
 
-			member.ApplyMode(v)
-			if v.Add {
-				applied += "+" + string(v.ModeChar) + " " + params[pos]
+			member.ApplyMode(m)
+			if m.Add {
+				applied += "+" + string(m.ModeChar) + " " + params[pos]
 			} else {
-				applied += "-" + string(v.ModeChar) + " " + params[pos]
+				applied += "-" + string(m.ModeChar) + " " + params[pos]
 			}
 			pos++
 		} else {
 			// give back error with the unknown mode char
-			return applied, UnknownModeErr{v.ModeChar}
+			return applied, UnknownModeErr{m.ModeChar}
 		}
 	}
 	return applied, nil

@@ -437,6 +437,16 @@ func TestMODE(t *testing.T) {
 	if s.channels["#local"].Members["bob"].Prefix != "@" {
 		t.Error("Failed to set member mode")
 	}
+
+	t.Run("TestRemoveModes", func(t *testing.T) {
+		c1.Write([]byte("MODE #local -o bob\r\n"))
+		c1.Write([]byte("MODE #local -k\r\n"))
+
+		opRemoved, _ := r1.ReadBytes('\n')
+		keyRemoved, _ := r1.ReadBytes('\n')
+		assertResponse(opRemoved, fmt.Sprintf(":%s MODE -o bob\r\n", s.listener.Addr()), t)
+		assertResponse(keyRemoved, fmt.Sprintf(":%s MODE -k\r\n", s.listener.Addr()), t)
+	})
 }
 
 func TestChanFull(t *testing.T) {
