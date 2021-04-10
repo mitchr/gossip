@@ -138,9 +138,6 @@ func QUIT(s *Server, c *client.Client, params ...string) {
 		// quitting clients channels receive their quit message, not the
 		// client themselves. isntead, they receive an error message from
 		// the server signifying their depature.
-		// TODO: we could use s.removeFromChannel here, but we don't want to
-		// write to the quitting client, so we should figure out how to
-		// modify removeFromChannel so it can be utilized here as well
 		if len(v.Members) == 1 {
 			delete(s.channels, v.String())
 		} else {
@@ -277,7 +274,12 @@ func PART(s *Server, c *client.Client, params ...string) {
 			return
 		}
 
-		s.removeFromChannel(c, ch, fmt.Sprintf(":%s PART %s%s", c, ch, reason))
+		ch.Write(fmt.Sprintf(":%s PART %s%s", c, ch, reason))
+		if len(ch.Members) == 1 {
+			delete(s.channels, ch.String())
+		} else {
+			delete(ch.Members, c.Nick)
+		}
 	}
 }
 
@@ -643,9 +645,7 @@ func PONG(s *Server, c *client.Client, params ...string) {
 
 // TODO: this is currently a noop, as a server should only accept ERROR
 // commands from other servers
-func ERROR(s *Server, c *client.Client, params ...string) {
-	return
-}
+func ERROR(s *Server, c *client.Client, params ...string) { return }
 
 func WALLOPS(s *Server, c *client.Client, params ...string) {
 	if len(params) != 1 {

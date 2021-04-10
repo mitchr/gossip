@@ -232,6 +232,10 @@ func TestChannelCreation(t *testing.T) {
 		c2.Write([]byte("PART #local\r\n"))
 		response, _ := r2.ReadBytes('\n')
 		assertResponse(response, fmt.Sprintf(":%s PART #local\r\n", s.clients["bob"]), t)
+
+		if !poll(&s.channels, 0) {
+			t.Error("Could not destroy empty channel on PART")
+		}
 	})
 
 	t.Run("TestJOIN0", func(t *testing.T) {
