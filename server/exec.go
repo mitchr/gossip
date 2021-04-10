@@ -168,8 +168,9 @@ func (s *Server) endRegistration(c *client.Client) {
 		s.numericReply(c, RPL_WELCOME, c)
 		s.numericReply(c, RPL_YOURHOST, s.listener.Addr())
 		s.numericReply(c, RPL_CREATED, s.created)
+		// serverName, version, userModes, chanModes
+		s.numericReply(c, RPL_MYINFO, s.listener.Addr(), "0", "ioOrw", "beliIkmstn")
 		// TODO: send proper response messages
-		s.numericReply(c, RPL_MYINFO, s.listener.Addr(), "", "", "")
 		s.numericReply(c, RPL_ISUPPORT, "")
 
 		LUSERS(s, c)
