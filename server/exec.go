@@ -508,11 +508,24 @@ func MOTD(s *Server, c *client.Client, params ...string) {
 }
 
 func LUSERS(s *Server, c *client.Client, params ...string) {
-	s.numericReply(c, RPL_LUSERCLIENT, len(s.clients), 0, 0)
-	s.numericReply(c, RPL_LUSEROP, 0)
+	invis := 0
+	for _, v := range s.clients {
+		if v.Is(client.Invisible) {
+			invis++
+		}
+	}
+	ops := 0
+	for _, v := range s.clients {
+		if v.Is(client.Op) {
+			ops++
+		}
+	}
+
+	s.numericReply(c, RPL_LUSERCLIENT, len(s.clients), invis, 1)
+	s.numericReply(c, RPL_LUSEROP, ops)
 	s.numericReply(c, RPL_LUSERUNKNOWN, s.unknowns)
 	s.numericReply(c, RPL_LUSERCHANNELS, len(s.channels))
-	s.numericReply(c, RPL_LUSERME, len(s.clients), 0)
+	s.numericReply(c, RPL_LUSERME, len(s.clients), 1)
 }
 
 func TIME(s *Server, c *client.Client, params ...string) {
