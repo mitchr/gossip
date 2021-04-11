@@ -150,7 +150,6 @@ func QUIT(s *Server, c *client.Client, params ...string) {
 	c.Cancel()
 }
 
-// TODO: If we add capability negotiation, then that logic will have to go here as well
 func (s *Server) endRegistration(c *client.Client) {
 	if c.RegSuspended {
 		return
