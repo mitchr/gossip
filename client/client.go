@@ -45,6 +45,7 @@ func New(conn net.Conn) *Client {
 		<-time.After(time.Second * 10)
 		if !c.Registered {
 			// TODO: send a QUIT message to this client with reason?
+			c.Write("ERROR :Closing Link: Client failed to register in alloted time")
 			c.Cancel()
 			return
 		}

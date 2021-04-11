@@ -194,6 +194,7 @@ func (s *Server) endRegistration(c *client.Client) {
 			c.Write(fmt.Sprintf(":%s PING %s", s.listener.Addr(), c.Nick))
 			time.Sleep(time.Second * 10)
 			if c.ExpectingPONG {
+				s.ERROR(c, "Closing Link: PING/PONG timeout")
 				c.Cancel()
 				return
 			}
