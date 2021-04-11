@@ -31,6 +31,7 @@ func END(s *Server, c *client.Client, params ...string) {
 	}
 
 	c.RegSuspended = false
+	s.endRegistration(c)
 }
 
 // used for capability negotiation
