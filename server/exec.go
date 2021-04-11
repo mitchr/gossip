@@ -20,6 +20,7 @@ var commandMap = map[string]executor{
 	"NICK": NICK,
 	"USER": USER,
 	"QUIT": QUIT,
+	"CAP":  CAP,
 
 	// chanOps
 	"JOIN":   JOIN,
