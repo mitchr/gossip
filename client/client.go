@@ -22,7 +22,6 @@ type Client struct {
 	reader *bufio.Reader
 
 	ServerPassAttempt string
-	BarredFromPass    bool // true if client has executed NICK/USER
 
 	ExpectingPONG bool
 	Cancel        context.CancelFunc // need to store for QUIT

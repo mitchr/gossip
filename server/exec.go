@@ -48,7 +48,9 @@ var commandMap = map[string]executor{
 }
 
 func PASS(s *Server, c *client.Client, params ...string) {
-	if c.BarredFromPass {
+	// client is barred from entering password if they have previously
+	// sent a NICK or USER command
+	if c.Nick != "" || c.User != "" {
 		return
 	}
 	if c.Registered {
@@ -63,8 +65,6 @@ func PASS(s *Server, c *client.Client, params ...string) {
 }
 
 func NICK(s *Server, c *client.Client, params ...string) {
-	c.BarredFromPass = true
-
 	if len(params) != 1 {
 		s.numericReply(c, ERR_NONICKNAMEGIVEN)
 		return
@@ -103,7 +103,6 @@ func NICK(s *Server, c *client.Client, params ...string) {
 }
 
 func USER(s *Server, c *client.Client, params ...string) {
-	c.BarredFromPass = true
 	// TODO: Ident Protocol
 
 	if c.Registered {
