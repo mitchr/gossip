@@ -33,6 +33,7 @@ const (
 	ERR_NOSUCHNICK       = ":%s 401 %s %s :No such nick/channel"
 	ERR_NOSUCHCHANNEL    = ":%s 403 %s %s :No such channel"
 	ERR_CANNOTSENDTOCHAN = ":%s 404 %s %s :Cannot send to channel"
+	ERR_INVALIDCAPCMD    = ":%s 410 %s %s :Invalid CAP command"
 	ERR_NORECIPIENT      = ":%s 411 %s :No recipient given (%s)"
 	ERR_NOTEXTTOSEND     = ":%s 412 %s :No text to send"
 	ERR_UNKNOWNCOMMAND   = ":%s 421 %s %s :Unknown command"

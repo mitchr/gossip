@@ -152,48 +152,53 @@ func QUIT(s *Server, c *client.Client, params ...string) {
 
 // TODO: If we add capability negotiation, then that logic will have to go here as well
 func (s *Server) endRegistration(c *client.Client) {
-	if c.Nick != "" && c.User != "" {
-		if c.ServerPassAttempt != s.password {
-			s.numericReply(c, ERR_PASSWDMISMATCH)
-			s.ERROR(c, "Closing Link: "+s.listener.Addr().String()+" (Bad Password)")
-			c.Cancel()
-			return
-		}
-		c.Registered = true
-		s.clients[c.Nick] = c
-		s.unknowns--
-
-		// send RPL_WELCOME and friends in acceptance
-		s.numericReply(c, RPL_WELCOME, c)
-		s.numericReply(c, RPL_YOURHOST, s.listener.Addr())
-		s.numericReply(c, RPL_CREATED, s.created)
-		// serverName, version, userModes, chanModes
-		s.numericReply(c, RPL_MYINFO, s.listener.Addr(), "0", "ioOrw", "beliIkmstn")
-		// TODO: send proper response messages
-		s.numericReply(c, RPL_ISUPPORT, "")
-
-		LUSERS(s, c)
-		MOTD(s, c)
-
-		// start PING timer
-		go func() {
-			ticker := time.NewTicker(time.Minute * 5)
-			defer ticker.Stop()
-
-			// every 5 minutes, send PING
-			// if client doesn't respond with a PONG in 10 seconds, kick them
-			for {
-				<-ticker.C
-				c.ExpectingPONG = true
-				c.Write(fmt.Sprintf(":%s PING %s", s.listener.Addr(), c.Nick))
-				time.Sleep(time.Second * 10)
-				if c.ExpectingPONG {
-					c.Cancel()
-					return
-				}
-			}
-		}()
+	if c.RegSuspended {
+		return
 	}
+	if c.Nick == "" || c.User == "" {
+		return
+	}
+
+	if c.ServerPassAttempt != s.password {
+		s.numericReply(c, ERR_PASSWDMISMATCH)
+		s.ERROR(c, "Closing Link: "+s.listener.Addr().String()+" (Bad Password)")
+		c.Cancel()
+		return
+	}
+	c.Registered = true
+	s.clients[c.Nick] = c
+	s.unknowns--
+
+	// send RPL_WELCOME and friends in acceptance
+	s.numericReply(c, RPL_WELCOME, c)
+	s.numericReply(c, RPL_YOURHOST, s.listener.Addr())
+	s.numericReply(c, RPL_CREATED, s.created)
+	// serverName, version, userModes, chanModes
+	s.numericReply(c, RPL_MYINFO, s.listener.Addr(), "0", "ioOrw", "beliIkmstn")
+	// TODO: send proper response messages
+	s.numericReply(c, RPL_ISUPPORT, "")
+
+	LUSERS(s, c)
+	MOTD(s, c)
+
+	// start PING timer
+	go func() {
+		ticker := time.NewTicker(time.Minute * 5)
+		defer ticker.Stop()
+
+		// every 5 minutes, send PING
+		// if client doesn't respond with a PONG in 10 seconds, kick them
+		for {
+			<-ticker.C
+			c.ExpectingPONG = true
+			c.Write(fmt.Sprintf(":%s PING %s", s.listener.Addr(), c.Nick))
+			time.Sleep(time.Second * 10)
+			if c.ExpectingPONG {
+				c.Cancel()
+				return
+			}
+		}
+	}()
 }
 
 func JOIN(s *Server, c *client.Client, params ...string) {

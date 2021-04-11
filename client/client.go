@@ -22,6 +22,7 @@ type Client struct {
 	reader *bufio.Reader
 
 	ServerPassAttempt string
+	RegSuspended      bool
 
 	ExpectingPONG bool
 	Cancel        context.CancelFunc // need to store for QUIT
