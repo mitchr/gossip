@@ -45,6 +45,7 @@ func CAP(s *Server, c *client.Client, params ...string) {
 	subcom, ok := subs[params[0]]
 	if !ok {
 		s.numericReply(c, ERR_INVALIDCAPCMD, clientId(c), "CAP "+params[0])
+		return
 	}
 	subcom(s, c, params[1:]...)
 }
