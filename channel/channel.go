@@ -20,6 +20,7 @@ const (
 )
 
 type Channel struct {
+	// Name is case-insensitive, stored internally in lower-case
 	Name     string
 	ChanType ChanType
 	Topic    string

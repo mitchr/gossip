@@ -226,7 +226,8 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 	}
 
 	for i := range chans {
-		if ch, ok := s.channels[chans[i]]; ok { // channel already exists
+		sanitized := strings.ToLower(chans[i])
+		if ch, ok := s.channels[sanitized]; ok { // channel already exists
 			err := ch.Admit(c, keys[i])
 			if err != nil {
 				if err == channel.KeyErr {
@@ -241,7 +242,7 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 				return
 			}
 			// send JOIN to all participants of channel
-			ch.Write(fmt.Sprintf(":%s JOIN %s", c, chans[i]))
+			ch.Write(fmt.Sprintf(":%s JOIN %s", c, sanitized))
 			if ch.Topic != "" {
 				// only send topic if it exists
 				TOPIC(s, c, ch.String())
@@ -249,8 +250,8 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 			sym, members := constructNAMREPLY(ch, ok)
 			s.numericReply(c, RPL_NAMREPLY, sym, ch, members)
 		} else { // create new channel
-			chanChar := channel.ChanType(chans[i][0])
-			chanName := chans[i][1:]
+			chanChar := channel.ChanType(sanitized[0])
+			chanName := sanitized[1:]
 
 			if chanChar != channel.Remote && chanChar != channel.Local {
 				// TODO: is there a response code for this case?
@@ -259,7 +260,7 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 			}
 
 			ch := channel.New(chanName, chanChar)
-			s.channels[chans[i]] = ch
+			s.channels[sanitized] = ch
 			ch.Members[c.Nick] = &channel.Member{c, string(channel.Founder)}
 			c.Write(fmt.Sprintf(":%s JOIN %s", c, ch))
 		}

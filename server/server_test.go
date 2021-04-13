@@ -210,14 +210,19 @@ func TestChannelCreation(t *testing.T) {
 	defer c2.Close()
 	c1.Write([]byte("JOIN #local\r\n"))
 	r1.ReadBytes('\n')
-	c2.Write([]byte("JOIN #local\r\n"))
-	r2.ReadBytes('\n')
-	r2.ReadBytes('\n')
-	r1.ReadBytes('\n') // alice reading bob's join msg
 
 	if !poll(&s.channels, 1) {
 		t.Fatal("Could not create channel")
 	}
+
+	t.Run("TestChanNameInsensitive", func(t *testing.T) {
+		c2.Write([]byte("JOIN #LOcAl\r\n"))
+		resp, _ := r2.ReadBytes('\n')
+		r2.ReadBytes('\n')
+		r1.ReadBytes('\n') // alice reading bob's join msg
+
+		assertResponse(resp, fmt.Sprintf(":%s JOIN #local\r\n", s.clients["bob"]), t)
+	})
 
 	t.Run("TestChannelPART", func(t *testing.T) {
 		// c1 leaves, c2 should receive a PARTing message from them
