@@ -4,6 +4,8 @@
 
 package scan
 
+import "unicode/utf8"
+
 type TokenType int
 
 const (
@@ -30,8 +32,12 @@ func (l *Lexer) Next() rune {
 		return rune(EOF)
 	}
 
-	r := rune(l.input[l.position])
-	l.position++
+	r, width := utf8.DecodeRune(l.input[l.position:])
+	// if r == utf8.RuneError {
+	// TODO: should probably throw the entire tokenstream out since the
+	// input is garbled
+	// }
+	l.position += width
 	return r
 }
 
@@ -40,8 +46,7 @@ func (l *Lexer) Peek() rune {
 		return EOF
 	}
 
-	r := l.Next()
-	l.position--
+	r, _ := utf8.DecodeRune(l.input[l.position:])
 	return r
 }
 
