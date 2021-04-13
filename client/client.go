@@ -8,6 +8,8 @@ import (
 	"log"
 	"net"
 	"time"
+
+	"github.com/mitchr/gossip/server/cap"
 )
 
 type Client struct {
@@ -23,6 +25,9 @@ type Client struct {
 
 	ServerPassAttempt string
 	RegSuspended      bool
+
+	// TODO: should probably be a map[capability]bool?
+	Caps []cap.Capability
 
 	ExpectingPONG bool
 	Cancel        context.CancelFunc // need to store for QUIT
@@ -64,6 +69,16 @@ func (c Client) String() string {
 		log.Println("client has no nick registered")
 		return ""
 	}
+}
+
+// HasCap returns true if client has the given capability
+func (c Client) HasCap(cap cap.Capability) bool {
+	for _, v := range c.Caps {
+		if v == cap {
+			return true
+		}
+	}
+	return false
 }
 
 // Write appends a crlf to the end of each message
