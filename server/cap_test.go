@@ -44,4 +44,15 @@ func TestREQ(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s CAP bob NAK :not-real\r\n", s.listener.Addr()), t)
 	})
+
+	t.Run("MixedKnown+Unknown", func(t *testing.T) {
+		c.Write([]byte("CAP REQ :message-tags not-real\r\n"))
+
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s CAP bob NAK :message-tags not-real\r\n", s.listener.Addr()), t)
+
+		if len(s.clients["bob"].Caps) != 0 {
+			t.Error("Capability not added")
+		}
+	})
 }
