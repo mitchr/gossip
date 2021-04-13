@@ -649,20 +649,14 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 }
 
 func PING(s *Server, c *client.Client, params ...string) {
-	// TODO: params can contain other servers, in which case the PING
-	// will have to be redirected. For now, we can just assume that any
-	// PING from a connected client is meant for this server
 	c.Write(fmt.Sprintf(":%s PONG", s.listener.Addr()))
 }
 
 func PONG(s *Server, c *client.Client, params ...string) {
 	c.ExpectingPONG = false
-	// TODO: ignore for now, but like PING, PONG can be meant for
-	// multiple servers so we need to investigate params
-	return
 }
 
-// TODO: this is currently a noop, as a server should only accept ERROR
+// this is currently a noop, as a server should only accept ERROR
 // commands from other servers
 func ERROR(s *Server, c *client.Client, params ...string) { return }
 
@@ -671,7 +665,7 @@ func WALLOPS(s *Server, c *client.Client, params ...string) {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "WALLOPS")
 		return
 	}
-	// TODO: only allows WALLOPS from another server; can be abused by clients
+
 	for _, v := range s.clients {
 		if v.Is(client.Wallops) {
 			v.Write(fmt.Sprintf("%s WALLOPS %s", s.listener.Addr(), params[1]))
