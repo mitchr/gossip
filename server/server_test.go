@@ -604,6 +604,32 @@ func TestPRIVMSG(t *testing.T) {
 	})
 }
 
+func TestAWAY(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	defer c2.Close()
+
+	c1.Write([]byte("AWAY :I'm away\r\n"))
+	nowAway, _ := r1.ReadBytes('\n')
+	assertResponse(nowAway, fmt.Sprintf(":%s 306 alice :You have been marked as being away\r\n", s.listener.Addr()), t)
+
+	c2.Write([]byte("PRIVMSG alice :Hey\r\n"))
+	awayMsg, _ := r2.ReadBytes('\n')
+	assertResponse(awayMsg, fmt.Sprintf(":%s 301 bob alice :I'm away\r\n", s.listener.Addr()), t)
+
+	c1.Write([]byte("AWAY\r\n"))
+	unAway, _ := r1.ReadBytes('\n')
+	assertResponse(unAway, fmt.Sprintf(":%s 305 alice :You are no longer marked as being away\r\n", s.listener.Addr()), t)
+}
+
 // given a nick and a realname, return a connection that is already
 // registered and a bufio.Reader that has already read past all the
 // initial connection rigamarole (RPL's, MOTD, etc.)

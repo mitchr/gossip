@@ -46,6 +46,8 @@ var commandMap = map[string]executor{
 	"PONG":    PONG,
 	"WALLOPS": WALLOPS,
 	"ERROR":   ERROR,
+
+	"AWAY": AWAY,
 }
 
 func PASS(s *Server, c *client.Client, params ...string) {
@@ -639,9 +641,13 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 				}
 				m.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
 			}
-		} else {
-			if client, ok := s.clients[v]; ok {
-				client.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
+		} else { // client->client
+			if target, ok := s.clients[v]; ok {
+				if target.Is(client.Away) {
+					s.numericReply(c, RPL_AWAY, target.Nick, target.AwayMsg)
+				} else {
+					target.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
+				}
 			} else if !notice {
 				s.numericReply(c, ERR_NOSUCHNICK, v)
 			}
@@ -660,6 +666,21 @@ func PONG(s *Server, c *client.Client, params ...string) {
 // this is currently a noop, as a server should only accept ERROR
 // commands from other servers
 func ERROR(s *Server, c *client.Client, params ...string) { return }
+
+func AWAY(s *Server, c *client.Client, params ...string) {
+	// remove away
+	if len(params) == 0 {
+		c.AwayMsg = ""
+		c.Mode &^= client.Away
+		s.numericReply(c, RPL_UNAWAY)
+		return
+	}
+
+	c.AwayMsg = params[0]
+	c.Mode |= client.Away
+	s.numericReply(c, RPL_NOWAWAY)
+	return
+}
 
 func WALLOPS(s *Server, c *client.Client, params ...string) {
 	if len(params) != 1 {

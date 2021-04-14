@@ -17,12 +17,13 @@ type Client struct {
 	User       string
 	Realname   string
 	Host       net.Addr
-	Mode       Mode
 	Registered bool
 
 	conn   net.Conn
 	reader *bufio.Reader
 
+	Mode              Mode
+	AwayMsg           string
 	ServerPassAttempt string
 	RegSuspended      bool
 
