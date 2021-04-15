@@ -454,6 +454,26 @@ func TestMODE(t *testing.T) {
 	})
 }
 
+func TestWHO(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+
+	t.Run("NoArgument", func(t *testing.T) {
+		c1.Write([]byte("WHO\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		end, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice %s %s alice H :0 Alice Smith\r\n", s.listener.Addr(), s.clients["alice"].Host, s.listener.Addr()), t)
+		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.listener.Addr()), t)
+	})
+}
+
 func TestChanFull(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {

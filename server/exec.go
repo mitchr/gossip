@@ -10,6 +10,7 @@ import (
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
+	"github.com/mitchr/gossip/scan/wild"
 )
 
 type executor func(*Server, *client.Client, ...string)
@@ -36,6 +37,9 @@ var commandMap = map[string]executor{
 	"LUSERS": LUSERS,
 	"TIME":   TIME,
 	"MODE":   MODE,
+
+	// user queries
+	"WHO": WHO,
 
 	// communication
 	"PRIVMSG": PRIVMSG,
@@ -593,6 +597,96 @@ func MODE(s *Server, c *client.Client, params ...string) {
 			ch.Write(fmt.Sprintf(":%s MODE %s", s.listener.Addr(), applied))
 		}
 	}
+}
+
+func (s *Server) haveChanInCommon(c1, c2 *client.Client) bool {
+	for _, ch := range s.channels {
+		if ch.Members[c1.Nick] != nil && ch.Members[c2.Nick] != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func WHO(s *Server, c *client.Client, params ...string) {
+	mask := "*"
+	if len(params) > 0 {
+		mask = params[0]
+	}
+
+	// send WHOREPLY to every noninvisible client who does not share a
+	// channel with the sender
+	if mask == "*" || mask == "0" {
+		for _, v := range s.clients {
+			if v.Is(client.Invisible) {
+				continue
+			}
+			if !s.haveChanInCommon(c, v) {
+				flags := "H"
+				if v.Is(client.Away) {
+					flags = "G"
+				}
+				if v.Is(client.Op) {
+					flags += "*"
+				}
+				s.numericReply(c, RPL_WHOREPLY, "*", v.User, v.Host, s.listener.Addr(), v.Nick, flags, v.Realname)
+			}
+			s.numericReply(c, RPL_ENDOFWHO, mask)
+		}
+		return
+	}
+
+	onlyOps := false
+	if len(params) > 1 && params[1] == "o" {
+		onlyOps = true
+	}
+
+	// given a mask, match against all channels. if no channels match,
+	// treat the mask as a client prefix and match against all clients.
+	for _, v := range s.channels {
+		if wild.Match(mask, v.String()) {
+			for _, member := range v.Members {
+				if onlyOps && !member.Client.Is(client.Op) { // skip nonops
+					continue
+				}
+				flags := "H"
+				if member.Client.Is(client.Away) {
+					flags = "G"
+				}
+				if member.Client.Is(client.Op) {
+					flags += "*"
+				}
+				if member.Is(channel.Operator) {
+					flags += "@"
+				}
+				if member.Is(channel.Voice) {
+					flags += "+"
+				}
+				s.numericReply(c, RPL_WHOREPLY, v, member.User, member.Host, s.listener.Addr(), member.Nick, flags, member.Realname)
+			}
+			s.numericReply(c, RPL_ENDOFWHO, mask)
+			return
+		}
+	}
+
+	// no channel results found
+	for _, v := range s.clients {
+		if wild.Match(mask, v.String()) {
+			if onlyOps && !v.Is(client.Op) { // skip nonops
+				continue
+			}
+
+			flags := "H"
+			if v.Is(client.Away) {
+				flags = "G"
+			}
+			if v.Is(client.Op) {
+				flags += "*"
+			}
+			s.numericReply(c, RPL_WHOREPLY, "*", v.User, v.Host, s.listener.Addr(), v.Nick, flags, v.Realname)
+		}
+	}
+	s.numericReply(c, RPL_ENDOFWHO, mask)
 }
 
 func PRIVMSG(s *Server, c *client.Client, params ...string) { s.communicate(params, c, false) }
