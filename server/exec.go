@@ -631,8 +631,8 @@ func WHO(s *Server, c *client.Client, params ...string) {
 				}
 				s.numericReply(c, RPL_WHOREPLY, "*", v.User, v.Host, s.listener.Addr(), v.Nick, flags, v.Realname)
 			}
-			s.numericReply(c, RPL_ENDOFWHO, mask)
 		}
+		s.numericReply(c, RPL_ENDOFWHO, mask)
 		return
 	}
 
