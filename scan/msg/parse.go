@@ -2,7 +2,6 @@ package msg
 
 import (
 	"log"
-	"unicode"
 
 	"github.com/mitchr/gossip/scan"
 )
@@ -94,7 +93,7 @@ func keyName(p *scan.Parser) string {
 	key := ""
 	for {
 		k := p.Peek()
-		if r := rune(k.Value[0]); !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' {
+		if r := rune(k.Value[0]); !scan.IsLetter(r) && !scan.IsDigit(r) && r != '-' {
 			break
 		}
 		key += k.Value
@@ -167,7 +166,7 @@ func source(p *scan.Parser) (nick, user, host string) {
 // 1*letter / 3digit
 func command(p *scan.Parser) string {
 	c := ""
-	for unicode.IsLetter(rune(p.Peek().Value[0])) {
+	for scan.IsLetter(rune(p.Peek().Value[0])) {
 		c += p.Next().Value
 	}
 	return c

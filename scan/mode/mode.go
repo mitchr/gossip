@@ -1,8 +1,6 @@
 package mode
 
 import (
-	"unicode"
-
 	"github.com/mitchr/gossip/scan"
 )
 
@@ -24,7 +22,7 @@ func lexMode(l *scan.Lexer) scan.State {
 	case r == '-':
 		l.Push(minus)
 		return lexMode
-	case unicode.IsLetter(r): // isLetter == a-zA-z?
+	case scan.IsLetter(r):
 		l.Push(modechar)
 		return lexMode
 	default:

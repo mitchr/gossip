@@ -27,3 +27,7 @@ func (p *Parser) Peek() Token {
 func (p *Parser) Expect(t TokenType) bool {
 	return p.Next().TokenType == t
 }
+
+// a-zA-z
+func IsLetter(r rune) bool { return (r >= 65 && r <= 90) || (r >= 97 && r <= 122) }
+func IsDigit(r rune) bool  { return r >= 48 && r <= 57 }
