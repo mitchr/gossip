@@ -650,6 +650,48 @@ func TestAWAY(t *testing.T) {
 	assertResponse(unAway, fmt.Sprintf(":%s 305 alice :You are no longer marked as being away\r\n", s.listener.Addr()), t)
 }
 
+func TestCaseInsensitivity(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	defer c2.Close()
+
+	t.Run("TestNickCaseInsensitive", func(t *testing.T) {
+		c1.Write([]byte("NICK BOB\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 433 alice BOB :Nickname is already in use\r\n", s.listener.Addr()), t)
+		c1.Write([]byte("NICK boB\r\n"))
+		resp, _ = r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 433 alice boB :Nickname is already in use\r\n", s.listener.Addr()), t)
+	})
+
+	t.Run("TestChanCaseInsensitive", func(t *testing.T) {
+		c1.Write([]byte("JOIN #test\r\n"))
+		r1.ReadBytes('\n')
+		c2.Write([]byte("JOIN #tEsT\r\n"))
+		r1.ReadBytes('\n')
+
+		resp, _ := r2.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s JOIN #test\r\n", s.clients["bob"]), t)
+	})
+
+	t.Run("TestCommandCaseInsensitive", func(t *testing.T) {
+		c1.Write([]byte("who #test\r\n"))
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 315 alice #test :End of WHO list\r\n", s.listener.Addr()), t)
+	})
+}
+
 // given a nick and a realname, return a connection that is already
 // registered and a bufio.Reader that has already read past all the
 // initial connection rigamarole (RPL's, MOTD, etc.)

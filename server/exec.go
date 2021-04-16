@@ -80,7 +80,7 @@ func NICK(s *Server, c *client.Client, params ...string) {
 	nick := params[0]
 
 	// if nickname is already in use, send back error
-	if s.clients[nick] != nil {
+	if _, ok := s.GetClient(nick); ok {
 		s.numericReply(c, ERR_NICKNAMEINUSE, nick)
 		return
 	}
@@ -94,14 +94,14 @@ func NICK(s *Server, c *client.Client, params ...string) {
 			v.Write(fmt.Sprintf(":%s NICK :%s", c, nick))
 
 			// update member map entry
-			m := v.Members[c.Nick]
-			delete(v.Members, c.Nick)
-			v.Members[nick] = m
+			m, _ := v.GetMember(c.Nick)
+			v.DeleteMember(c.Nick)
+			v.SetMember(nick, m)
 		}
 
 		// update client map entry
-		delete(s.clients, c.Nick)
-		s.clients[nick] = c
+		s.DeleteClient(c.Nick)
+		s.SetClient(nick, c)
 		c.Nick = nick
 	} else { // nick is being set for first time
 		c.Nick = nick
@@ -145,10 +145,10 @@ func QUIT(s *Server, c *client.Client, params ...string) {
 		// client themselves. isntead, they receive an error message from
 		// the server signifying their depature.
 		if len(v.Members) == 1 {
-			delete(s.channels, v.String())
+			s.DeleteChannel(v.String())
 		} else {
 			// message entire channel that client left
-			delete(v.Members, c.Nick)
+			v.DeleteMember(c.Nick)
 			v.Write(fmt.Sprintf(":%s QUIT :%s", c, reason))
 		}
 	}
@@ -172,7 +172,7 @@ func (s *Server) endRegistration(c *client.Client) {
 		return
 	}
 	c.Registered = true
-	s.clients[c.Nick] = c
+	s.SetClient(c.Nick, c)
 	s.unknowns--
 
 	// send RPL_WELCOME and friends in acceptance
@@ -232,8 +232,7 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 	}
 
 	for i := range chans {
-		sanitized := strings.ToLower(chans[i])
-		if ch, ok := s.channels[sanitized]; ok { // channel already exists
+		if ch, ok := s.GetChannel(chans[i]); ok { // channel already exists
 			err := ch.Admit(c, keys[i])
 			if err != nil {
 				if err == channel.KeyErr {
@@ -248,7 +247,7 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 				return
 			}
 			// send JOIN to all participants of channel
-			ch.Write(fmt.Sprintf(":%s JOIN %s", c, sanitized))
+			ch.Write(fmt.Sprintf(":%s JOIN %s", c, ch))
 			if ch.Topic != "" {
 				// only send topic if it exists
 				TOPIC(s, c, ch.String())
@@ -256,8 +255,8 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 			sym, members := constructNAMREPLY(ch, ok)
 			s.numericReply(c, RPL_NAMREPLY, sym, ch, members)
 		} else { // create new channel
-			chanChar := channel.ChanType(sanitized[0])
-			chanName := sanitized[1:]
+			chanChar := channel.ChanType(chans[i][0])
+			chanName := chans[i][1:]
 
 			if chanChar != channel.Remote && chanChar != channel.Local {
 				// TODO: is there a response code for this case?
@@ -265,10 +264,10 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 				return
 			}
 
-			ch := channel.New(chanName, chanChar)
-			s.channels[sanitized] = ch
-			ch.Members[c.Nick] = &channel.Member{c, string(channel.Founder)}
-			c.Write(fmt.Sprintf(":%s JOIN %s", c, ch))
+			newChan := channel.New(chanName, chanChar)
+			s.SetChannel(chans[i], newChan)
+			newChan.SetMember(c.Nick, &channel.Member{c, string(channel.Founder)})
+			c.Write(fmt.Sprintf(":%s JOIN %s", c, newChan))
 		}
 	}
 }
@@ -289,9 +288,9 @@ func PART(s *Server, c *client.Client, params ...string) {
 
 		ch.Write(fmt.Sprintf(":%s PART %s%s", c, ch, reason))
 		if len(ch.Members) == 1 {
-			delete(s.channels, ch.String())
+			s.DeleteChannel(ch.String())
 		} else {
-			delete(ch.Members, c.Nick)
+			ch.DeleteMember(c.Nick)
 		}
 	}
 }
@@ -328,13 +327,13 @@ func INVITE(s *Server, c *client.Client, params ...string) {
 	}
 
 	nick := params[0]
-	ch, ok := s.channels[params[1]]
+	ch, ok := s.GetChannel(params[1])
 	if !ok { // channel exists
 		return
 	}
 
-	sender := ch.Members[c.Nick]
-	recipient := s.clients[nick]
+	sender, _ := ch.GetMember(c.Nick)
+	recipient, _ := s.GetClient(nick)
 	if sender == nil { // only members can invite
 		s.numericReply(c, ERR_NOTONCHANNEL, ch)
 		return
@@ -344,7 +343,7 @@ func INVITE(s *Server, c *client.Client, params ...string) {
 	} else if recipient == nil { // nick not on server
 		s.numericReply(c, ERR_NOSUCHNICK, nick)
 		return
-	} else if ch.Members[nick] != nil { // can't invite a member who is already on channel
+	} else if _, ok := ch.GetMember(nick); ok { // can't invite a member who is already on channel
 		s.numericReply(c, ERR_USERONCHANNEL, c, nick, ch)
 		return
 	}
@@ -358,11 +357,11 @@ func INVITE(s *Server, c *client.Client, params ...string) {
 // channel. If it doesn't, or if the channel doesn't exist, write a
 // numeric reply to the client and return nil.
 func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel.Channel {
-	ch, ok := s.channels[chanName]
+	ch, ok := s.GetChannel(chanName)
 	if !ok { // channel not found
 		s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
 	} else {
-		if ch.Members[c.Nick] == nil { // client does not belong to channel
+		if _, ok := ch.GetMember(c.Nick); !ok { // client does not belong to channel
 			s.numericReply(c, ERR_NOTONCHANNEL, ch)
 		}
 	}
@@ -384,12 +383,12 @@ func KICK(s *Server, c *client.Client, params ...string) {
 	users := strings.Split(params[1], ",")
 
 	if len(chans) == 1 {
-		ch := s.channels[chans[0]]
+		ch, _ := s.GetChannel(chans[0])
 		if ch == nil {
 			s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
 			return
 		}
-		self := ch.Members[c.Nick]
+		self, _ := ch.GetMember(c.Nick)
 		if self == nil {
 			s.numericReply(c, ERR_NOTONCHANNEL, ch)
 			return
@@ -399,23 +398,23 @@ func KICK(s *Server, c *client.Client, params ...string) {
 		}
 
 		for _, v := range users {
-			u := ch.Members[v]
+			u, _ := ch.GetMember(v)
 			if u == nil {
 				s.numericReply(c, ERR_USERNOTINCHANNEL, u, ch)
 				continue
 			}
 
 			ch.Write(fmt.Sprintf(":%s KICK %s %s :%s\r\n", c, ch, u.Nick, comment))
-			delete(ch.Members, u.Nick)
+			ch.DeleteMember(u.Nick)
 		}
 	} else if len(chans) == len(users) {
 		for i := 0; i < len(chans); i++ {
-			ch := s.channels[chans[i]]
+			ch, _ := s.GetChannel(chans[i])
 			if ch == nil {
 				s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
 				continue
 			}
-			self := ch.Members[c.Nick]
+			self, _ := ch.GetMember(c.Nick)
 			if self == nil {
 				s.numericReply(c, ERR_NOTONCHANNEL, ch)
 				continue
@@ -424,14 +423,14 @@ func KICK(s *Server, c *client.Client, params ...string) {
 				continue
 			}
 
-			u := ch.Members[users[i]]
+			u, _ := ch.GetMember(users[i])
 			if u == nil {
 				s.numericReply(c, ERR_USERNOTINCHANNEL, u, ch)
 				continue
 			}
 
 			ch.Write(fmt.Sprintf(":%s KICK %s %s :%s\r\n", c, ch, u.Nick, comment))
-			delete(ch.Members, u.Nick)
+			ch.DeleteMember(u.Nick)
 		}
 	} else {
 		// "there MUST be either one channel parameter and multiple user
@@ -453,11 +452,11 @@ func NAMES(s *Server, c *client.Client, params ...string) {
 
 	chans := strings.Split(params[0], ",")
 	for _, v := range chans {
-		ch := s.channels[v]
+		ch, _ := s.GetChannel(v)
 		if ch == nil {
 			s.numericReply(c, RPL_ENDOFNAMES, v)
 		} else {
-			_, ok := ch.Members[c.Nick]
+			_, ok := ch.GetMember(c.Nick)
 			if ch.Secret && !ok { // chan is secret and client does not belong
 				s.numericReply(c, RPL_ENDOFNAMES, v)
 			} else {
@@ -504,7 +503,7 @@ func LIST(s *Server, c *client.Client, params ...string) {
 		}
 	} else {
 		for _, v := range strings.Split(params[0], ",") {
-			if ch, ok := s.channels[v]; ok {
+			if ch, ok := s.GetChannel(v); ok {
 				s.numericReply(c, RPL_LIST, ch, len(ch.Members), ch.Topic)
 			}
 		}
@@ -553,7 +552,7 @@ func MODE(s *Server, c *client.Client, params ...string) {
 
 	target := params[0]
 	if !isChannel(target) {
-		if client, ok := s.clients[target]; ok {
+		if client, ok := s.GetClient(target); ok {
 			if client.Nick != c.Nick { // can't modify another user
 				s.numericReply(c, ERR_USERSDONTMATCH)
 				return
@@ -572,7 +571,7 @@ func MODE(s *Server, c *client.Client, params ...string) {
 			s.numericReply(c, ERR_NOSUCHNICK, target)
 		}
 	} else {
-		ch, ok := s.channels[target]
+		ch, ok := s.GetChannel(target)
 		if !ok {
 			s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
 			return
@@ -601,7 +600,9 @@ func MODE(s *Server, c *client.Client, params ...string) {
 
 func (s *Server) haveChanInCommon(c1, c2 *client.Client) bool {
 	for _, ch := range s.channels {
-		if ch.Members[c1.Nick] != nil && ch.Members[c2.Nick] != nil {
+		_, c1Belongs := ch.GetMember(c1.Nick)
+		_, c2Belongs := ch.GetMember(c2.Nick)
+		if c1Belongs && c2Belongs {
 			return true
 		}
 	}
@@ -644,7 +645,7 @@ func WHO(s *Server, c *client.Client, params ...string) {
 	// given a mask, match against all channels. if no channels match,
 	// treat the mask as a client prefix and match against all clients.
 	for _, v := range s.channels {
-		if wild.Match(mask, v.String()) {
+		if wild.Match(mask, strings.ToLower(v.String())) {
 			for _, member := range v.Members {
 				if onlyOps && !member.Client.Is(client.Op) { // skip nonops
 					continue
@@ -671,7 +672,7 @@ func WHO(s *Server, c *client.Client, params ...string) {
 
 	// no channel results found
 	for _, v := range s.clients {
-		if wild.Match(mask, v.String()) {
+		if wild.Match(mask, strings.ToLower(v.String())) {
 			if onlyOps && !v.Is(client.Op) { // skip nonops
 				continue
 			}
@@ -709,13 +710,13 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 	msg := params[1]
 	for _, v := range recipients {
 		if isChannel(v) {
-			ch := s.channels[v]
+			ch, _ := s.GetChannel(v)
 			if ch == nil && !notice { // channel doesn't exist
 				s.numericReply(c, ERR_NOSUCHCHANNEL, v)
 				return
 			}
 
-			m := ch.Members[c.Nick]
+			m, _ := ch.GetMember(c.Nick)
 			if m == nil {
 				if ch.NoExternal {
 					// chan does not allow external messages; client needs to join
@@ -736,7 +737,7 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 				m.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
 			}
 		} else { // client->client
-			if target, ok := s.clients[v]; ok {
+			if target, ok := s.GetClient(v); ok {
 				if target.Is(client.Away) {
 					s.numericReply(c, RPL_AWAY, target.Nick, target.AwayMsg)
 				} else {
@@ -795,7 +796,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		return
 	}
 
-	if e, ok := commandMap[m.Command]; ok {
+	if e, ok := commandMap[strings.ToUpper(m.Command)]; ok {
 		e(s, c, m.Parameters()...)
 	} else {
 		s.numericReply(c, ERR_UNKNOWNCOMMAND, m.Command)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -145,11 +146,25 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	}
 }
 
+func (s *Server) GetClient(c string) (*client.Client, bool) {
+	client, ok := s.clients[strings.ToLower(c)]
+	return client, ok
+}
+func (s *Server) SetClient(k string, v *client.Client) { s.clients[strings.ToLower(k)] = v }
+func (s *Server) DeleteClient(k string)                { delete(s.clients, strings.ToLower(k)) }
+
+func (s *Server) GetChannel(c string) (*channel.Channel, bool) {
+	ch, ok := s.channels[strings.ToLower(c)]
+	return ch, ok
+}
+func (s *Server) SetChannel(k string, v *channel.Channel) { s.channels[strings.ToLower(k)] = v }
+func (s *Server) DeleteChannel(k string)                  { delete(s.channels, strings.ToLower(k)) }
+
 func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 	l := []*channel.Channel{}
 
 	for _, v := range s.channels {
-		if v.Members[c.Nick] != nil {
+		if _, ok := v.GetMember(c.Nick); ok {
 			l = append(l, v)
 		}
 	}

@@ -58,6 +58,13 @@ func (c Channel) String() string {
 	return string(c.ChanType) + c.Name
 }
 
+func (c *Channel) GetMember(m string) (*Member, bool) {
+	mem, ok := c.Members[strings.ToLower(m)]
+	return mem, ok
+}
+func (c *Channel) SetMember(k string, v *Member) { c.Members[strings.ToLower(k)] = v }
+func (c *Channel) DeleteMember(m string)         { delete(c.Members, strings.ToLower(m)) }
+
 func (c Channel) Modes() (modestr string, params []string) {
 	if len(c.Ban) != 0 {
 		modestr += "b"
@@ -139,15 +146,15 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 	if ch.Invite {
 		for _, v := range ch.InviteExcept {
 			// client doesn't need an invite, add them
-			if wild.Match(v, c.String()) {
-				ch.Members[c.Nick] = &Member{Client: c}
+			if wild.Match(v, strings.ToLower(c.String())) {
+				ch.SetMember(c.Nick, &Member{Client: c})
 				return nil
 			}
 		}
 		for _, v := range ch.Invited {
 			// client was invited
 			if c.Nick == v {
-				ch.Members[c.Nick] = &Member{Client: c}
+				ch.SetMember(c.Nick, &Member{Client: c})
 				return nil
 			}
 		}
@@ -155,17 +162,17 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 	}
 
 	for _, v := range ch.Ban {
-		if wild.Match(v, c.String()) { // nickmask found in banlist
+		if wild.Match(v, strings.ToLower(c.String())) { // nickmask found in banlist
 			for _, k := range ch.BanExcept {
-				if wild.Match(k, c.Nick) { // nickmask is an exception, so admit
-					ch.Members[c.Nick] = &Member{Client: c}
+				if wild.Match(k, strings.ToLower(c.Nick)) { // nickmask is an exception, so admit
+					ch.SetMember(c.Nick, &Member{Client: c})
 					return nil
 				}
 			}
 			return BanErr
 		}
 	}
-	ch.Members[c.Nick] = &Member{Client: c}
+	ch.SetMember(c.Nick, &Member{Client: c})
 	return nil
 }
 
@@ -202,7 +209,7 @@ func (c *Channel) ApplyMode(b []byte, params []string) (string, error) {
 				applied += "-" + string(m.ModeChar)
 			}
 		} else if _, ok := memberLetter[m.ModeChar]; ok { // should apply this prefix to a member, not the channel
-			member, belongs := c.Members[params[pos]]
+			member, belongs := c.GetMember(params[pos])
 			if !belongs {
 				// give back given nick
 				return applied, NotInChanErr{params[pos]}
