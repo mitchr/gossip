@@ -10,12 +10,7 @@ const (
 
 // IsValid returns true if c is implemented by the server
 func (c Capability) IsValid() bool {
-	switch c {
-	case MessageTags, MultiPrefix:
-		return true
-	default:
-		return false
-	}
+	return c == MessageTags || c == MultiPrefix
 }
 
 func StringSlice(c []Capability) []string {
