@@ -89,8 +89,9 @@ func (c *Client) Write(i interface{}) (int, error) {
 		return c.conn.Write(append(b, []byte{'\r', '\n'}...))
 	case string:
 		return c.Write([]byte(b))
+	default:
+		return 0, errors.New("Couldn't write: message parameter type unknown")
 	}
-	return 0, errors.New("Couldn't write: message parameter type unknown")
 }
 
 // Read until encountering a newline
