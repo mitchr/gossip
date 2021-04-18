@@ -62,7 +62,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 			// server MUST continue processing the REQ subcommand as though
 			// handling this capability was successful."
 			if (c.HasCap(cap) && !remove) || (!c.HasCap(cap) && remove) {
-				return
+				continue
 			}
 			if remove {
 				todo = append(todo, func() {
