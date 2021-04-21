@@ -540,7 +540,7 @@ func LUSERS(s *Server, c *client.Client, params ...string) {
 }
 
 func TIME(s *Server, c *client.Client, params ...string) {
-	s.numericReply(c, RPL_TIME, s.listener.Addr(), s.created)
+	s.numericReply(c, RPL_TIME, s.listener.Addr(), time.Now().Local())
 }
 
 // TODO: support commands like this that intersperse the modechar and modeparams MODE &oulu +b *!*@*.edu +e *!*@*.bu.edu
