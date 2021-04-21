@@ -69,8 +69,8 @@ func tags(p *scan.Parser) map[string]TagVal {
 	return t
 }
 
-// [ <client_prefix> ] [ <vendor> '/' ] <key_name> ['=' <escaped_value>]
-func tag(p *scan.Parser) (key string, val TagVal) {
+// [ <client_prefix> ] <key> ['=' <escaped_value>]
+func tag(p *scan.Parser) (k string, val TagVal) {
 	if p.Peek().TokenType == clientPrefix {
 		val.ClientPrefix = true
 		p.Next() // consume '+'
@@ -78,7 +78,7 @@ func tag(p *scan.Parser) (key string, val TagVal) {
 
 	// TODO parse vendor (this is nontrivial I think)
 
-	key = keyName(p)
+	val.Vendor, k = key(p)
 
 	if p.Peek().TokenType == equals {
 		p.Next() // consume '='
@@ -88,18 +88,36 @@ func tag(p *scan.Parser) (key string, val TagVal) {
 	return
 }
 
-// <non-empty sequence of ascii letters, digits, hyphens ('-')>
-func keyName(p *scan.Parser) string {
-	key := ""
+// [ <vendor> '/' ] <key_name>
+func key(p *scan.Parser) (vendor, key string) {
+	// we can't know that we were given a vendor until we see '/', so we
+	// consume generically to start and don't make any assumptions
+	name := ""
+	unusedDot := false
 	for {
 		k := p.Peek()
-		if r := rune(k.Value[0]); !scan.IsLetter(r) && !scan.IsDigit(r) && r != '-' {
-			break
+		r := rune(p.Peek().Value[0])
+
+		if !isKeyname(r) {
+			if k.Value[0] == '.' { // found a DNS name
+				unusedDot = true
+			} else if k.TokenType == fwdSlash { // vendor token is finished
+				unusedDot = false
+				vendor = name
+				name = ""
+				p.Next() // skip '/'
+				continue
+			} else if unusedDot { // found a dot in the keyName, which is not allowed
+				log.Println("ill-formed key", vendor, key)
+				return "", ""
+			} else {
+				key = name
+				return
+			}
 		}
-		key += k.Value
+		name += k.Value
 		p.Next()
 	}
-	return key
 }
 
 // <sequence of zero or more utf8 characters except NUL, CR, LF, semicolon (`;`) and SPACE>
@@ -252,6 +270,11 @@ func nospcrlfcl(p *scan.Parser) string {
 func isNospcrlfcl(b byte) bool {
 	// use <= 0 to account for NUL and eof at same time
 	return b != 0 && b != '\r' && b != '\n' && b != ':' && b != ' '
+}
+
+// <non-empty sequence of ascii letters, digits, hyphens ('-')>
+func isKeyname(r rune) bool {
+	return scan.IsLetter(r) || scan.IsDigit(r) || r == '-'
 }
 
 func isEscaped(r rune) bool {

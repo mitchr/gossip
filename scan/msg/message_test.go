@@ -112,6 +112,19 @@ func TestParseTags(t *testing.T) {
 		{"@+example-client-tag=example-value TAGMSG @#channel\r\n", map[string]TagVal{
 			"example-client-tag": {Value: "example-value", ClientPrefix: true},
 		}},
+		{"@aaa=bbb;ccc;example.com/ddd=eee :nick!ident@host.com PRIVMSG me :Hello\r\n", map[string]TagVal{
+			"aaa": {Value: "bbb"},
+			"ccc": {Value: ""},
+			"ddd": {Value: "eee", Vendor: "example.com"},
+		}},
+		{"@+example-client-tag=example-value PRIVMSG #channel :Message\r\n", map[string]TagVal{
+			"example-client-tag": {ClientPrefix: true, Value: "example-value"},
+		}},
+		{"@+example.com/foo=bar :irc.example.com NOTICE #channel :A vendor-prefixed client-only tagged message\r\n", map[string]TagVal{
+			"foo": {ClientPrefix: true, Value: "bar", Vendor: "example.com"},
+		}},
+		// TODO: handle escaped values
+		// @+example=raw+:=,escaped\:\s\\ :irc.example.com NOTICE #channel :Message
 	}
 
 	for _, v := range tests {
