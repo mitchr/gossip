@@ -123,8 +123,9 @@ func TestParseTags(t *testing.T) {
 		{"@+example.com/foo=bar :irc.example.com NOTICE #channel :A vendor-prefixed client-only tagged message\r\n", map[string]TagVal{
 			"foo": {ClientPrefix: true, Value: "bar", Vendor: "example.com"},
 		}},
-		// TODO: handle escaped values
-		// @+example=raw+:=,escaped\:\s\\ :irc.example.com NOTICE #channel :Message
+		{"@+example=raw+:=,escaped\\:\\s\\\\ :irc.example.com NOTICE #channel :Message\r\n", map[string]TagVal{
+			"example": {ClientPrefix: true, Value: "raw+:=,escaped\\:\\s\\\\"},
+		}},
 	}
 
 	for _, v := range tests {
@@ -132,6 +133,23 @@ func TestParseTags(t *testing.T) {
 			out := Parse([]byte(v.input))
 			if !reflect.DeepEqual(out.tags, v.tags) {
 				t.Error("parse error", out.tags, v.tags)
+			}
+		})
+	}
+}
+
+func TestTagRaw(t *testing.T) {
+	tests := []struct {
+		input   TagVal
+		escaped string
+	}{
+		{TagVal{Value: "raw+:=,escaped\\:\\s\\\\"}, "raw+:=,escaped; \\"},
+	}
+
+	for _, v := range tests {
+		t.Run(v.input.Value, func(t *testing.T) {
+			if v.input.Raw() != v.escaped {
+				t.Error("unescaped incorrectly")
 			}
 		})
 	}

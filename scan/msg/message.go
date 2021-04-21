@@ -11,6 +11,33 @@ type TagVal struct {
 	Vendor, Value string
 }
 
+// Return raw (unescaped) value of tag
+func (t TagVal) Raw() string {
+	escaped := []rune{}
+	for i := 0; i < len(t.Value); i++ {
+		if t.Value[i] == '\\' && i+1 < len(t.Value) {
+			switch t.Value[i+1] {
+			case ':':
+				escaped = append(escaped, ';')
+			case 's':
+				escaped = append(escaped, ' ')
+			case '\\':
+				escaped = append(escaped, '\\')
+			case 'r':
+				escaped = append(escaped, '\r')
+			case 'n':
+				escaped = append(escaped, '\n')
+			default:
+				escaped = append(escaped, rune(t.Value[i+1]))
+			}
+			i++
+		} else {
+			escaped = append(escaped, rune(t.Value[i]))
+		}
+	}
+	return string(escaped)
+}
+
 // a Message represents a single irc Message
 type Message struct {
 	tags             map[string]TagVal
