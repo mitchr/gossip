@@ -132,7 +132,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				}
 
 				c.Close()
-				delete(s.clients, c.Nick)
+				s.DeleteClient(c.Nick)
 				s.wg.Done()
 			}
 			return
