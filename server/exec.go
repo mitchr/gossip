@@ -188,15 +188,11 @@ func (s *Server) endRegistration(c *client.Client) {
 	LUSERS(s, c)
 	MOTD(s, c)
 
-	// start PING timer
+	// every 5 minutes, send PING
+	// if client doesn't respond with a PONG in 10 seconds, kick them
 	go func() {
-		ticker := time.NewTicker(time.Minute * 5)
-		defer ticker.Stop()
-
-		// every 5 minutes, send PING
-		// if client doesn't respond with a PONG in 10 seconds, kick them
 		for {
-			<-ticker.C
+			time.Sleep(time.Minute * 5)
 			c.ExpectingPONG = true
 			c.Write(fmt.Sprintf(":%s PING %s", s.listener.Addr(), c.Nick))
 			time.Sleep(time.Second * 10)

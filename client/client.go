@@ -48,7 +48,7 @@ func New(conn net.Conn) *Client {
 
 	// give a small window for client to register before kicking them off
 	go func() {
-		<-time.After(time.Second * 10)
+		time.Sleep(time.Second * 10)
 		if !c.Registered {
 			c.Write("ERROR :Closing Link: Client failed to register in alloted time")
 			c.Cancel()
