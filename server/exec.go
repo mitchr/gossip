@@ -39,7 +39,8 @@ var commandMap = map[string]executor{
 	"MODE":   MODE,
 
 	// user queries
-	"WHO": WHO,
+	"WHO":   WHO,
+	"WHOIS": WHOIS,
 
 	// communication
 	"PRIVMSG": PRIVMSG,
@@ -688,6 +689,32 @@ func WHO(s *Server, c *client.Client, params ...string) {
 		}
 	}
 	s.numericReply(c, RPL_ENDOFWHO, mask)
+}
+
+// we only support the <mask> *( "," <mask> ) parameter, target seems
+// pointless with only one server in the tree
+func WHOIS(s *Server, c *client.Client, params ...string) {
+	// silently ignore empty params
+	if len(params) < 1 {
+		return
+	}
+
+	masks := strings.Split(strings.ToLower(params[0]), ",")
+	for _, m := range masks {
+		for _, v := range s.clients {
+			if wild.Match(m, v.Nick) {
+				s.numericReply(c, RPL_WHOISUSER, v.Nick, v.User, v.Host, v.Realname)
+				s.numericReply(c, RPL_WHOISSERVER, v.Nick, s.listener.Addr(), "wip irc server")
+				if v.Is(client.Op) {
+					s.numericReply(c, RPL_WHOISOPERATOR, v.Nick)
+				}
+				// TODO: format these correctly
+				s.numericReply(c, RPL_WHOISIDLE)
+				s.numericReply(c, RPL_WHOISCHANNELS)
+			}
+		}
+	}
+	s.numericReply(c, RPL_ENDOFWHOIS)
 }
 
 func PRIVMSG(s *Server, c *client.Client, params ...string) { s.communicate(params, c, false) }

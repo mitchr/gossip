@@ -474,6 +474,29 @@ func TestWHO(t *testing.T) {
 	})
 }
 
+func TestWHOIS(t *testing.T) {
+	s, err := New(":6667")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, _ := connectAndRegister("bob", "Bob Smith")
+	defer c2.Close()
+
+	c1.Write([]byte("WHOIS bob\r\n"))
+	whois, _ := r1.ReadBytes('\n')
+	server, _ := r1.ReadBytes('\n')
+	// TODO: check these as well when implemented
+	// idle, _ := r1.ReadBytes('\n')
+	// chans, _ := r1.ReadBytes('\n')
+	assertResponse(whois, fmt.Sprintf(":%s 311 alice bob bob %s * :Bob Smith\r\n", s.listener.Addr(), s.clients["bob"].Host), t)
+	assertResponse(server, fmt.Sprintf(":%s 312 alice bob %s :wip irc server\r\n", s.listener.Addr(), s.listener.Addr()), t)
+}
+
 func TestChanFull(t *testing.T) {
 	s, err := New(":6667")
 	if err != nil {
