@@ -76,8 +76,6 @@ func tag(p *scan.Parser) (k string, val TagVal) {
 		p.Next() // consume '+'
 	}
 
-	// TODO parse vendor (this is nontrivial I think)
-
 	val.Vendor, k = key(p)
 
 	if p.Peek().TokenType == equals {
