@@ -162,7 +162,7 @@ func (s *Server) endRegistration(c *client.Client) {
 	if c.RegSuspended {
 		return
 	}
-	if c.Nick == "" || c.User == "" {
+	if c.Nick == "" || c.User == "" { // tried to end without sending NICK & USER
 		return
 	}
 
@@ -704,8 +704,8 @@ func WHOIS(s *Server, c *client.Client, params ...string) {
 				if v.Is(client.Op) {
 					s.numericReply(c, RPL_WHOISOPERATOR, v.Nick)
 				}
-				// TODO: format these correctly
-				s.numericReply(c, RPL_WHOISIDLE)
+				s.numericReply(c, RPL_WHOISIDLE, v.Nick, time.Since(v.Idle).Round(time.Second).Seconds(), v.JoinTime)
+				// TODO: format this correctly
 				s.numericReply(c, RPL_WHOISCHANNELS)
 			}
 		}
@@ -820,6 +820,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	}
 
 	if e, ok := commandMap[strings.ToUpper(m.Command)]; ok {
+		c.Idle = time.Now()
 		e(s, c, m.Parameters()...)
 	} else {
 		s.numericReply(c, ERR_UNKNOWNCOMMAND, m.Command)

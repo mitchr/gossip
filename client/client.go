@@ -19,6 +19,11 @@ type Client struct {
 	Host       net.Addr
 	Registered bool
 
+	// uxin timestamp when client first connects
+	JoinTime int64
+	// last time that client sent a succcessful message
+	Idle time.Time
+
 	conn   net.Conn
 	reader *bufio.Reader
 
@@ -36,9 +41,12 @@ type Client struct {
 
 // TODO: default values for Nick, User, and Realname? (maybe '*')
 func New(conn net.Conn) *Client {
+	now := time.Now()
 	c := &Client{
-		Host: conn.RemoteAddr(),
-		conn: conn,
+		Host:     conn.RemoteAddr(),
+		conn:     conn,
+		JoinTime: now.Unix(),
+		Idle:     now,
 
 		// only read 512 bytes at a time
 		// TODO: an additional 512 bytes can be used for message tags, so

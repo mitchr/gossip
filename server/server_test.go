@@ -486,15 +486,17 @@ func TestWHOIS(t *testing.T) {
 	defer c1.Close()
 	c2, _ := connectAndRegister("bob", "Bob Smith")
 	defer c2.Close()
+	bob := s.clients["bob"]
 
 	c1.Write([]byte("WHOIS bob\r\n"))
 	whois, _ := r1.ReadBytes('\n')
 	server, _ := r1.ReadBytes('\n')
-	// TODO: check these as well when implemented
-	// idle, _ := r1.ReadBytes('\n')
+	idle, _ := r1.ReadBytes('\n')
+	// TODO: check this when implemented
 	// chans, _ := r1.ReadBytes('\n')
-	assertResponse(whois, fmt.Sprintf(":%s 311 alice bob bob %s * :Bob Smith\r\n", s.listener.Addr(), s.clients["bob"].Host), t)
+	assertResponse(whois, fmt.Sprintf(":%s 311 alice bob bob %s * :Bob Smith\r\n", s.listener.Addr(), bob.Host), t)
 	assertResponse(server, fmt.Sprintf(":%s 312 alice bob %s :wip irc server\r\n", s.listener.Addr(), s.listener.Addr()), t)
+	assertResponse(idle, fmt.Sprintf(":%s 317 alice bob %v %v :seconds idle, signon time\r\n", s.listener.Addr(), time.Since(bob.Idle).Round(time.Second).Seconds(), bob.JoinTime), t)
 }
 
 func TestChanFull(t *testing.T) {
