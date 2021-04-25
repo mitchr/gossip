@@ -46,6 +46,10 @@ func (c *Client) ApplyMode(b []byte) bool {
 	for _, v := range m {
 		if mode, ok := letter[v.ModeChar]; ok {
 			if v.Add {
+				// a user cannot give themselves op this way; they must use OPER
+				if mode == Op || mode == LocalOp {
+					continue
+				}
 				c.Mode |= mode
 			} else {
 				c.Mode &^= mode // this is hilarious
