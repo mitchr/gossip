@@ -424,6 +424,18 @@ func TestMODE(t *testing.T) {
 
 	c1.Write([]byte("JOIN #local\r\n"))
 	r1.ReadBytes('\n')
+
+	t.Run("TestUserNotInChan", func(t *testing.T) {
+		c2.Write([]byte("MODE #local +o bob\r\n"))
+		resp, _ := r2.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 441 bob bob #local :They aren't on that channel\r\n", s.listener.Addr()), t)
+
+		// even if MODE cannot be performed, it still replies with whatever
+		// modes were recently applied; in this case, it is empty
+		emptyModes, _ := r1.ReadBytes('\n')
+		assertResponse(emptyModes, fmt.Sprintf(":%s MODE \r\n", s.listener.Addr()), t)
+	})
+
 	c2.Write([]byte("JOIN #local\r\n"))
 	r1.ReadBytes('\n')
 	r2.ReadBytes('\n')
@@ -442,6 +454,15 @@ func TestMODE(t *testing.T) {
 	if s.channels["#local"].Members["bob"].Prefix != "@" {
 		t.Error("Failed to set member mode")
 	}
+
+	t.Run("TestUnknownMode", func(t *testing.T) {
+		c1.Write([]byte("MODE #local +w\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 472 alice w :is unknown mode char to me for #local\r\n", s.listener.Addr()), t)
+
+		emptyModes, _ := r1.ReadBytes('\n')
+		assertResponse(emptyModes, fmt.Sprintf(":%s MODE \r\n", s.listener.Addr()), t)
+	})
 
 	t.Run("TestRemoveModes", func(t *testing.T) {
 		c1.Write([]byte("MODE #local -o bob\r\n"))

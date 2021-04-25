@@ -2,6 +2,7 @@ package channel
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"math"
 	"strconv"
@@ -176,13 +177,10 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 	return nil
 }
 
-type NotInChanErr struct{ member string }
-
-func (n NotInChanErr) Error() string { return n.member }
-
-type UnknownModeErr struct{ char rune }
-
-func (u UnknownModeErr) Error() string { return string(u.char) }
+var (
+	NotInChanErr   = errors.New("")
+	UnknownModeErr = errors.New("")
+)
 
 // ApplyMode applies the given modeStr to the channel. It does not
 // verify that the sending client has the proper permissions to make
@@ -212,7 +210,7 @@ func (c *Channel) ApplyMode(b []byte, params []string) (string, error) {
 			member, belongs := c.GetMember(params[pos])
 			if !belongs {
 				// give back given nick
-				return applied, NotInChanErr{params[pos]}
+				return applied, fmt.Errorf("%w%s", NotInChanErr, string(params[pos]))
 			}
 
 			member.ApplyMode(m)
@@ -224,7 +222,7 @@ func (c *Channel) ApplyMode(b []byte, params []string) (string, error) {
 			pos++
 		} else {
 			// give back error with the unknown mode char
-			return applied, UnknownModeErr{m.ModeChar}
+			return applied, fmt.Errorf("%w%s", UnknownModeErr, string(m.ModeChar))
 		}
 	}
 	return applied, nil

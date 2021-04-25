@@ -584,12 +584,10 @@ func MODE(s *Server, c *client.Client, params ...string) {
 			s.numericReply(c, RPL_CHANNELMODEIS, ch, modeStr, strings.Join(params, " "))
 		} else { // modeStr given
 			applied, err := ch.ApplyMode([]byte(params[1]), params[2:])
-			var u *channel.UnknownModeErr
-			var n *channel.NotInChanErr
-			if errors.As(err, &u) {
-				s.numericReply(c, ERR_UNKNOWNMODE, u, ch)
-			} else if errors.As(err, &n) {
-				s.numericReply(c, ERR_USERNOTINCHANNEL, n, ch)
+			if errors.Is(err, channel.UnknownModeErr) {
+				s.numericReply(c, ERR_UNKNOWNMODE, err, ch)
+			} else if errors.Is(err, channel.NotInChanErr) {
+				s.numericReply(c, ERR_USERNOTINCHANNEL, err, ch)
 			}
 			ch.Write(fmt.Sprintf(":%s MODE %s", s.listener.Addr(), applied))
 		}
