@@ -549,23 +549,24 @@ func MODE(s *Server, c *client.Client, params ...string) {
 
 	target := params[0]
 	if !isChannel(target) {
-		if client, ok := s.GetClient(target); ok {
-			if client.Nick != c.Nick { // can't modify another user
-				s.numericReply(c, ERR_USERSDONTMATCH)
-				return
-			}
-
-			if len(params) == 2 { // modify own mode
-				found := c.ApplyMode([]byte(params[1]))
-				if !found {
-					s.numericReply(c, ERR_UMODEUNKNOWNFLAG)
-				}
-				c.Write(fmt.Sprintf(":%s MODE %s %s", s.listener.Addr(), c.Nick, params[1]))
-			} else { // give back own mode
-				s.numericReply(c, RPL_UMODEIS, c.Mode)
-			}
-		} else {
+		client, ok := s.GetClient(target)
+		if !ok {
 			s.numericReply(c, ERR_NOSUCHNICK, target)
+			return
+		}
+		if client.Nick != c.Nick { // can't modify another user
+			s.numericReply(c, ERR_USERSDONTMATCH)
+			return
+		}
+
+		if len(params) == 2 { // modify own mode
+			found := c.ApplyMode([]byte(params[1]))
+			if !found {
+				s.numericReply(c, ERR_UMODEUNKNOWNFLAG)
+			}
+			c.Write(fmt.Sprintf(":%s MODE %s %s", s.listener.Addr(), c.Nick, params[1]))
+		} else { // give back own mode
+			s.numericReply(c, RPL_UMODEIS, c.Mode)
 		}
 	} else {
 		ch, ok := s.GetChannel(target)
