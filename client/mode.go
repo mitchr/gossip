@@ -12,7 +12,9 @@ const (
 	Registered Mode = 1 << iota
 	Invisible
 	Wallops
-	Away // TODO: should include this here? AWAY is weird
+	// away can stay here as long as it is never allowed to be set with
+	// the MODE command; client must explicitly ask for this mode with AWAY
+	Away
 	Op
 	LocalOp
 )
@@ -35,9 +37,7 @@ func (m Mode) String() string {
 	return s
 }
 
-func (c Client) Is(m Mode) bool {
-	return c.Mode&m == m
-}
+func (c Client) Is(m Mode) bool { return c.Mode&m == m }
 
 // given a modeStr, apply the modes to c. If one of the runes does not
 // correspond to a user mode, return it
