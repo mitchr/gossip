@@ -31,8 +31,7 @@ func LS(s *Server, c *client.Client, params ...string) {
 
 // see what capabilities this client has active during this connection
 func capLIST(s *Server, c *client.Client, params ...string) {
-	enabledCaps := strings.Join(cap.StringSlice(c.Caps), " ")
-	c.Write(fmt.Sprintf(":%s CAP %s LIST :%s", s.listener.Addr(), clientId(c), enabledCaps))
+	c.Write(fmt.Sprintf(":%s CAP %s LIST :%s", s.listener.Addr(), clientId(c), c.CapsSet()))
 }
 
 func REQ(s *Server, c *client.Client, params ...string) {
@@ -61,19 +60,13 @@ func REQ(s *Server, c *client.Client, params ...string) {
 			// or tries to disable a capability which is not enabled, the
 			// server MUST continue processing the REQ subcommand as though
 			// handling this capability was successful."
-			if (c.HasCap(cap) && !remove) || (!c.HasCap(cap) && remove) {
+			if (c.Caps[cap] && !remove) || (!c.Caps[cap] && remove) {
 				continue
 			}
 			if remove {
-				todo = append(todo, func() {
-					for i := range c.Caps {
-						if c.Caps[i] == cap {
-							c.Caps = append(c.Caps[:i], c.Caps[i+1:]...)
-						}
-					}
-				})
+				todo = append(todo, func() { delete(c.Caps, cap) })
 			} else {
-				todo = append(todo, func() { c.Caps = append(c.Caps, cap) })
+				todo = append(todo, func() { c.Caps[cap] = true })
 			}
 		} else { // capability not recognized
 			c.Write(fmt.Sprintf(":%s CAP %s NAK :%s", s.listener.Addr(), clientId(c), strings.Join(params, " ")))

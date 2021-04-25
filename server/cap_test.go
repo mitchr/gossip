@@ -22,7 +22,7 @@ func TestREQ(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s CAP bob ACK :message-tags\r\n", s.listener.Addr()), t)
 
-		if s.clients["bob"].Caps[0] != "message-tags" {
+		if !s.clients["bob"].Caps["message-tags"] {
 			t.Error("Capability not added")
 		}
 	})

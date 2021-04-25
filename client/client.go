@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/mitchr/gossip/server/cap"
@@ -32,8 +33,8 @@ type Client struct {
 	ServerPassAttempt string
 	RegSuspended      bool
 
-	// TODO: should probably be a map[capability]bool?
-	Caps []cap.Capability
+	// Represents a set of IRCv3 capabilities
+	Caps map[cap.Capability]bool
 
 	ExpectingPONG bool
 	Cancel        context.CancelFunc // need to store for QUIT
@@ -52,6 +53,8 @@ func New(conn net.Conn) *Client {
 		// TODO: an additional 512 bytes can be used for message tags, so
 		// this limit will have to be modified to accomodate that
 		reader: bufio.NewReaderSize(conn, 512),
+
+		Caps: make(map[cap.Capability]bool),
 	}
 
 	// give a small window for client to register before kicking them off
@@ -80,14 +83,13 @@ func (c Client) String() string {
 	}
 }
 
-// HasCap returns true if client has the given capability
-func (c Client) HasCap(cap cap.Capability) bool {
-	for _, v := range c.Caps {
-		if v == cap {
-			return true
-		}
+func (c *Client) CapsSet() string {
+	caps := make([]string, len(c.Caps))
+	i := 0
+	for k := range c.Caps {
+		caps[i] = string(k)
 	}
-	return false
+	return strings.Join(caps, " ")
 }
 
 // Write appends a crlf to the end of each message
