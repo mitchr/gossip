@@ -178,52 +178,74 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 }
 
 var (
-	NotInChanErr   = errors.New("")
-	UnknownModeErr = errors.New("")
+	NeedMoreParamsErr = errors.New("")
+	NotInChanErr      = errors.New("")
+	UnknownModeErr    = errors.New("")
 )
 
-// ApplyMode applies the given modeStr to the channel. It does not
+// ApplyMode applies the given mode to the channel. It does not
 // verify that the sending client has the proper permissions to make
-// those changes. It returns a string of all the modes that were
-// successfully applied.
-func (c *Channel) ApplyMode(b []byte, params []string) (string, error) {
-	// keep track of which param we are currently looking at
-	pos := 0
-	applied := ""
-	for _, m := range mode.Parse(b) {
-		if p, ok := channelLetter[m.ModeChar]; ok {
-			param := ""
+// those changes. It returns a modeStr if the mode was successfully applied.
+func (c *Channel) ApplyMode(m mode.Mode) (string, error) {
+	applied := "+"
+	if !m.Add {
+		applied = "-"
+	}
 
-			// this is an add mode and it takes a param, or it is a remove mode and it takes a param
+	if p, ok := channelLetter[m.ModeChar]; ok {
+		applied += string(m.ModeChar)
+
+		if (p.addConsumes && m.Add) || (p.remConsumes && !m.Add) {
+			if m.Param == "" { // mode should have a param but doesn't
+				return "", fmt.Errorf(":%w%s", NeedMoreParamsErr, applied)
+			} else {
+				applied += " " + m.Param
+			}
+		}
+		p.apply(c, m.Param, m.Add)
+	} else if _, ok := memberLetter[m.ModeChar]; ok { // should apply this prefix to a member, not the channel
+		// all user MODE changes should have a param
+		if m.Param == "" {
+			return "", fmt.Errorf(":%w%s", NeedMoreParamsErr, applied+string(m.ModeChar))
+		}
+
+		member, belongs := c.GetMember(m.Param)
+		if !belongs {
+			// give back given nick
+			return "", fmt.Errorf("%w%s", NotInChanErr, m.Param)
+		}
+
+		member.ApplyMode(m)
+		applied += string(m.ModeChar) + " " + m.Param
+	} else {
+		// give back error with the unknown mode char
+		return "", fmt.Errorf("%w%s", UnknownModeErr, string(m.ModeChar))
+	}
+
+	return applied, nil
+}
+
+// PopulateModeParams associates the given params with the Params field
+// of the Modes. Params are looked at in index order, so something like
+// "MODE #test +ok alice password" will associate 'o' with 'alice' and
+// 'k' with 'password'. This skips mode characters that do not take an
+// argument, and unknown mode characters.
+func PopulateModeParams(modes []mode.Mode, params []string) {
+	pos := 0
+	for i, m := range modes {
+		// stop looking for params if there are none left; this is good
+		// because if we are expecting more params, that error will occur in ApplyMode
+		if pos > len(params)-1 {
+			return
+		}
+		if p, ok := channelLetter[m.ModeChar]; ok { // is channel mode
 			if (m.Add && p.addConsumes) || (!m.Add && p.remConsumes) {
-				param = params[pos]
+				modes[i].Param = params[pos]
 				pos++
 			}
-
-			p.apply(c, param, m.Add)
-			if m.Add {
-				applied += "+" + string(m.ModeChar)
-			} else {
-				applied += "-" + string(m.ModeChar)
-			}
-		} else if _, ok := memberLetter[m.ModeChar]; ok { // should apply this prefix to a member, not the channel
-			member, belongs := c.GetMember(params[pos])
-			if !belongs {
-				// give back given nick
-				return applied, fmt.Errorf("%w%s", NotInChanErr, string(params[pos]))
-			}
-
-			member.ApplyMode(m)
-			if m.Add {
-				applied += "+" + string(m.ModeChar) + " " + params[pos]
-			} else {
-				applied += "-" + string(m.ModeChar) + " " + params[pos]
-			}
+		} else if _, ok := memberLetter[m.ModeChar]; ok {
+			modes[i].Param = params[pos]
 			pos++
-		} else {
-			// give back error with the unknown mode char
-			return applied, fmt.Errorf("%w%s", UnknownModeErr, string(m.ModeChar))
 		}
 	}
-	return applied, nil
 }

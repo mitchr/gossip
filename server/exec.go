@@ -9,6 +9,7 @@ import (
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/scan/mode"
 	"github.com/mitchr/gossip/scan/msg"
 	"github.com/mitchr/gossip/scan/wild"
 )
@@ -583,11 +584,19 @@ func MODE(s *Server, c *client.Client, params ...string) {
 
 			s.numericReply(c, RPL_CHANNELMODEIS, ch, modeStr, strings.Join(params, " "))
 		} else { // modeStr given
-			applied, err := ch.ApplyMode([]byte(params[1]), params[2:])
-			if errors.Is(err, channel.UnknownModeErr) {
-				s.numericReply(c, ERR_UNKNOWNMODE, err, ch)
-			} else if errors.Is(err, channel.NotInChanErr) {
-				s.numericReply(c, ERR_USERNOTINCHANNEL, err, ch)
+			modes := mode.Parse([]byte(params[1]))
+			channel.PopulateModeParams(modes, params[2:])
+			applied := ""
+			for _, m := range modes {
+				a, err := ch.ApplyMode(m)
+				applied += a
+				if errors.Is(err, channel.NeedMoreParamsErr) {
+					s.numericReply(c, ERR_NEEDMOREPARAMS, err)
+				} else if errors.Is(err, channel.UnknownModeErr) {
+					s.numericReply(c, ERR_UNKNOWNMODE, err, ch)
+				} else if errors.Is(err, channel.NotInChanErr) {
+					s.numericReply(c, ERR_USERNOTINCHANNEL, err, ch)
+				}
 			}
 			ch.Write(fmt.Sprintf(":%s MODE %s", s.listener.Addr(), applied))
 		}

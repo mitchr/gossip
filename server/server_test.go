@@ -447,13 +447,31 @@ func TestMODE(t *testing.T) {
 	opApplied, _ := r1.ReadBytes('\n')
 	getModeResp, _ := r1.ReadBytes('\n')
 
-	assertResponse(passApplied, fmt.Sprintf(":%s MODE +k\r\n", s.listener.Addr()), t)
+	assertResponse(passApplied, fmt.Sprintf(":%s MODE +k pass\r\n", s.listener.Addr()), t)
 	assertResponse(opApplied, fmt.Sprintf(":%s MODE +o bob\r\n", s.listener.Addr()), t)
 	assertResponse(getModeResp, fmt.Sprintf(":%s 324 alice #local k\r\n", s.listener.Addr()), t)
 
 	if s.channels["#local"].Members["bob"].Prefix != "@" {
 		t.Error("Failed to set member mode")
 	}
+
+	t.Run("TestChannelModeMissingParam", func(t *testing.T) {
+		c1.Write([]byte("MODE #local +b\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+b :Not enough parameters\r\n", s.listener.Addr()), t)
+
+		emptyModes, _ := r1.ReadBytes('\n')
+		assertResponse(emptyModes, fmt.Sprintf(":%s MODE \r\n", s.listener.Addr()), t)
+	})
+
+	t.Run("TestUserModeMissingParam", func(t *testing.T) {
+		c1.Write([]byte("MODE #local +o\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+o :Not enough parameters\r\n", s.listener.Addr()), t)
+
+		emptyModes, _ := r1.ReadBytes('\n')
+		assertResponse(emptyModes, fmt.Sprintf(":%s MODE \r\n", s.listener.Addr()), t)
+	})
 
 	t.Run("TestUnknownMode", func(t *testing.T) {
 		c1.Write([]byte("MODE #local +w\r\n"))
