@@ -429,11 +429,6 @@ func TestMODE(t *testing.T) {
 		c2.Write([]byte("MODE #local +o bob\r\n"))
 		resp, _ := r2.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 441 bob bob #local :They aren't on that channel\r\n", s.listener.Addr()), t)
-
-		// even if MODE cannot be performed, it still replies with whatever
-		// modes were recently applied; in this case, it is empty
-		emptyModes, _ := r1.ReadBytes('\n')
-		assertResponse(emptyModes, fmt.Sprintf(":%s MODE \r\n", s.listener.Addr()), t)
 	})
 
 	c2.Write([]byte("JOIN #local\r\n"))
@@ -459,27 +454,69 @@ func TestMODE(t *testing.T) {
 		c1.Write([]byte("MODE #local +l\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+l :Not enough parameters\r\n", s.listener.Addr()), t)
-
-		emptyModes, _ := r1.ReadBytes('\n')
-		assertResponse(emptyModes, fmt.Sprintf(":%s MODE \r\n", s.listener.Addr()), t)
 	})
 
 	t.Run("TestUserModeMissingParam", func(t *testing.T) {
 		c1.Write([]byte("MODE #local +o\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+o :Not enough parameters\r\n", s.listener.Addr()), t)
-
-		emptyModes, _ := r1.ReadBytes('\n')
-		assertResponse(emptyModes, fmt.Sprintf(":%s MODE \r\n", s.listener.Addr()), t)
 	})
 
 	t.Run("TestUnknownMode", func(t *testing.T) {
 		c1.Write([]byte("MODE #local +w\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 472 alice w :is unknown mode char to me for #local\r\n", s.listener.Addr()), t)
+	})
 
-		emptyModes, _ := r1.ReadBytes('\n')
-		assertResponse(emptyModes, fmt.Sprintf(":%s MODE \r\n", s.listener.Addr()), t)
+	t.Run("TestRPLBANLIST", func(t *testing.T) {
+		c1.Write([]byte("MODE #local +b abc\r\nMODE #local +b def\r\nMODE #local +b ghi\r\n"))
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		c1.Write([]byte("MODE #local +b\r\n"))
+		abc, _ := r1.ReadBytes('\n')
+		def, _ := r1.ReadBytes('\n')
+		ghi, _ := r1.ReadBytes('\n')
+		end, _ := r1.ReadBytes('\n')
+
+		assertResponse(abc, fmt.Sprintf(":%s 367 alice #local abc\r\n", s.listener.Addr()), t)
+		assertResponse(def, fmt.Sprintf(":%s 367 alice #local def\r\n", s.listener.Addr()), t)
+		assertResponse(ghi, fmt.Sprintf(":%s 367 alice #local ghi\r\n", s.listener.Addr()), t)
+		assertResponse(end, fmt.Sprintf(":%s 368 alice #local :End of channel ban list\r\n", s.listener.Addr()), t)
+	})
+
+	t.Run("TestRPLEXCEPTLIST", func(t *testing.T) {
+		c1.Write([]byte("MODE #local +e abc\r\nMODE #local +e def\r\nMODE #local +e ghi\r\n"))
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		c1.Write([]byte("MODE #local +e\r\n"))
+		abc, _ := r1.ReadBytes('\n')
+		def, _ := r1.ReadBytes('\n')
+		ghi, _ := r1.ReadBytes('\n')
+		end, _ := r1.ReadBytes('\n')
+
+		assertResponse(abc, fmt.Sprintf(":%s 348 alice #local abc\r\n", s.listener.Addr()), t)
+		assertResponse(def, fmt.Sprintf(":%s 348 alice #local def\r\n", s.listener.Addr()), t)
+		assertResponse(ghi, fmt.Sprintf(":%s 348 alice #local ghi\r\n", s.listener.Addr()), t)
+		assertResponse(end, fmt.Sprintf(":%s 349 alice #local :End of channel exception list\r\n", s.listener.Addr()), t)
+	})
+
+	t.Run("TestRPLINVITELIST", func(t *testing.T) {
+		c1.Write([]byte("MODE #local +I abc\r\nMODE #local +I def\r\nMODE #local +I ghi\r\n"))
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		c1.Write([]byte("MODE #local +I\r\n"))
+		abc, _ := r1.ReadBytes('\n')
+		def, _ := r1.ReadBytes('\n')
+		ghi, _ := r1.ReadBytes('\n')
+		end, _ := r1.ReadBytes('\n')
+
+		assertResponse(abc, fmt.Sprintf(":%s 346 alice #local abc\r\n", s.listener.Addr()), t)
+		assertResponse(def, fmt.Sprintf(":%s 346 alice #local def\r\n", s.listener.Addr()), t)
+		assertResponse(ghi, fmt.Sprintf(":%s 346 alice #local ghi\r\n", s.listener.Addr()), t)
+		assertResponse(end, fmt.Sprintf(":%s 347 alice #local :End of channel invite list\r\n", s.listener.Addr()), t)
 	})
 
 	t.Run("TestRemoveModes", func(t *testing.T) {

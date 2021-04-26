@@ -588,6 +588,28 @@ func MODE(s *Server, c *client.Client, params ...string) {
 			channel.PopulateModeParams(modes, params[2:])
 			applied := ""
 			for _, m := range modes {
+				if m.Param == "" {
+					switch m.ModeChar {
+					case 'b':
+						for _, v := range ch.Ban {
+							s.numericReply(c, RPL_BANLIST, ch, v)
+						}
+						s.numericReply(c, RPL_ENDOFBANLIST, ch)
+						continue
+					case 'e':
+						for _, v := range ch.BanExcept {
+							s.numericReply(c, RPL_EXCEPTLIST, ch, v)
+						}
+						s.numericReply(c, RPL_ENDOFEXCEPTLIST, ch)
+						continue
+					case 'I':
+						for _, v := range ch.InviteExcept {
+							s.numericReply(c, RPL_INVITELIST, ch, v)
+						}
+						s.numericReply(c, RPL_ENDOFINVITELIST, ch)
+						continue
+					}
+				}
 				a, err := ch.ApplyMode(m)
 				applied += a
 				if errors.Is(err, channel.NeedMoreParamsErr) {
@@ -598,7 +620,10 @@ func MODE(s *Server, c *client.Client, params ...string) {
 					s.numericReply(c, ERR_USERNOTINCHANNEL, err, ch)
 				}
 			}
-			ch.Write(fmt.Sprintf(":%s MODE %s", s.listener.Addr(), applied))
+			// only write final MODE to channel if any mode was actually altered
+			if applied != "" {
+				ch.Write(fmt.Sprintf(":%s MODE %s", s.listener.Addr(), applied))
+			}
 		}
 	}
 }
