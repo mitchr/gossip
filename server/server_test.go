@@ -456,9 +456,9 @@ func TestMODE(t *testing.T) {
 	}
 
 	t.Run("TestChannelModeMissingParam", func(t *testing.T) {
-		c1.Write([]byte("MODE #local +b\r\n"))
+		c1.Write([]byte("MODE #local +l\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+b :Not enough parameters\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+l :Not enough parameters\r\n", s.listener.Addr()), t)
 
 		emptyModes, _ := r1.ReadBytes('\n')
 		assertResponse(emptyModes, fmt.Sprintf(":%s MODE \r\n", s.listener.Addr()), t)
