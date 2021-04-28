@@ -241,6 +241,13 @@ func TestChannelCreation(t *testing.T) {
 		t.Fatal("Could not create channel")
 	}
 
+	t.Run("TestJoinNoParam", func(t *testing.T) {
+		c1.Write([]byte("JOIN\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 461 alice JOIN :Not enough parameters\r\n", s.listener.Addr()), t)
+	})
+
 	t.Run("TestChanNameInsensitive", func(t *testing.T) {
 		c2.Write([]byte("JOIN #LOcAl\r\n"))
 		resp, _ := r2.ReadBytes('\n')
@@ -313,6 +320,15 @@ func TestChannelKeys(t *testing.T) {
 	assertResponse(join1, fmt.Sprintf(":%s JOIN #1\r\n", s.clients["alice"]), t)
 	assertResponse(join2, fmt.Sprintf(":%s JOIN #2\r\n", s.clients["alice"]), t)
 	assertResponse(join3, fmt.Sprintf(":%s JOIN #3\r\n", s.clients["alice"]), t)
+
+	t.Run("TestBadChannelKey", func(t *testing.T) {
+		c2, r2 := connectAndRegister("dan", "Dan Smith")
+		defer c2.Close()
+		c2.Write([]byte("JOIN #1\r\n"))
+		resp, _ := r2.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 475 dan #1 :Cannot join channel (+k)\r\n", s.listener.Addr()), t)
+	})
 }
 
 func TestTOPIC(t *testing.T) {
