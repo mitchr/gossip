@@ -103,7 +103,7 @@ func TestPASS(t *testing.T) {
 	s.password = "letmein"
 	go s.Serve()
 
-	t.Run("TestPASSNotGiven", func(t *testing.T) {
+	t.Run("TestRegisteredWithNoPASS", func(t *testing.T) {
 		c, _ := net.Dial("tcp", ":6667")
 		defer c.Close()
 		c.Write([]byte("NICK chris\r\n"))
@@ -114,6 +114,21 @@ func TestPASS(t *testing.T) {
 
 		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.listener.Addr()), t)
 		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.listener.Addr()), t)
+		if !poll(&s.clients, 0) {
+			t.Error("Could not kick client after icnorrect password")
+		}
+	})
+	t.Run("TestPASSParamMissing", func(t *testing.T) {
+		c, _ := net.Dial("tcp", ":6667")
+		defer c.Close()
+		c.Write([]byte("PASS\r\n"))
+
+		r := bufio.NewReader(c)
+		err, _ := r.ReadBytes('\n')
+		// err, _ := r.ReadBytes('\n')
+
+		assertResponse(err, fmt.Sprintf(":%s 461 * PASS :Not enough parameters\r\n", s.listener.Addr()), t)
+		// assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.listener.Addr()), t)
 		if !poll(&s.clients, 0) {
 			t.Error("Could not kick client after icnorrect password")
 		}
@@ -141,9 +156,20 @@ func TestPASS(t *testing.T) {
 		c.Write([]byte("NICK chris\r\n"))
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
 
+		r := bufio.NewReader(c)
+		for i := 0; i < 13; i++ {
+			r.ReadBytes('\n')
+		}
+
 		if !poll(&s.clients, 1) {
 			t.Error("Could not register, despite correct password")
 		}
+
+		t.Run("TestPASSAlreadyRegistered", func(t *testing.T) {
+			c.Write([]byte("PASS letmein\r\n"))
+			err, _ := r.ReadBytes('\n')
+			assertResponse(err, fmt.Sprintf(":%s 462 chris :You may not reregister\r\n", s.listener.Addr()), t)
+		})
 	})
 }
 
