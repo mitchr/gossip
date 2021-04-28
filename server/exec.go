@@ -57,11 +57,6 @@ var commandMap = map[string]executor{
 }
 
 func PASS(s *Server, c *client.Client, params ...string) {
-	// client is barred from entering password if they have previously
-	// sent a NICK or USER command
-	if c.Nick != "" || c.User != "" {
-		return
-	}
 	if c.Registered {
 		s.numericReply(c, ERR_ALREADYREGISTRED)
 		return
