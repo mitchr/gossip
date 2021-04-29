@@ -1,7 +1,9 @@
 package server
 
 import (
+	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 )
 
@@ -11,8 +13,13 @@ type Config struct {
 
 	Port string `json:"port"`
 	TLS  struct {
+		Enabled bool   `json:"enabled"`
 		Port    string `json:"port"`
-		Pubkey  string `json:"pubkey"`
+
+		// A path to the server's public key
+		Pubkey string `json:"pubkey"`
+
+		// A path to the server's private key
 		Privkey string `json:"privkey"`
 	} `json:"tls"`
 
@@ -30,4 +37,23 @@ func NewConfig(path string) (*Config, error) {
 	var c Config
 	json.Unmarshal(b, &c)
 	return &c, nil
+}
+
+func (c *Config) TLSConfig() (*tls.Config, error) {
+	if c.TLS.Port == "" {
+		return nil, errors.New("TLS.Port must be defined")
+	}
+
+	if c.TLS.Pubkey == "" || c.TLS.Privkey == "" {
+		return nil, errors.New("TLS.Pubkey and TLS.Privkey must be defined to use TLS")
+	}
+
+	cert, err := tls.LoadX509KeyPair(c.TLS.Pubkey, c.TLS.Privkey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}, nil
 }

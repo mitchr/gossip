@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"errors"
 	"net"
 	"strings"
@@ -17,8 +18,9 @@ import (
 type Server struct {
 	*Config
 
-	listener net.Listener
-	created  time.Time
+	listener    net.Listener
+	tlsListener net.Listener
+	created     time.Time
 
 	// nick to underlying client
 	clients map[string]*client.Client
@@ -36,35 +38,54 @@ type Server struct {
 }
 
 func New(c *Config) (*Server, error) {
-	l, err := net.Listen("tcp", c.Port)
-	if err != nil {
-		return nil, err
-	}
-	return &Server{
+	s := &Server{
 		Config:   c,
-		listener: l,
 		created:  time.Now(),
 		clients:  make(map[string]*client.Client),
 		channels: make(map[string]*channel.Channel),
 		msgQueue: make(chan func(), 2),
-	}, nil
+	}
+
+	var err error
+	s.listener, err = net.Listen("tcp", c.Port)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.TLS.Enabled {
+		conf, err := c.TLSConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		s.tlsListener, err = tls.Listen("tcp", c.TLS.Port, conf)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return s, nil
+}
+
+func (s *Server) startAccept(ctx context.Context, l net.Listener) {
+	for {
+		conn, err := l.Accept()
+		if errors.Is(err, net.ErrClosed) {
+			return
+		}
+		s.wg.Add(1)
+		go s.handleConn(conn, ctx)
+	}
 }
 
 func (s *Server) Serve() {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.cancel = cancel
 
-	// start accepting connections
-	go func() {
-		for {
-			conn, err := s.listener.Accept()
-			if errors.Is(err, net.ErrClosed) {
-				return
-			}
-			s.wg.Add(1)
-			go s.handleConn(conn, ctx)
-		}
-	}()
+	go s.startAccept(ctx, s.listener)
+	if s.tlsListener != nil {
+		go s.startAccept(ctx, s.tlsListener)
+	}
 
 	// grabs messages from the queue and executes them in sequential order
 	go func() {
