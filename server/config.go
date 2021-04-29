@@ -10,7 +10,7 @@ type Config struct {
 	Password string `json:"password"`
 
 	Port string `json:"port"`
-	Tls  struct {
+	TLS  struct {
 		Port    string `json:"port"`
 		Pubkey  string `json:"pubkey"`
 		Privkey string `json:"privkey"`
@@ -20,6 +20,7 @@ type Config struct {
 	Ops  []string `json:"ops"`
 }
 
+// NewConfig reads the file at path into a Config.
 func NewConfig(path string) (*Config, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
