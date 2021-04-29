@@ -2,7 +2,14 @@ package server
 
 import (
 	"bufio"
+	"bytes"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"math/big"
 	"net"
 	"testing"
 	"time"
@@ -10,6 +17,39 @@ import (
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 )
+
+func TestTLS(t *testing.T) {
+	s, err := New(&Config{Name: "gossip", Port: ":6667"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	err = configureTLS(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go s.Serve()
+
+	c, err := tls.Dial("tcp", ":6697", &tls.Config{InsecureSkipVerify: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+
+	c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice Smith\r\n"))
+	welcome, _ := bufio.NewReader(c).ReadBytes('\n')
+	assertResponse(welcome, fmt.Sprintf(":%s 001 alice :Welcome to the Internet Relay Network %s\r\n", s.listener.Addr(), s.clients["alice"]), t)
+
+	t.Run("TestPRIVMSGInsecure", func(t *testing.T) {
+		c2, r2 := connectAndRegister("bob", "Bob Smith")
+		defer c2.Close()
+
+		c.Write([]byte("PRIVMSG bob :hey\r\n"))
+		msg, _ := r2.ReadBytes('\n')
+		assertResponse(msg, fmt.Sprintf(":%s PRIVMSG bob :hey\r\n", s.clients["alice"]), t)
+	})
+}
 
 func TestWriteMultiline(t *testing.T) {
 	s, err := New(&Config{Name: "gossip", Port: ":6667"})
@@ -126,4 +166,55 @@ func poll(s interface{}, eq interface{}) bool {
 	case <-time.After(time.Millisecond * 500):
 		return false
 	}
+}
+
+// It's too annoying to define a *Config object by hand, mostly
+// because of the way that anonymous structs have to be built on the
+// fly, but also because a Config has paths to the public and private
+// keys and I don't want to mess around with the file system during
+// tests. Instead, we generate our own cert+key pair and then start the
+// tlsListener ourselves.
+// Returns the PEM-encoded public key for adding to a test client's
+// rootCAs.
+func configureTLS(s *Server) error {
+	// generate simple cert
+	// mostly taken from src/crypto/tls/generate_cert.go
+	sNum, _ := rand.Int(rand.Reader, big.NewInt(128))
+	template := x509.Certificate{
+		SerialNumber: sNum,
+		DNSNames:     []string{"gossip"},
+
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().Add(time.Minute * 1),
+	}
+
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return err
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, pub, priv)
+	if err != nil {
+		return err
+	}
+	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		return err
+	}
+
+	var certPem, keyPem bytes.Buffer
+	pem.Encode(&certPem, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+	pem.Encode(&keyPem, &pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
+
+	cert, err := tls.X509KeyPair(certPem.Bytes(), keyPem.Bytes())
+	if err != nil {
+		return err
+	}
+
+	s.tlsListener, err = tls.Listen("tcp", ":6697", &tls.Config{Certificates: []tls.Certificate{cert}})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
