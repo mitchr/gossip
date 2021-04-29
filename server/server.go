@@ -58,12 +58,11 @@ func (s *Server) Serve() {
 	go func() {
 		for {
 			conn, err := s.listener.Accept()
-			if err == nil {
-				s.wg.Add(1)
-				go s.handleConn(conn, ctx)
-			} else if errors.Is(err, net.ErrClosed) {
+			if errors.Is(err, net.ErrClosed) {
 				return
 			}
+			s.wg.Add(1)
+			go s.handleConn(conn, ctx)
 		}
 	}()
 
