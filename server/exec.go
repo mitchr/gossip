@@ -811,7 +811,7 @@ func PONG(s *Server, c *client.Client, params ...string) {
 
 // this is currently a noop, as a server should only accept ERROR
 // commands from other servers
-func ERROR(s *Server, c *client.Client, params ...string) { return }
+func ERROR(s *Server, c *client.Client, params ...string) {}
 
 func AWAY(s *Server, c *client.Client, params ...string) {
 	// remove away
@@ -825,7 +825,6 @@ func AWAY(s *Server, c *client.Client, params ...string) {
 	c.AwayMsg = params[0]
 	c.Mode |= client.Away
 	s.numericReply(c, RPL_NOWAWAY)
-	return
 }
 
 func WALLOPS(s *Server, c *client.Client, params ...string) {
