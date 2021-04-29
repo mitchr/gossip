@@ -162,7 +162,7 @@ func (s *Server) endRegistration(c *client.Client) {
 		return
 	}
 
-	if c.ServerPassAttempt != s.password {
+	if c.ServerPassAttempt != s.Password {
 		s.numericReply(c, ERR_PASSWDMISMATCH)
 		s.ERROR(c, "Closing Link: "+s.listener.Addr().String()+" (Bad Password)")
 		c.Cancel()

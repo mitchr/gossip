@@ -11,8 +11,10 @@ import (
 	"github.com/mitchr/gossip/client"
 )
 
+var conf = &Config{Name: "gossip", Port: ":6667"}
+
 func TestWriteMultiline(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +30,7 @@ func TestWriteMultiline(t *testing.T) {
 }
 
 func TestRegistration(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,12 +97,15 @@ func TestRegistration(t *testing.T) {
 
 // test cases are taken from https://www.irc.com/dev/docs/refs/commands/pass
 func TestPASS(t *testing.T) {
-	s, err := New(":6667")
+	// need a special conf so we don't mess with the password for all the other tests
+	conf2 := *conf
+	conf2.Password = "letmein"
+
+	s, err := New(&conf2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	s.password = "letmein"
 	go s.Serve()
 
 	t.Run("TestRegisteredWithNoPASS", func(t *testing.T) {
@@ -174,7 +179,7 @@ func TestPASS(t *testing.T) {
 }
 
 func TestQUIT(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +228,7 @@ func TestQUIT(t *testing.T) {
 }
 
 func TestChannelCreation(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,7 +299,7 @@ func TestChannelCreation(t *testing.T) {
 }
 
 func TestChannelKeys(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,7 +337,7 @@ func TestChannelKeys(t *testing.T) {
 }
 
 func TestTOPIC(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -364,7 +369,7 @@ func TestTOPIC(t *testing.T) {
 }
 
 func TestKICK(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +402,7 @@ func TestKICK(t *testing.T) {
 }
 
 func TestNAMES(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -418,7 +423,7 @@ func TestNAMES(t *testing.T) {
 }
 
 func TestLIST(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,7 +457,7 @@ func TestLIST(t *testing.T) {
 }
 
 func TestMODE(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -573,7 +578,7 @@ func TestMODE(t *testing.T) {
 }
 
 func TestWHO(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -593,7 +598,7 @@ func TestWHO(t *testing.T) {
 }
 
 func TestWHOIS(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -618,7 +623,7 @@ func TestWHOIS(t *testing.T) {
 }
 
 func TestChanFull(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -640,7 +645,7 @@ func TestChanFull(t *testing.T) {
 }
 
 func TestModerated(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -665,7 +670,7 @@ func TestModerated(t *testing.T) {
 }
 
 func TestNoExternal(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -687,7 +692,7 @@ func TestNoExternal(t *testing.T) {
 }
 
 func TestInvite(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -711,7 +716,7 @@ func TestInvite(t *testing.T) {
 }
 
 func TestBan(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -735,7 +740,7 @@ func TestBan(t *testing.T) {
 }
 
 func TestPRIVMSG(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -768,7 +773,7 @@ func TestPRIVMSG(t *testing.T) {
 }
 
 func TestAWAY(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -794,7 +799,7 @@ func TestAWAY(t *testing.T) {
 }
 
 func TestCaseInsensitivity(t *testing.T) {
-	s, err := New(":6667")
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}

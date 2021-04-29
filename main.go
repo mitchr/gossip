@@ -9,13 +9,15 @@ import (
 	"github.com/mitchr/gossip/server"
 )
 
-// default port of 8080
-var port *string = flag.String("port", ":6667", "sets server port")
-
 func main() {
 	flag.Parse()
 
-	s, err := server.New(*port)
+	c, err := server.NewConfig("./config.json")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	s, err := server.New(c)
 	if err != nil {
 		log.Fatalln(err)
 	}

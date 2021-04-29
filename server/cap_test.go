@@ -6,7 +6,9 @@ import (
 )
 
 func TestREQ(t *testing.T) {
-	s, err := New(":6667")
+	conf := &Config{Name: "gossip", Port: ":6667"}
+
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}

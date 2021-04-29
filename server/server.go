@@ -15,9 +15,11 @@ import (
 )
 
 type Server struct {
+	*Config
+
 	listener net.Listener
 	created  time.Time
-	password string
+
 	// nick to underlying client
 	clients map[string]*client.Client
 	// ChanType + name to channel
@@ -33,12 +35,13 @@ type Server struct {
 	wg       sync.WaitGroup
 }
 
-func New(port string) (*Server, error) {
-	l, err := net.Listen("tcp", port)
+func New(c *Config) (*Server, error) {
+	l, err := net.Listen("tcp", c.Port)
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
+		Config:   c,
 		listener: l,
 		created:  time.Now(),
 		clients:  make(map[string]*client.Client),
