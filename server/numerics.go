@@ -113,3 +113,39 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, memb
 	}
 	return symbol, members[0 : len(members)-1]
 }
+
+// TODO: actually honor these values
+func constructISUPPORT() []string {
+	supported := []string{
+		"AWAYLEN=200",
+		"CASEMAPPING=ascii",
+		"CHANLIMIT=#&:",
+		"CHANNELLEN=64",
+		"ELIST=N",
+		"HOSTLEN=64",
+		"KICKLEN=200",
+		"MAXLIST=beI:25",
+		"NICKLEN=30",
+		"STATUSMSG=~&@%+",
+		"TOPICLEN=307",
+		"USERLEN=18",
+	}
+
+	// try to get every line below 200 bytes, that seems like a good number
+	lines := []string{}
+	line := ""
+	for i := 0; i < len(supported); i++ {
+		line += supported[i] + " "
+		if len(line) > 200 {
+			lines = append(lines, line)
+			line = ""
+		}
+	}
+
+	// if all supported params fit on one line
+	if len(lines) == 0 {
+		lines = append(lines, line)
+	}
+
+	return lines
+}

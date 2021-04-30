@@ -178,9 +178,9 @@ func (s *Server) endRegistration(c *client.Client) {
 	s.numericReply(c, RPL_CREATED, s.created)
 	// serverName, version, userModes, chanModes
 	s.numericReply(c, RPL_MYINFO, s.Name, "0", "ioOrw", "beliIkmstn")
-	// TODO: send proper response messages
-	s.numericReply(c, RPL_ISUPPORT, "")
-
+	for _, support := range constructISUPPORT() {
+		s.numericReply(c, RPL_ISUPPORT, support)
+	}
 	LUSERS(s, c)
 	MOTD(s, c)
 
@@ -724,6 +724,7 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 	recipients := strings.Split(params[0], ",")
 	msg := params[1]
 	for _, v := range recipients {
+		// TODO: support sending to only a specific user mode in channel (i.e., PRIVMSG %#buffy)
 		if isChannel(v) {
 			ch, _ := s.GetChannel(v)
 			if ch == nil && !notice { // channel doesn't exist
