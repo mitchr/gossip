@@ -218,10 +218,9 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 	chans := strings.Split(params[0], ",")
 	keys := make([]string, len(chans))
 	if len(params) >= 2 {
-		keys = strings.Split(params[1], ",")
-		// fill remaining slots with empty string, since no key was given
-		// for remaining channel params
-		keys = append(keys, make([]string, len(chans)-len(keys))...)
+		// fill beginning of keys with the key params
+		k := strings.Split(params[1], ",")
+		copy(keys, k)
 	}
 
 	for i := range chans {
