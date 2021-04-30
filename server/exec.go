@@ -460,30 +460,6 @@ func NAMES(s *Server, c *client.Client, params ...string) {
 	}
 }
 
-// given a channel, construct a NAMREPLY for all the members. if
-// invisibles is true, include invisible members in the response; this
-// should only be done if the requesting client is also a member of the
-// channel
-func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, members string) {
-	symbol = "="
-	if c.Secret {
-		symbol = "@"
-	}
-
-	for k, v := range c.Members {
-		// if not inluding invisible clients, and this client is invisible
-		if !invisibles && v.Client.Is(client.Invisible) {
-			continue
-		}
-		if v.Prefix != "" {
-			// TODO: only use the member's highest membership mode
-			members += string(v.Prefix[0])
-		}
-		members += k + " "
-	}
-	return symbol, members[0 : len(members)-1]
-}
-
 // TODO: support ELIST params
 func LIST(s *Server, c *client.Client, params ...string) {
 	if len(params) == 0 {
@@ -620,17 +596,6 @@ func MODE(s *Server, c *client.Client, params ...string) {
 			}
 		}
 	}
-}
-
-func (s *Server) haveChanInCommon(c1, c2 *client.Client) bool {
-	for _, ch := range s.channels {
-		_, c1Belongs := ch.GetMember(c1.Nick)
-		_, c2Belongs := ch.GetMember(c2.Nick)
-		if c1Belongs && c2Belongs {
-			return true
-		}
-	}
-	return false
 }
 
 func WHO(s *Server, c *client.Client, params ...string) {

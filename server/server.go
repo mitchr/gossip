@@ -196,3 +196,14 @@ func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 	}
 	return l
 }
+
+func (s *Server) haveChanInCommon(c1, c2 *client.Client) bool {
+	for _, ch := range s.channels {
+		_, c1Belongs := ch.GetMember(c1.Nick)
+		_, c2Belongs := ch.GetMember(c2.Nick)
+		if c1Belongs && c2Belongs {
+			return true
+		}
+	}
+	return false
+}

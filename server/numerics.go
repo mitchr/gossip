@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 )
 
@@ -87,4 +88,28 @@ func (s *Server) numericReply(c *client.Client, format string, f ...interface{})
 
 func (s *Server) ERROR(c *client.Client, msg string) {
 	c.Write(fmt.Sprintf("ERROR :%s", msg))
+}
+
+// given a channel, construct a NAMREPLY for all the members. if
+// invisibles is true, include invisible members in the response; this
+// should only be done if the requesting client is also a member of the
+// channel
+func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, members string) {
+	symbol = "="
+	if c.Secret {
+		symbol = "@"
+	}
+
+	for k, v := range c.Members {
+		// if not inluding invisible clients, and this client is invisible
+		if !invisibles && v.Client.Is(client.Invisible) {
+			continue
+		}
+		if v.Prefix != "" {
+			// TODO: only use the member's highest membership mode
+			members += string(v.Prefix[0])
+		}
+		members += k + " "
+	}
+	return symbol, members[0 : len(members)-1]
 }
