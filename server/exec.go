@@ -164,7 +164,7 @@ func (s *Server) endRegistration(c *client.Client) {
 
 	if c.ServerPassAttempt != s.Password {
 		s.numericReply(c, ERR_PASSWDMISMATCH)
-		s.ERROR(c, "Closing Link: "+s.listener.Addr().String()+" (Bad Password)")
+		s.ERROR(c, "Closing Link: "+s.Name+" (Bad Password)")
 		c.Cancel()
 		return
 	}
@@ -173,11 +173,11 @@ func (s *Server) endRegistration(c *client.Client) {
 	s.unknowns--
 
 	// send RPL_WELCOME and friends in acceptance
-	s.numericReply(c, RPL_WELCOME, c)
-	s.numericReply(c, RPL_YOURHOST, s.listener.Addr())
+	s.numericReply(c, RPL_WELCOME, s.Network, c)
+	s.numericReply(c, RPL_YOURHOST, s.Name)
 	s.numericReply(c, RPL_CREATED, s.created)
 	// serverName, version, userModes, chanModes
-	s.numericReply(c, RPL_MYINFO, s.listener.Addr(), "0", "ioOrw", "beliIkmstn")
+	s.numericReply(c, RPL_MYINFO, s.Name, "0", "ioOrw", "beliIkmstn")
 	// TODO: send proper response messages
 	s.numericReply(c, RPL_ISUPPORT, "")
 
@@ -190,7 +190,7 @@ func (s *Server) endRegistration(c *client.Client) {
 		for {
 			time.Sleep(time.Minute * 5)
 			c.ExpectingPONG = true
-			c.Write(fmt.Sprintf(":%s PING %s", s.listener.Addr(), c.Nick))
+			c.Write(fmt.Sprintf(":%s PING %s", s.Name, c.Nick))
 			time.Sleep(time.Second * 10)
 			if c.ExpectingPONG {
 				s.ERROR(c, "Closing Link: PING/PONG timeout")
@@ -505,7 +505,7 @@ func LIST(s *Server, c *client.Client, params ...string) {
 
 func MOTD(s *Server, c *client.Client, params ...string) {
 	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
-	s.numericReply(c, RPL_MOTDSTART, s.listener.Addr())
+	s.numericReply(c, RPL_MOTDSTART, s.Name)
 	s.numericReply(c, RPL_MOTD, "") // TODO: parse MOTD from config file or something
 	s.numericReply(c, RPL_ENDOFMOTD)
 }
@@ -532,7 +532,7 @@ func LUSERS(s *Server, c *client.Client, params ...string) {
 }
 
 func TIME(s *Server, c *client.Client, params ...string) {
-	s.numericReply(c, RPL_TIME, s.listener.Addr(), time.Now().Local())
+	s.numericReply(c, RPL_TIME, s.Name, time.Now().Local())
 }
 
 // TODO: support commands like this that intersperse the modechar and modeparams MODE &oulu +b *!*@*.edu +e *!*@*.bu.edu
@@ -559,7 +559,7 @@ func MODE(s *Server, c *client.Client, params ...string) {
 			if !found {
 				s.numericReply(c, ERR_UMODEUNKNOWNFLAG)
 			}
-			c.Write(fmt.Sprintf(":%s MODE %s %s", s.listener.Addr(), c.Nick, params[1]))
+			c.Write(fmt.Sprintf(":%s MODE %s %s", s.Name, c.Nick, params[1]))
 		} else { // give back own mode
 			s.numericReply(c, RPL_UMODEIS, c.Mode)
 		}
@@ -616,7 +616,7 @@ func MODE(s *Server, c *client.Client, params ...string) {
 			}
 			// only write final MODE to channel if any mode was actually altered
 			if applied != "" {
-				ch.Write(fmt.Sprintf(":%s MODE %s", s.listener.Addr(), applied))
+				ch.Write(fmt.Sprintf(":%s MODE %s", s.Name, applied))
 			}
 		}
 	}
@@ -654,7 +654,7 @@ func WHO(s *Server, c *client.Client, params ...string) {
 				if v.Is(client.Op) {
 					flags += "*"
 				}
-				s.numericReply(c, RPL_WHOREPLY, "*", v.User, v.Host, s.listener.Addr(), v.Nick, flags, v.Realname)
+				s.numericReply(c, RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
 			}
 		}
 		s.numericReply(c, RPL_ENDOFWHO, mask)
@@ -687,7 +687,7 @@ func WHO(s *Server, c *client.Client, params ...string) {
 				if member.Is(channel.Voice) {
 					flags += "+"
 				}
-				s.numericReply(c, RPL_WHOREPLY, v, member.User, member.Host, s.listener.Addr(), member.Nick, flags, member.Realname)
+				s.numericReply(c, RPL_WHOREPLY, v, member.User, member.Host, s.Name, member.Nick, flags, member.Realname)
 			}
 			s.numericReply(c, RPL_ENDOFWHO, mask)
 			return
@@ -708,7 +708,7 @@ func WHO(s *Server, c *client.Client, params ...string) {
 			if v.Is(client.Op) {
 				flags += "*"
 			}
-			s.numericReply(c, RPL_WHOREPLY, "*", v.User, v.Host, s.listener.Addr(), v.Nick, flags, v.Realname)
+			s.numericReply(c, RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
 		}
 	}
 	s.numericReply(c, RPL_ENDOFWHO, mask)
@@ -727,7 +727,7 @@ func WHOIS(s *Server, c *client.Client, params ...string) {
 		for _, v := range s.clients {
 			if wild.Match(m, v.Nick) {
 				s.numericReply(c, RPL_WHOISUSER, v.Nick, v.User, v.Host, v.Realname)
-				s.numericReply(c, RPL_WHOISSERVER, v.Nick, s.listener.Addr(), "wip irc server")
+				s.numericReply(c, RPL_WHOISSERVER, v.Nick, s.Name, "wip irc server")
 				if v.Is(client.Op) {
 					s.numericReply(c, RPL_WHOISOPERATOR, v.Nick)
 				}
@@ -801,7 +801,7 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 }
 
 func PING(s *Server, c *client.Client, params ...string) {
-	c.Write(fmt.Sprintf(":%s PONG", s.listener.Addr()))
+	c.Write(fmt.Sprintf(":%s PONG", s.Name))
 }
 
 func PONG(s *Server, c *client.Client, params ...string) {
@@ -834,7 +834,7 @@ func WALLOPS(s *Server, c *client.Client, params ...string) {
 
 	for _, v := range s.clients {
 		if v.Is(client.Wallops) {
-			v.Write(fmt.Sprintf("%s WALLOPS %s", s.listener.Addr(), params[1]))
+			v.Write(fmt.Sprintf("%s WALLOPS %s", s.Name, params[1]))
 		}
 	}
 }

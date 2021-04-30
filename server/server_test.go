@@ -19,7 +19,7 @@ import (
 )
 
 func TestTLS(t *testing.T) {
-	s, err := New(&Config{Name: "gossip", Port: ":6667"})
+	s, err := New(&Config{Network: "cafeteria", Name: "gossip", Port: ":6667"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestTLS(t *testing.T) {
 
 	c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice Smith\r\n"))
 	welcome, _ := bufio.NewReader(c).ReadBytes('\n')
-	assertResponse(welcome, fmt.Sprintf(":%s 001 alice :Welcome to the Internet Relay Network %s\r\n", s.listener.Addr(), s.clients["alice"]), t)
+	assertResponse(welcome, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, s.clients["alice"]), t)
 
 	t.Run("TestPRIVMSGInsecure", func(t *testing.T) {
 		c2, r2 := connectAndRegister("bob", "Bob Smith")
@@ -52,7 +52,7 @@ func TestTLS(t *testing.T) {
 }
 
 func TestWriteMultiline(t *testing.T) {
-	s, err := New(&Config{Name: "gossip", Port: ":6667"})
+	s, err := New(&Config{Network: "cafeteria", Name: "gossip", Port: ":6667"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestWriteMultiline(t *testing.T) {
 
 	c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice\r\n"))
 	resp, _ := bufio.NewReader(c).ReadBytes('\n')
-	assertResponse(resp, fmt.Sprintf(":%s 001 alice :Welcome to the Internet Relay Network %s\r\n", s.listener.Addr(), s.clients["alice"]), t)
+	assertResponse(resp, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, s.clients["alice"]), t)
 }
 
 func TestCaseInsensitivity(t *testing.T) {
@@ -83,10 +83,10 @@ func TestCaseInsensitivity(t *testing.T) {
 	t.Run("TestNickCaseInsensitive", func(t *testing.T) {
 		c1.Write([]byte("NICK BOB\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 433 alice BOB :Nickname is already in use\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 433 alice BOB :Nickname is already in use\r\n", s.Name), t)
 		c1.Write([]byte("NICK boB\r\n"))
 		resp, _ = r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 433 alice boB :Nickname is already in use\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 433 alice boB :Nickname is already in use\r\n", s.Name), t)
 	})
 
 	t.Run("TestChanCaseInsensitive", func(t *testing.T) {
@@ -105,7 +105,7 @@ func TestCaseInsensitivity(t *testing.T) {
 		r1.ReadBytes('\n')
 
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 315 alice #test :End of WHO list\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 315 alice #test :End of WHO list\r\n", s.Name), t)
 	})
 }
 

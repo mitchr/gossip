@@ -26,12 +26,12 @@ func LS(s *Server, c *client.Client, params ...string) {
 	}
 
 	// TODO: generate all tags that server supports instead of hard-coding
-	c.Write(fmt.Sprintf(":%s CAP %s LS :message-tags", s.listener.Addr(), clientId(c)))
+	c.Write(fmt.Sprintf(":%s CAP %s LS :message-tags", s.Name, clientId(c)))
 }
 
 // see what capabilities this client has active during this connection
 func capLIST(s *Server, c *client.Client, params ...string) {
-	c.Write(fmt.Sprintf(":%s CAP %s LIST :%s", s.listener.Addr(), clientId(c), c.CapsSet()))
+	c.Write(fmt.Sprintf(":%s CAP %s LIST :%s", s.Name, clientId(c), c.CapsSet()))
 }
 
 func REQ(s *Server, c *client.Client, params ...string) {
@@ -69,7 +69,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 				todo = append(todo, func() { c.Caps[cap] = true })
 			}
 		} else { // capability not recognized
-			c.Write(fmt.Sprintf(":%s CAP %s NAK :%s", s.listener.Addr(), clientId(c), strings.Join(params, " ")))
+			c.Write(fmt.Sprintf(":%s CAP %s NAK :%s", s.Name, clientId(c), strings.Join(params, " ")))
 			return
 		}
 	}
@@ -78,7 +78,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 	for _, v := range todo {
 		v()
 	}
-	c.Write(fmt.Sprintf(":%s CAP %s ACK :%s", s.listener.Addr(), clientId(c), strings.Join(params, " ")))
+	c.Write(fmt.Sprintf(":%s CAP %s ACK :%s", s.Name, clientId(c), strings.Join(params, " ")))
 }
 
 func END(s *Server, c *client.Client, params ...string) {

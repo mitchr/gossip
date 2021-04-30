@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	RPL_WELCOME       = ":%s 001 %s :Welcome to the Internet Relay Network %s"
+	RPL_WELCOME       = ":%s 001 %s :Welcome to the %s IRC Network %s"
 	RPL_YOURHOST      = ":%s 002 %s :Your host is %s"
 	RPL_CREATED       = ":%s 003 %s :This server was created %s"
 	RPL_MYINFO        = ":%s 004 %s %s %s %s %s"
@@ -80,7 +80,7 @@ func (s *Server) numericReply(c *client.Client, format string, f ...interface{})
 	if c.Nick != "" {
 		nick = c.Nick
 	}
-	args := []interface{}{s.listener.Addr(), nick}
+	args := []interface{}{s.Name, nick}
 	args = append(args, f...)
 	c.Write(fmt.Sprintf(format, args...))
 }

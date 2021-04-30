@@ -8,6 +8,10 @@ import (
 )
 
 type Config struct {
+	// The name of the network associated with the server
+	Network string `json:"network"`
+
+	// The name of this server
 	Name     string `json:"name"`
 	Password string `json:"password"`
 

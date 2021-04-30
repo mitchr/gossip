@@ -101,8 +101,8 @@ func TestPASS(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		err, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.listener.Addr()), t)
-		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Name), t)
+		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Name), t)
 		if !poll(&s.clients, 0) {
 			t.Error("Could not kick client after icnorrect password")
 		}
@@ -116,8 +116,8 @@ func TestPASS(t *testing.T) {
 		err, _ := r.ReadBytes('\n')
 		// err, _ := r.ReadBytes('\n')
 
-		assertResponse(err, fmt.Sprintf(":%s 461 * PASS :Not enough parameters\r\n", s.listener.Addr()), t)
-		// assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.listener.Addr()), t)
+		assertResponse(err, fmt.Sprintf(":%s 461 * PASS :Not enough parameters\r\n", s.Name), t)
+		// assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Name), t)
 		if !poll(&s.clients, 0) {
 			t.Error("Could not kick client after icnorrect password")
 		}
@@ -132,8 +132,8 @@ func TestPASS(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		err, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.listener.Addr()), t)
-		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Name), t)
+		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Name), t)
 		if !poll(&s.clients, 0) {
 			t.Error("Could not kick client after icnorrect password")
 		}
@@ -157,7 +157,7 @@ func TestPASS(t *testing.T) {
 		t.Run("TestPASSAlreadyRegistered", func(t *testing.T) {
 			c.Write([]byte("PASS letmein\r\n"))
 			err, _ := r.ReadBytes('\n')
-			assertResponse(err, fmt.Sprintf(":%s 462 chris :You may not reregister\r\n", s.listener.Addr()), t)
+			assertResponse(err, fmt.Sprintf(":%s 462 chris :You may not reregister\r\n", s.Name), t)
 		})
 	})
 }
@@ -234,7 +234,7 @@ func TestChannelCreation(t *testing.T) {
 		c1.Write([]byte("JOIN\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(":%s 461 alice JOIN :Not enough parameters\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 461 alice JOIN :Not enough parameters\r\n", s.Name), t)
 	})
 
 	t.Run("TestChanNameInsensitive", func(t *testing.T) {
@@ -278,7 +278,7 @@ func TestChannelCreation(t *testing.T) {
 
 		c1.Write([]byte("LIST\r\n"))
 		response, _ := r1.ReadBytes('\n')
-		assertResponse(response, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.listener.Addr()), t)
+		assertResponse(response, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.Name), t)
 	})
 }
 
@@ -316,7 +316,7 @@ func TestChannelKeys(t *testing.T) {
 		c2.Write([]byte("JOIN #1\r\n"))
 		resp, _ := r2.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(":%s 475 dan #1 :Cannot join channel (+k)\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 475 dan #1 :Cannot join channel (+k)\r\n", s.Name), t)
 	})
 }
 
@@ -341,15 +341,15 @@ func TestTOPIC(t *testing.T) {
 	c.Write([]byte("TOPIC &test\r\n"))
 
 	unchanged, _ := r.ReadBytes('\n')
-	assertResponse(unchanged, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.listener.Addr()), t)
+	assertResponse(unchanged, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Name), t)
 	changed, _ := r.ReadBytes('\n')
-	assertResponse(changed, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.listener.Addr()), t)
+	assertResponse(changed, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Name), t)
 	retrieve, _ := r.ReadBytes('\n')
-	assertResponse(retrieve, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.listener.Addr()), t)
+	assertResponse(retrieve, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Name), t)
 
 	r.ReadBytes('\n')
 	clear, _ := r.ReadBytes('\n')
-	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.listener.Addr()), t)
+	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Name), t)
 }
 
 func TestKICK(t *testing.T) {
@@ -402,8 +402,8 @@ func TestNAMES(t *testing.T) {
 	namreply, _ := r.ReadBytes('\n')
 	end, _ := r.ReadBytes('\n')
 
-	assertResponse(namreply, fmt.Sprintf(":%s 353 alice = &test :~alice\r\n", s.listener.Addr()), t)
-	assertResponse(end, fmt.Sprintf(":%s 366 alice &test :End of /NAMES list\r\n", s.listener.Addr()), t)
+	assertResponse(namreply, fmt.Sprintf(":%s 353 alice = &test :~alice\r\n", s.Name), t)
+	assertResponse(end, fmt.Sprintf(":%s 366 alice &test :End of /NAMES list\r\n", s.Name), t)
 }
 
 func TestLIST(t *testing.T) {
@@ -424,8 +424,8 @@ func TestLIST(t *testing.T) {
 		listReply, _ := r.ReadBytes('\n')
 		end, _ := r.ReadBytes('\n')
 
-		assertResponse(listReply, fmt.Sprintf(":%s 322 alice &test 1 :\r\n", s.listener.Addr()), t)
-		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.listener.Addr()), t)
+		assertResponse(listReply, fmt.Sprintf(":%s 322 alice &test 1 :\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.Name), t)
 	})
 
 	t.Run("TestParam", func(t *testing.T) {
@@ -435,8 +435,8 @@ func TestLIST(t *testing.T) {
 		listReply, _ := r.ReadBytes('\n')
 		end, _ := r.ReadBytes('\n')
 
-		assertResponse(listReply, fmt.Sprintf(":%s 322 alice &params 1 :\r\n", s.listener.Addr()), t)
-		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.listener.Addr()), t)
+		assertResponse(listReply, fmt.Sprintf(":%s 322 alice &params 1 :\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.Name), t)
 	})
 }
 
@@ -459,7 +459,7 @@ func TestMODE(t *testing.T) {
 	t.Run("TestUserNotInChan", func(t *testing.T) {
 		c2.Write([]byte("MODE #local +o bob\r\n"))
 		resp, _ := r2.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 441 bob bob #local :They aren't on that channel\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 441 bob bob #local :They aren't on that channel\r\n", s.Name), t)
 	})
 
 	c2.Write([]byte("JOIN #local\r\n"))
@@ -473,9 +473,9 @@ func TestMODE(t *testing.T) {
 	opApplied, _ := r1.ReadBytes('\n')
 	getModeResp, _ := r1.ReadBytes('\n')
 
-	assertResponse(passApplied, fmt.Sprintf(":%s MODE +k pass\r\n", s.listener.Addr()), t)
-	assertResponse(opApplied, fmt.Sprintf(":%s MODE +o bob\r\n", s.listener.Addr()), t)
-	assertResponse(getModeResp, fmt.Sprintf(":%s 324 alice #local k\r\n", s.listener.Addr()), t)
+	assertResponse(passApplied, fmt.Sprintf(":%s MODE +k pass\r\n", s.Name), t)
+	assertResponse(opApplied, fmt.Sprintf(":%s MODE +o bob\r\n", s.Name), t)
+	assertResponse(getModeResp, fmt.Sprintf(":%s 324 alice #local k\r\n", s.Name), t)
 
 	if s.channels["#local"].Members["bob"].Prefix != "@" {
 		t.Error("Failed to set member mode")
@@ -484,19 +484,19 @@ func TestMODE(t *testing.T) {
 	t.Run("TestChannelModeMissingParam", func(t *testing.T) {
 		c1.Write([]byte("MODE #local +l\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+l :Not enough parameters\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+l :Not enough parameters\r\n", s.Name), t)
 	})
 
 	t.Run("TestUserModeMissingParam", func(t *testing.T) {
 		c1.Write([]byte("MODE #local +o\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+o :Not enough parameters\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+o :Not enough parameters\r\n", s.Name), t)
 	})
 
 	t.Run("TestUnknownMode", func(t *testing.T) {
 		c1.Write([]byte("MODE #local +w\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 472 alice w :is unknown mode char to me for #local\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 472 alice w :is unknown mode char to me for #local\r\n", s.Name), t)
 	})
 
 	t.Run("TestRPLBANLIST", func(t *testing.T) {
@@ -510,10 +510,10 @@ func TestMODE(t *testing.T) {
 		ghi, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
 
-		assertResponse(abc, fmt.Sprintf(":%s 367 alice #local abc\r\n", s.listener.Addr()), t)
-		assertResponse(def, fmt.Sprintf(":%s 367 alice #local def\r\n", s.listener.Addr()), t)
-		assertResponse(ghi, fmt.Sprintf(":%s 367 alice #local ghi\r\n", s.listener.Addr()), t)
-		assertResponse(end, fmt.Sprintf(":%s 368 alice #local :End of channel ban list\r\n", s.listener.Addr()), t)
+		assertResponse(abc, fmt.Sprintf(":%s 367 alice #local abc\r\n", s.Name), t)
+		assertResponse(def, fmt.Sprintf(":%s 367 alice #local def\r\n", s.Name), t)
+		assertResponse(ghi, fmt.Sprintf(":%s 367 alice #local ghi\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 368 alice #local :End of channel ban list\r\n", s.Name), t)
 	})
 
 	t.Run("TestRPLEXCEPTLIST", func(t *testing.T) {
@@ -527,10 +527,10 @@ func TestMODE(t *testing.T) {
 		ghi, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
 
-		assertResponse(abc, fmt.Sprintf(":%s 348 alice #local abc\r\n", s.listener.Addr()), t)
-		assertResponse(def, fmt.Sprintf(":%s 348 alice #local def\r\n", s.listener.Addr()), t)
-		assertResponse(ghi, fmt.Sprintf(":%s 348 alice #local ghi\r\n", s.listener.Addr()), t)
-		assertResponse(end, fmt.Sprintf(":%s 349 alice #local :End of channel exception list\r\n", s.listener.Addr()), t)
+		assertResponse(abc, fmt.Sprintf(":%s 348 alice #local abc\r\n", s.Name), t)
+		assertResponse(def, fmt.Sprintf(":%s 348 alice #local def\r\n", s.Name), t)
+		assertResponse(ghi, fmt.Sprintf(":%s 348 alice #local ghi\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 349 alice #local :End of channel exception list\r\n", s.Name), t)
 	})
 
 	t.Run("TestRPLINVITELIST", func(t *testing.T) {
@@ -544,10 +544,10 @@ func TestMODE(t *testing.T) {
 		ghi, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
 
-		assertResponse(abc, fmt.Sprintf(":%s 346 alice #local abc\r\n", s.listener.Addr()), t)
-		assertResponse(def, fmt.Sprintf(":%s 346 alice #local def\r\n", s.listener.Addr()), t)
-		assertResponse(ghi, fmt.Sprintf(":%s 346 alice #local ghi\r\n", s.listener.Addr()), t)
-		assertResponse(end, fmt.Sprintf(":%s 347 alice #local :End of channel invite list\r\n", s.listener.Addr()), t)
+		assertResponse(abc, fmt.Sprintf(":%s 346 alice #local abc\r\n", s.Name), t)
+		assertResponse(def, fmt.Sprintf(":%s 346 alice #local def\r\n", s.Name), t)
+		assertResponse(ghi, fmt.Sprintf(":%s 346 alice #local ghi\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 347 alice #local :End of channel invite list\r\n", s.Name), t)
 	})
 
 	t.Run("TestRemoveModes", func(t *testing.T) {
@@ -556,8 +556,8 @@ func TestMODE(t *testing.T) {
 
 		opRemoved, _ := r1.ReadBytes('\n')
 		keyRemoved, _ := r1.ReadBytes('\n')
-		assertResponse(opRemoved, fmt.Sprintf(":%s MODE -o bob\r\n", s.listener.Addr()), t)
-		assertResponse(keyRemoved, fmt.Sprintf(":%s MODE -k\r\n", s.listener.Addr()), t)
+		assertResponse(opRemoved, fmt.Sprintf(":%s MODE -o bob\r\n", s.Name), t)
+		assertResponse(keyRemoved, fmt.Sprintf(":%s MODE -k\r\n", s.Name), t)
 	})
 }
 
@@ -576,8 +576,8 @@ func TestWHO(t *testing.T) {
 		c1.Write([]byte("WHO\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice %s %s alice H :0 Alice Smith\r\n", s.listener.Addr(), s.clients["alice"].Host, s.listener.Addr()), t)
-		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.listener.Addr()), t)
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice %s %s alice H :0 Alice Smith\r\n", s.Name, s.clients["alice"].Host, s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.Name), t)
 	})
 }
 
@@ -601,9 +601,9 @@ func TestWHOIS(t *testing.T) {
 	idle, _ := r1.ReadBytes('\n')
 	// TODO: check this when implemented
 	// chans, _ := r1.ReadBytes('\n')
-	assertResponse(whois, fmt.Sprintf(":%s 311 alice bob bob %s * :Bob Smith\r\n", s.listener.Addr(), bob.Host), t)
-	assertResponse(server, fmt.Sprintf(":%s 312 alice bob %s :wip irc server\r\n", s.listener.Addr(), s.listener.Addr()), t)
-	assertResponse(idle, fmt.Sprintf(":%s 317 alice bob %v %v :seconds idle, signon time\r\n", s.listener.Addr(), time.Since(bob.Idle).Round(time.Second).Seconds(), bob.JoinTime), t)
+	assertResponse(whois, fmt.Sprintf(":%s 311 alice bob bob %s * :Bob Smith\r\n", s.Name, bob.Host), t)
+	assertResponse(server, fmt.Sprintf(":%s 312 alice bob %s :wip irc server\r\n", s.Name, s.Name), t)
+	assertResponse(idle, fmt.Sprintf(":%s 317 alice bob %v %v :seconds idle, signon time\r\n", s.Name, time.Since(bob.Idle).Round(time.Second).Seconds(), bob.JoinTime), t)
 }
 
 func TestChanFull(t *testing.T) {
@@ -625,7 +625,7 @@ func TestChanFull(t *testing.T) {
 	c2.Write([]byte("JOIN #l\r\n"))
 	resp, _ := r2.ReadBytes('\n')
 
-	assertResponse(resp, fmt.Sprintf(":%s 471 bob #l :Cannot join channel (+l)\r\n", s.listener.Addr()), t)
+	assertResponse(resp, fmt.Sprintf(":%s 471 bob #l :Cannot join channel (+l)\r\n", s.Name), t)
 }
 
 func TestModerated(t *testing.T) {
@@ -650,7 +650,7 @@ func TestModerated(t *testing.T) {
 	r2.ReadBytes('\n')
 	resp, _ := r2.ReadBytes('\n')
 
-	assertResponse(resp, fmt.Sprintf(":%s 404 bob #l :Cannot send to channel\r\n", s.listener.Addr()), t)
+	assertResponse(resp, fmt.Sprintf(":%s 404 bob #l :Cannot send to channel\r\n", s.Name), t)
 }
 
 func TestNoExternal(t *testing.T) {
@@ -672,7 +672,7 @@ func TestNoExternal(t *testing.T) {
 	c2.Write([]byte("PRIVMSG #l :hey\r\n"))
 	resp, _ := r2.ReadBytes('\n')
 
-	assertResponse(resp, fmt.Sprintf(":%s 404 bob #l :Cannot send to channel\r\n", s.listener.Addr()), t)
+	assertResponse(resp, fmt.Sprintf(":%s 404 bob #l :Cannot send to channel\r\n", s.Name), t)
 }
 
 func TestInvite(t *testing.T) {
@@ -696,7 +696,7 @@ func TestInvite(t *testing.T) {
 	c2.Write([]byte("JOIN #local\r\n"))
 	resp, _ := r2.ReadBytes('\n')
 
-	assertResponse(resp, fmt.Sprintf(":%s 473 bob #local :Cannot join channel (+i)\r\n", s.listener.Addr()), t)
+	assertResponse(resp, fmt.Sprintf(":%s 473 bob #local :Cannot join channel (+i)\r\n", s.Name), t)
 }
 
 func TestBan(t *testing.T) {
@@ -720,7 +720,7 @@ func TestBan(t *testing.T) {
 	c2.Write([]byte("JOIN #local\r\n"))
 	resp, _ := r2.ReadBytes('\n')
 
-	assertResponse(resp, fmt.Sprintf(":%s 474 bob #local :Cannot join channel (+b)\r\n", s.listener.Addr()), t)
+	assertResponse(resp, fmt.Sprintf(":%s 474 bob #local :Cannot join channel (+b)\r\n", s.Name), t)
 }
 
 func TestPRIVMSG(t *testing.T) {
@@ -771,13 +771,13 @@ func TestAWAY(t *testing.T) {
 
 	c1.Write([]byte("AWAY :I'm away\r\n"))
 	nowAway, _ := r1.ReadBytes('\n')
-	assertResponse(nowAway, fmt.Sprintf(":%s 306 alice :You have been marked as being away\r\n", s.listener.Addr()), t)
+	assertResponse(nowAway, fmt.Sprintf(":%s 306 alice :You have been marked as being away\r\n", s.Name), t)
 
 	c2.Write([]byte("PRIVMSG alice :Hey\r\n"))
 	awayMsg, _ := r2.ReadBytes('\n')
-	assertResponse(awayMsg, fmt.Sprintf(":%s 301 bob alice :I'm away\r\n", s.listener.Addr()), t)
+	assertResponse(awayMsg, fmt.Sprintf(":%s 301 bob alice :I'm away\r\n", s.Name), t)
 
 	c1.Write([]byte("AWAY\r\n"))
 	unAway, _ := r1.ReadBytes('\n')
-	assertResponse(unAway, fmt.Sprintf(":%s 305 alice :You are no longer marked as being away\r\n", s.listener.Addr()), t)
+	assertResponse(unAway, fmt.Sprintf(":%s 305 alice :You are no longer marked as being away\r\n", s.Name), t)
 }
