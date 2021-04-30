@@ -107,6 +107,9 @@ func (s *Server) Serve() {
 // graceful shutdown from https://blog.golang.org/context
 func (s *Server) Close() {
 	s.listener.Close()
+	if s.tlsListener != nil {
+		s.tlsListener.Close()
+	}
 	s.cancel()
 	s.wg.Wait()
 	close(s.msgQueue)
