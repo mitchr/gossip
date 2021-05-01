@@ -23,6 +23,18 @@ func (m Member) Is(p prefix) bool {
 	}
 }
 
+// Returns the highest prefix that the member has. If this member does
+// not have any prefix, return -1.
+func (m Member) HighestPrefix() prefix {
+	modes := []prefix{Founder, Protected, Operator, Halfop, Voice}
+	for _, v := range modes {
+		if strings.ContainsRune(m.Prefix, rune(v)) {
+			return v
+		}
+	}
+	return -1
+}
+
 func (m *Member) ApplyMode(mode mode.Mode) bool {
 	r, ok := memberLetter[mode.ModeChar]
 	if ok {

@@ -106,8 +106,10 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, memb
 			continue
 		}
 		if v.Prefix != "" {
-			// TODO: only use the member's highest membership mode
-			members += string(v.Prefix[0])
+			highest := v.HighestPrefix()
+			if highest != -1 {
+				members += string(highest)
+			}
 		}
 		members += k + " "
 	}
