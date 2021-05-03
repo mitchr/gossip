@@ -697,8 +697,26 @@ func WHOIS(s *Server, c *client.Client, params ...string) {
 					s.numericReply(c, RPL_WHOISOPERATOR, v.Nick)
 				}
 				s.numericReply(c, RPL_WHOISIDLE, v.Nick, time.Since(v.Idle).Round(time.Second).Seconds(), v.JoinTime)
-				// TODO: format this correctly
-				s.numericReply(c, RPL_WHOISCHANNELS)
+
+				chans := []string{}
+				for _, k := range s.channels {
+					_, senderBelongs := k.GetMember(c.Nick)
+					member, clientBelongs := k.GetMember(v.Nick)
+
+					// if client is invisible or this channel is secret, only send
+					//  a response if the sender shares a channel with this client
+					if k.Secret || v.Is(client.Invisible) {
+						if !(senderBelongs && clientBelongs) {
+							continue
+						}
+					}
+					chans = append(chans, string(member.HighestPrefix())+k.Name)
+				}
+				chanParam := ""
+				if len(chans) > 0 {
+					chanParam = " :" + strings.Join(chans, " ")
+				}
+				s.numericReply(c, RPL_WHOISCHANNELS, v.Nick, chanParam)
 			}
 		}
 	}
