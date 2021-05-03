@@ -36,7 +36,7 @@ func TestRegistration(t *testing.T) {
 		if c.Realname != "Alice Smith" {
 			t.Errorf("Real name registered incorrectly. Got %s\n", c.Realname)
 		}
-		if !c.Registered {
+		if !c.Is(client.Registered) {
 			t.Error("Client not registered")
 		}
 	})
@@ -64,6 +64,7 @@ func TestRegistration(t *testing.T) {
 			{"b", 8, client.Wallops},
 			{"c", 12, client.Invisible | client.Wallops},
 		}
+
 		for _, v := range tests {
 			conn, _ := net.Dial("tcp", ":6667")
 			conn.Write([]byte("NICK " + v.name + "\r\n"))
@@ -71,6 +72,7 @@ func TestRegistration(t *testing.T) {
 			bufio.NewReader(conn).ReadBytes('\n') // reading the response guarantees that registration finishes
 
 			c := s.clients[v.name]
+			c.Mode &^= client.Registered // mask off the registered bit
 			if c.Mode != v.mode {
 				t.Error("Mode set incorrectly", c.Mode, v.modeArg, v.mode)
 			}

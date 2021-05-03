@@ -21,7 +21,7 @@ var subs = map[string]subcommand{
 // TODO: support additional "LS 302" version param
 func LS(s *Server, c *client.Client, params ...string) {
 	// suspend registration if client has not yet registered
-	if !c.Registered {
+	if !c.Is(client.Registered) {
 		c.RegSuspended = true
 	}
 
@@ -36,7 +36,7 @@ func capLIST(s *Server, c *client.Client, params ...string) {
 
 func REQ(s *Server, c *client.Client, params ...string) {
 	// suspend registration if client has not yet registered
-	if !c.Registered {
+	if !c.Is(client.Registered) {
 		c.RegSuspended = true
 	}
 
@@ -83,7 +83,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 
 func END(s *Server, c *client.Client, params ...string) {
 	// ignore if already registered
-	if c.Registered {
+	if c.Is(client.Registered) {
 		return
 	}
 

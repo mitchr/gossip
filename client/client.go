@@ -14,11 +14,10 @@ import (
 )
 
 type Client struct {
-	Nick       string
-	User       string
-	Realname   string
-	Host       net.Addr
-	Registered bool
+	Nick     string
+	User     string
+	Realname string
+	Host     net.Addr
 
 	// uxin timestamp when client first connects
 	JoinTime int64
@@ -60,7 +59,7 @@ func New(conn net.Conn) *Client {
 	// give a small window for client to register before kicking them off
 	go func() {
 		time.Sleep(time.Second * 10)
-		if !c.Registered {
+		if !c.Is(Registered) {
 			c.Write("ERROR :Closing Link: Client failed to register in alloted time")
 			c.Cancel()
 			return

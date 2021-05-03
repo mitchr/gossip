@@ -57,7 +57,7 @@ var commandMap = map[string]executor{
 }
 
 func PASS(s *Server, c *client.Client, params ...string) {
-	if c.Registered {
+	if c.Is(client.Registered) {
 		s.numericReply(c, ERR_ALREADYREGISTRED)
 		return
 	} else if len(params) != 1 {
@@ -109,7 +109,7 @@ func NICK(s *Server, c *client.Client, params ...string) {
 func USER(s *Server, c *client.Client, params ...string) {
 	// TODO: Ident Protocol
 
-	if c.Registered {
+	if c.Is(client.Registered) {
 		s.numericReply(c, ERR_ALREADYREGISTRED)
 		return
 	} else if len(params) != 4 {
@@ -168,7 +168,8 @@ func (s *Server) endRegistration(c *client.Client) {
 		c.Cancel()
 		return
 	}
-	c.Registered = true
+
+	c.Mode |= client.Registered
 	s.SetClient(c.Nick, c)
 	s.unknowns--
 
@@ -825,7 +826,7 @@ func WALLOPS(s *Server, c *client.Client, params ...string) {
 
 func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	// ignore unregistered user commands until registration completes
-	if !c.Registered && (m.Command != "CAP" && m.Command != "NICK" && m.Command != "USER" && m.Command != "PASS") {
+	if !c.Is(client.Registered) && (m.Command != "CAP" && m.Command != "NICK" && m.Command != "USER" && m.Command != "PASS") {
 		return
 	}
 

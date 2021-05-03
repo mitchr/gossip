@@ -148,7 +148,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		select {
 		case <-clientCtx.Done():
 			s.msgQueue <- func() {
-				if !c.Registered {
+				if !c.Is(client.Registered) {
 					s.unknowns--
 				} else {
 					// client may have been kicked off without first sending a QUIT
