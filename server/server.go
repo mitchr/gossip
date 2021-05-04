@@ -154,7 +154,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 					// client may have been kicked off without first sending a QUIT
 					// command, so we need to remove them from all the channels they
 					// are still connected to
-					QUIT(s, c, "Client left without saying goodbye :(")
+					QUIT(s, c, &msg.Message{Command: "PART", Params: []string{"Client left without saying goodbye :("}})
 				}
 
 				c.Close()

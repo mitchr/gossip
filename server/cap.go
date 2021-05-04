@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/scan/msg"
 	"github.com/mitchr/gossip/server/cap"
 )
 
@@ -92,19 +93,19 @@ func END(s *Server, c *client.Client, params ...string) {
 }
 
 // used for capability negotiation
-func CAP(s *Server, c *client.Client, params ...string) {
+func CAP(s *Server, c *client.Client, m *msg.Message) {
 	// no subcommand given
-	if len(params) < 1 {
+	if len(m.Params) < 1 {
 		s.numericReply(c, ERR_INVALIDCAPCMD, clientId(c), "CAP")
 		return
 	}
 
-	subcom, ok := subs[params[0]]
+	subcom, ok := subs[m.Params[0]]
 	if !ok {
-		s.numericReply(c, ERR_INVALIDCAPCMD, clientId(c), "CAP "+params[0])
+		s.numericReply(c, ERR_INVALIDCAPCMD, clientId(c), "CAP "+m.Params[0])
 		return
 	}
-	subcom(s, c, params[1:]...)
+	subcom(s, c, m.Params[1:]...)
 }
 
 func clientId(c *client.Client) string {

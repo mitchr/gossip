@@ -14,7 +14,7 @@ import (
 	"github.com/mitchr/gossip/scan/wild"
 )
 
-type executor func(*Server, *client.Client, ...string)
+type executor func(*Server, *client.Client, *msg.Message)
 
 var commandMap = map[string]executor{
 	// registration
@@ -56,25 +56,25 @@ var commandMap = map[string]executor{
 	"AWAY": AWAY,
 }
 
-func PASS(s *Server, c *client.Client, params ...string) {
+func PASS(s *Server, c *client.Client, m *msg.Message) {
 	if c.Is(client.Registered) {
 		s.numericReply(c, ERR_ALREADYREGISTRED)
 		return
-	} else if len(params) != 1 {
+	} else if len(m.Params) != 1 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "PASS")
 		return
 	}
 
-	c.ServerPassAttempt = params[0]
+	c.ServerPassAttempt = m.Params[0]
 }
 
-func NICK(s *Server, c *client.Client, params ...string) {
-	if len(params) != 1 {
+func NICK(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) != 1 {
 		s.numericReply(c, ERR_NONICKNAMEGIVEN)
 		return
 	}
 
-	nick := params[0]
+	nick := m.Params[0]
 
 	// if nickname is already in use, send back error
 	if _, ok := s.GetClient(nick); ok {
@@ -106,32 +106,32 @@ func NICK(s *Server, c *client.Client, params ...string) {
 	}
 }
 
-func USER(s *Server, c *client.Client, params ...string) {
+func USER(s *Server, c *client.Client, m *msg.Message) {
 	// TODO: Ident Protocol
 
 	if c.Is(client.Registered) {
 		s.numericReply(c, ERR_ALREADYREGISTRED)
 		return
-	} else if len(params) != 4 {
+	} else if len(m.Params) != 4 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "USER")
 		return
 	}
 
-	modeBits, err := strconv.Atoi(params[1])
+	modeBits, err := strconv.Atoi(m.Params[1])
 	if err == nil {
 		// only allow user to make themselves invis or wallops
 		c.Mode = client.Mode(modeBits) & (client.Invisible | client.Wallops)
 	}
 
-	c.User = params[0]
-	c.Realname = params[3]
+	c.User = m.Params[0]
+	c.Realname = m.Params[3]
 	s.endRegistration(c)
 }
 
-func QUIT(s *Server, c *client.Client, params ...string) {
+func QUIT(s *Server, c *client.Client, m *msg.Message) {
 	reason := "" // assume client does not send a reason for quit
-	if len(params) > 0 {
-		reason = params[0]
+	if len(m.Params) > 0 {
+		reason = m.Params[0]
 	}
 
 	// send QUIT to all channels that client is connected to, and
@@ -182,8 +182,8 @@ func (s *Server) endRegistration(c *client.Client) {
 	for _, support := range constructISUPPORT() {
 		s.numericReply(c, RPL_ISUPPORT, support)
 	}
-	LUSERS(s, c)
-	MOTD(s, c)
+	LUSERS(s, c, nil)
+	MOTD(s, c, nil)
 
 	// every 5 minutes, send PING
 	// if client doesn't respond with a PONG in 10 seconds, kick them
@@ -202,25 +202,25 @@ func (s *Server) endRegistration(c *client.Client) {
 	}()
 }
 
-func JOIN(s *Server, c *client.Client, params ...string) {
-	if len(params) < 1 {
+func JOIN(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) < 1 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "JOIN")
 		return
 	}
 
 	// when 'JOIN 0', PART from every channel client is a member of
-	if params[0] == "0" {
+	if m.Params[0] == "0" {
 		for _, v := range s.channelsOf(c) {
-			PART(s, c, v.String())
+			PART(s, c, &msg.Message{Command: "PART", Params: []string{v.String()}})
 		}
 		return
 	}
 
-	chans := strings.Split(params[0], ",")
+	chans := strings.Split(m.Params[0], ",")
 	keys := make([]string, len(chans))
-	if len(params) >= 2 {
-		// fill beginning of keys with the key params
-		k := strings.Split(params[1], ",")
+	if len(m.Params) >= 2 {
+		// fill beginning of keys with the key m.Params
+		k := strings.Split(m.Params[1], ",")
 		copy(keys, k)
 	}
 
@@ -243,7 +243,7 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 			ch.Write(fmt.Sprintf(":%s JOIN %s", c, ch))
 			if ch.Topic != "" {
 				// only send topic if it exists
-				TOPIC(s, c, ch.String())
+				TOPIC(s, c, &msg.Message{Command: "PART", Params: []string{ch.String()}})
 			}
 			sym, members := constructNAMREPLY(ch, ok)
 			s.numericReply(c, RPL_NAMREPLY, sym, ch, members)
@@ -265,12 +265,12 @@ func JOIN(s *Server, c *client.Client, params ...string) {
 	}
 }
 
-func PART(s *Server, c *client.Client, params ...string) {
-	chans := strings.Split(params[0], ",")
+func PART(s *Server, c *client.Client, m *msg.Message) {
+	chans := strings.Split(m.Params[0], ",")
 
 	reason := ""
-	if len(params) > 1 {
-		reason = " :" + params[1]
+	if len(m.Params) > 1 {
+		reason = " :" + m.Params[1]
 	}
 
 	for _, v := range chans {
@@ -288,21 +288,21 @@ func PART(s *Server, c *client.Client, params ...string) {
 	}
 }
 
-func TOPIC(s *Server, c *client.Client, params ...string) {
-	if len(params) < 1 {
+func TOPIC(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) < 1 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "TOPIC")
 		return
 	}
 
-	ch := s.clientBelongstoChan(c, params[0])
+	ch := s.clientBelongstoChan(c, m.Params[0])
 	if ch == nil {
 		return
 	}
 
-	if len(params) >= 2 { // modify topic
+	if len(m.Params) >= 2 { // modify topic
 		// TODO: don't allow modifying topic if client doesn't have
 		// proper privileges 'ERR_CHANOPRIVSNEEDED'
-		ch.Topic = params[1]
+		ch.Topic = m.Params[1]
 		s.numericReply(c, RPL_TOPIC, ch, ch.Topic)
 	} else {
 		if ch.Topic == "" {
@@ -313,14 +313,14 @@ func TOPIC(s *Server, c *client.Client, params ...string) {
 	}
 }
 
-func INVITE(s *Server, c *client.Client, params ...string) {
-	if len(params) != 2 {
+func INVITE(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) != 2 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "INVITE")
 		return
 	}
 
-	nick := params[0]
-	ch, ok := s.GetChannel(params[1])
+	nick := m.Params[0]
+	ch, ok := s.GetChannel(m.Params[1])
 	if !ok { // channel exists
 		return
 	}
@@ -361,19 +361,19 @@ func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel
 	return ch
 }
 
-func KICK(s *Server, c *client.Client, params ...string) {
-	if len(params) != 2 {
+func KICK(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) != 2 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "KICK")
 		return
 	}
 
 	comment := c.Nick
-	if len(params) == 3 {
-		comment = params[2]
+	if len(m.Params) == 3 {
+		comment = m.Params[2]
 	}
 
-	chans := strings.Split(params[0], ",")
-	users := strings.Split(params[1], ",")
+	chans := strings.Split(m.Params[0], ",")
+	users := strings.Split(m.Params[1], ",")
 
 	if len(chans) == 1 {
 		ch, _ := s.GetChannel(chans[0])
@@ -437,13 +437,13 @@ func KICK(s *Server, c *client.Client, params ...string) {
 	}
 }
 
-func NAMES(s *Server, c *client.Client, params ...string) {
-	if len(params) == 0 {
+func NAMES(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) == 0 {
 		s.numericReply(c, RPL_ENDOFNAMES, "*")
 		return
 	}
 
-	chans := strings.Split(params[0], ",")
+	chans := strings.Split(m.Params[0], ",")
 	for _, v := range chans {
 		ch, _ := s.GetChannel(v)
 		if ch == nil {
@@ -461,9 +461,9 @@ func NAMES(s *Server, c *client.Client, params ...string) {
 	}
 }
 
-// TODO: support ELIST params
-func LIST(s *Server, c *client.Client, params ...string) {
-	if len(params) == 0 {
+// TODO: support ELIST m.Params
+func LIST(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) == 0 {
 		// reply with all channels that aren't secret
 		for _, v := range s.channels {
 			if !v.Secret {
@@ -471,7 +471,7 @@ func LIST(s *Server, c *client.Client, params ...string) {
 			}
 		}
 	} else {
-		for _, v := range strings.Split(params[0], ",") {
+		for _, v := range strings.Split(m.Params[0], ",") {
 			if ch, ok := s.GetChannel(v); ok {
 				s.numericReply(c, RPL_LIST, ch, len(ch.Members), ch.Topic)
 			}
@@ -480,14 +480,14 @@ func LIST(s *Server, c *client.Client, params ...string) {
 	s.numericReply(c, RPL_LISTEND)
 }
 
-func MOTD(s *Server, c *client.Client, params ...string) {
+func MOTD(s *Server, c *client.Client, m *msg.Message) {
 	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
 	s.numericReply(c, RPL_MOTDSTART, s.Name)
 	s.numericReply(c, RPL_MOTD, "") // TODO: parse MOTD from config file or something
 	s.numericReply(c, RPL_ENDOFMOTD)
 }
 
-func LUSERS(s *Server, c *client.Client, params ...string) {
+func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 	invis := 0
 	for _, v := range s.clients {
 		if v.Is(client.Invisible) {
@@ -508,18 +508,18 @@ func LUSERS(s *Server, c *client.Client, params ...string) {
 	s.numericReply(c, RPL_LUSERME, len(s.clients), 1)
 }
 
-func TIME(s *Server, c *client.Client, params ...string) {
+func TIME(s *Server, c *client.Client, m *msg.Message) {
 	s.numericReply(c, RPL_TIME, s.Name, time.Now().Local())
 }
 
-// TODO: support commands like this that intersperse the modechar and modeparams MODE &oulu +b *!*@*.edu +e *!*@*.bu.edu
-func MODE(s *Server, c *client.Client, params ...string) {
-	if len(params) < 1 {
+// TODO: support commands like this that intersperse the modechar and modem.Params MODE &oulu +b *!*@*.edu +e *!*@*.bu.edu
+func MODE(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) < 1 {
 		s.numericReply(c, RPL_UMODEIS, c.Mode)
 		return
 	}
 
-	target := params[0]
+	target := m.Params[0]
 	if !isChannel(target) {
 		client, ok := s.GetClient(target)
 		if !ok {
@@ -531,12 +531,12 @@ func MODE(s *Server, c *client.Client, params ...string) {
 			return
 		}
 
-		if len(params) == 2 { // modify own mode
-			found := c.ApplyMode([]byte(params[1]))
+		if len(m.Params) == 2 { // modify own mode
+			found := c.ApplyMode([]byte(m.Params[1]))
 			if !found {
 				s.numericReply(c, ERR_UMODEUNKNOWNFLAG)
 			}
-			c.Write(fmt.Sprintf(":%s MODE %s %s", s.Name, c.Nick, params[1]))
+			c.Write(fmt.Sprintf(":%s MODE %s %s", s.Name, c.Nick, m.Params[1]))
 		} else { // give back own mode
 			s.numericReply(c, RPL_UMODEIS, c.Mode)
 		}
@@ -547,7 +547,7 @@ func MODE(s *Server, c *client.Client, params ...string) {
 			return
 		}
 
-		if len(params) == 1 { // modeStr not given, give back channel modes
+		if len(m.Params) == 1 { // modeStr not given, give back channel modes
 			modeStr, params := ch.Modes()
 			if len(params) != 0 {
 				modeStr += " "
@@ -555,8 +555,8 @@ func MODE(s *Server, c *client.Client, params ...string) {
 
 			s.numericReply(c, RPL_CHANNELMODEIS, ch, modeStr, strings.Join(params, " "))
 		} else { // modeStr given
-			modes := mode.Parse([]byte(params[1]))
-			channel.PopulateModeParams(modes, params[2:])
+			modes := mode.Parse([]byte(m.Params[1]))
+			channel.PopulateModeParams(modes, m.Params[2:])
 			applied := ""
 			for _, m := range modes {
 				if m.Param == "" {
@@ -599,10 +599,10 @@ func MODE(s *Server, c *client.Client, params ...string) {
 	}
 }
 
-func WHO(s *Server, c *client.Client, params ...string) {
+func WHO(s *Server, c *client.Client, m *msg.Message) {
 	mask := "*"
-	if len(params) > 0 {
-		mask = params[0]
+	if len(m.Params) > 0 {
+		mask = m.Params[0]
 	}
 
 	// send WHOREPLY to every noninvisible client who does not share a
@@ -628,7 +628,7 @@ func WHO(s *Server, c *client.Client, params ...string) {
 	}
 
 	onlyOps := false
-	if len(params) > 1 && params[1] == "o" {
+	if len(m.Params) > 1 && m.Params[1] == "o" {
 		onlyOps = true
 	}
 
@@ -682,13 +682,13 @@ func WHO(s *Server, c *client.Client, params ...string) {
 
 // we only support the <mask> *( "," <mask> ) parameter, target seems
 // pointless with only one server in the tree
-func WHOIS(s *Server, c *client.Client, params ...string) {
-	// silently ignore empty params
-	if len(params) < 1 {
+func WHOIS(s *Server, c *client.Client, m *msg.Message) {
+	// silently ignore empty m.Params
+	if len(m.Params) < 1 {
 		return
 	}
 
-	masks := strings.Split(strings.ToLower(params[0]), ",")
+	masks := strings.Split(strings.ToLower(m.Params[0]), ",")
 	for _, m := range masks {
 		for _, v := range s.clients {
 			if wild.Match(m, v.Nick) {
@@ -724,8 +724,8 @@ func WHOIS(s *Server, c *client.Client, params ...string) {
 	s.numericReply(c, RPL_ENDOFWHOIS)
 }
 
-func PRIVMSG(s *Server, c *client.Client, params ...string) { s.communicate(params, c, false) }
-func NOTICE(s *Server, c *client.Client, params ...string)  { s.communicate(params, c, true) }
+func PRIVMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m.Params, c, false) }
+func NOTICE(s *Server, c *client.Client, m *msg.Message)  { s.communicate(m.Params, c, true) }
 
 // communicate is used for PRIVMSG/NOTICE. if notice is set to true,
 // then error replies from the server will not be sent.
@@ -785,41 +785,41 @@ func (s *Server) communicate(params []string, c *client.Client, notice bool) {
 	}
 }
 
-func PING(s *Server, c *client.Client, params ...string) {
+func PING(s *Server, c *client.Client, m *msg.Message) {
 	c.Write(fmt.Sprintf(":%s PONG", s.Name))
 }
 
-func PONG(s *Server, c *client.Client, params ...string) {
+func PONG(s *Server, c *client.Client, m *msg.Message) {
 	c.ExpectingPONG = false
 }
 
 // this is currently a noop, as a server should only accept ERROR
 // commands from other servers
-func ERROR(s *Server, c *client.Client, params ...string) {}
+func ERROR(s *Server, c *client.Client, m *msg.Message) {}
 
-func AWAY(s *Server, c *client.Client, params ...string) {
+func AWAY(s *Server, c *client.Client, m *msg.Message) {
 	// remove away
-	if len(params) == 0 {
+	if len(m.Params) == 0 {
 		c.AwayMsg = ""
 		c.Mode &^= client.Away
 		s.numericReply(c, RPL_UNAWAY)
 		return
 	}
 
-	c.AwayMsg = params[0]
+	c.AwayMsg = m.Params[0]
 	c.Mode |= client.Away
 	s.numericReply(c, RPL_NOWAWAY)
 }
 
-func WALLOPS(s *Server, c *client.Client, params ...string) {
-	if len(params) != 1 {
+func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) != 1 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "WALLOPS")
 		return
 	}
 
 	for _, v := range s.clients {
 		if v.Is(client.Wallops) {
-			v.Write(fmt.Sprintf("%s WALLOPS %s", s.Name, params[1]))
+			v.Write(fmt.Sprintf("%s WALLOPS %s", s.Name, m.Params[1]))
 		}
 	}
 }
@@ -832,7 +832,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 
 	if e, ok := commandMap[strings.ToUpper(m.Command)]; ok {
 		c.Idle = time.Now()
-		e(s, c, m.Params...)
+		e(s, c, m)
 	} else {
 		s.numericReply(c, ERR_UNKNOWNCOMMAND, m.Command)
 	}
