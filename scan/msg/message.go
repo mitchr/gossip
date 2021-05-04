@@ -2,6 +2,7 @@ package msg
 
 import (
 	"fmt"
+	"strings"
 )
 
 // A TagVal represents the value associated with a message tag
@@ -62,15 +63,11 @@ func (m Message) String() string {
 		prefix = ":*"
 	}
 
-	var params string
-	// for _, v := range m.middle {
-	// 	params += v + " "
-	// }
-	// if m.trailing != "" {
-	// 	params += ":" + m.trailing
-	// } else {
-	// 	params = params[:len(params)-1] // trim trailing space
-	// }
+	var params []string
+	copy(params, m.Params)
+	if m.trailingSet {
+		params[len(params)-1] = ":" + params[len(params)-1]
+	}
 
-	return fmt.Sprintf("%s %s %s\r\n", prefix, m.Command, params)
+	return fmt.Sprintf("%s %s %s\r\n", prefix, m.Command, strings.Join(params, " "))
 }
