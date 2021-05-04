@@ -63,7 +63,7 @@ func (m Message) String() string {
 		prefix = ":*"
 	}
 
-	var params []string
+	params := make([]string, len(m.Params))
 	copy(params, m.Params)
 	if m.trailingSet {
 		params[len(params)-1] = ":" + params[len(params)-1]

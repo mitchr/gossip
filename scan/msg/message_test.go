@@ -42,6 +42,30 @@ func TestLexParams(t *testing.T) {
 	}
 }
 
+func TestMessageString(t *testing.T) {
+	tests := []struct {
+		s string
+		m *Message
+	}{
+		{":gossip ERROR :Closing link\r\n",
+			&Message{
+				nick:        "gossip",
+				Command:     "ERROR",
+				Params:      []string{"Closing link"},
+				trailingSet: true,
+			},
+		},
+	}
+
+	for _, v := range tests {
+		t.Run(v.s, func(t *testing.T) {
+			if v.s != v.m.String() {
+				t.Error(v.s, v.m.String())
+			}
+		})
+	}
+}
+
 func TestParseMessage(t *testing.T) {
 	tests := []struct {
 		s string
