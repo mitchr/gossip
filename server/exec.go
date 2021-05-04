@@ -211,7 +211,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 	// when 'JOIN 0', PART from every channel client is a member of
 	if m.Params[0] == "0" {
 		for _, v := range s.channelsOf(c) {
-			PART(s, c, &msg.Message{Command: "PART", Params: []string{v.String()}})
+			PART(s, c, &msg.Message{Params: []string{v.String()}})
 		}
 		return
 	}
@@ -243,7 +243,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			ch.Write(fmt.Sprintf(":%s JOIN %s", c, ch))
 			if ch.Topic != "" {
 				// only send topic if it exists
-				TOPIC(s, c, &msg.Message{Command: "PART", Params: []string{ch.String()}})
+				TOPIC(s, c, &msg.Message{Params: []string{ch.String()}})
 			}
 			sym, members := constructNAMREPLY(ch, ok)
 			s.numericReply(c, RPL_NAMREPLY, sym, ch, members)
