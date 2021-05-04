@@ -832,7 +832,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 
 	if e, ok := commandMap[strings.ToUpper(m.Command)]; ok {
 		c.Idle = time.Now()
-		e(s, c, m.Parameters()...)
+		e(s, c, m.Params...)
 	} else {
 		s.numericReply(c, ERR_UNKNOWNCOMMAND, m.Command)
 	}

@@ -33,7 +33,7 @@ func Parse(b []byte) *Message {
 		}
 	}
 	m.Command = command(p)
-	m.middle, m.trailing, m.trailingSet = params(p)
+	m.Params, m.trailingSet = params(p)
 
 	// expect a crlf ending
 	if !p.Expect(cr) {
@@ -189,7 +189,7 @@ func command(p *scan.Parser) string {
 }
 
 // *( SPACE middle ) [ SPACE ":" trailing ]
-func params(p *scan.Parser) (m []string, t string, trailingSet bool) {
+func params(p *scan.Parser) (m []string, trailingSet bool) {
 	for {
 		if p.Peek().TokenType == space {
 			p.Next() // consume space
@@ -199,7 +199,7 @@ func params(p *scan.Parser) (m []string, t string, trailingSet bool) {
 
 		if p.Peek().TokenType == colon {
 			p.Next() // consume ':'
-			t = trailing(p)
+			m = append(m, trailing(p))
 			trailingSet = true
 			return // trailing has to be at the end, so we're done
 		} else {
