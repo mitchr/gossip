@@ -41,11 +41,6 @@ func REQ(s *Server, c *client.Client, params ...string) {
 		c.RegSuspended = true
 	}
 
-	// TODO: missing params err code?
-	if len(params) < 1 {
-		s.numericReply(c, ERR_INVALIDCAPCMD, clientId(c), "CAP REQ")
-	}
-
 	// "The capability identifier set must be accepted as a whole, or
 	// rejected entirely."
 	// todo queues up the acceptance of the cap idents
