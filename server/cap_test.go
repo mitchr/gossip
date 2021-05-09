@@ -18,6 +18,12 @@ func TestREQ(t *testing.T) {
 	c, r := connectAndRegister("bob", "Bob")
 	defer c.Close()
 
+	t.Run("REQEmptyParam", func(t *testing.T) {
+		c.Write([]byte("CAP REQ\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s CAP bob ACK :\r\n", s.Name), t)
+	})
+
 	t.Run("REQAdd", func(t *testing.T) {
 		c.Write([]byte("CAP REQ message-tags\r\n"))
 
