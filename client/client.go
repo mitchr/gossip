@@ -14,6 +14,8 @@ import (
 )
 
 type Client struct {
+	net.Conn
+
 	Nick     string
 	User     string
 	Realname string
@@ -24,7 +26,6 @@ type Client struct {
 	// last time that client sent a succcessful message
 	Idle time.Time
 
-	conn   net.Conn
 	reader *bufio.Reader
 
 	Mode              Mode
@@ -43,8 +44,8 @@ type Client struct {
 func New(conn net.Conn) *Client {
 	now := time.Now()
 	c := &Client{
+		Conn:     conn,
 		Host:     conn.RemoteAddr(),
-		conn:     conn,
 		JoinTime: now.Unix(),
 		Idle:     now,
 
@@ -95,7 +96,7 @@ func (c *Client) CapsSet() string {
 func (c *Client) Write(i interface{}) (int, error) {
 	switch b := i.(type) {
 	case []byte:
-		return c.conn.Write(append(b, []byte{'\r', '\n'}...))
+		return c.Conn.Write(append(b, []byte{'\r', '\n'}...))
 	case string:
 		return c.Write([]byte(b))
 	default:
@@ -111,8 +112,4 @@ func (c *Client) ReadMsg() ([]byte, error) {
 	tmp := make([]byte, len(b))
 	copy(tmp, b)
 	return tmp, err
-}
-
-func (c *Client) Close() error {
-	return c.conn.Close()
 }
