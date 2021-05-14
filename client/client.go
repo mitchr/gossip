@@ -85,6 +85,16 @@ func (c Client) String() string {
 	}
 }
 
+// An Id is used anywhere where a nick is requested in a reply. If
+// Client.Nick is not set yet, then Id returns "*" as a generic
+// placeholder.
+func (c Client) Id() string {
+	if c.Nick != "" {
+		return c.Nick
+	}
+	return "*"
+}
+
 func (c *Client) CapsSet() string {
 	caps := make([]string, len(c.Caps))
 	i := 0

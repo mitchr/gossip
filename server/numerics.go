@@ -76,13 +76,7 @@ const (
 )
 
 func (s *Server) numericReply(c *client.Client, format string, f ...interface{}) {
-	// if client is not registered yet, then their nick will not be set
-	// yet so we use '*' as a palceholder
-	nick := "*"
-	if c.Nick != "" {
-		nick = c.Nick
-	}
-	args := []interface{}{s.Name, nick}
+	args := []interface{}{s.Name, c.Id()}
 	args = append(args, f...)
 	c.Write(fmt.Sprintf(format, args...))
 }
