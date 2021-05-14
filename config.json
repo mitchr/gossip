@@ -1,4 +1,13 @@
 {
+	"network": "cafeteria",
 	"name": "gossip",
-	"port": ":6667"
+	"port": ":6667",
+	"tls": {
+		"enabled": false,
+		"port": ":6697",
+		"pubkey": "",
+		"privkey": ""
+	},
+	"motd": "oh hey",
+	"ops": []
 }
