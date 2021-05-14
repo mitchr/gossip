@@ -51,19 +51,8 @@ func REQ(s *Server, c *client.Client, params ...string) {
 			v = v[1:]
 			remove = true
 		}
-		if cap := cap.Capability(v); cap.IsValid() {
-			// "If a client requests a capability which is already enabled,
-			// or tries to disable a capability which is not enabled, the
-			// server MUST continue processing the REQ subcommand as though
-			// handling this capability was successful."
-			if (c.Caps[cap] && !remove) || (!c.Caps[cap] && remove) {
-				continue
-			}
-			if remove {
-				todo = append(todo, func() { delete(c.Caps, cap) })
-			} else {
-				todo = append(todo, func() { c.Caps[cap] = true })
-			}
+		if cap, ok := cap.Caps[v]; ok {
+			todo = append(todo, func() { c.ApplyCap(cap, remove) })
 		} else { // capability not recognized
 			c.Write(fmt.Sprintf(":%s CAP %s NAK :%s", s.Name, clientId(c), strings.Join(params, " ")))
 			return

@@ -89,7 +89,7 @@ func (c *Client) CapsSet() string {
 	caps := make([]string, len(c.Caps))
 	i := 0
 	for k := range c.Caps {
-		caps[i] = string(k)
+		caps[i] = k.String()
 	}
 	return strings.Join(caps, " ")
 }
