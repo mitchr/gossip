@@ -55,6 +55,7 @@ const (
 	ERR_INVALIDCAPCMD    = ":%s 410 %s %s :Invalid CAP command"
 	ERR_NORECIPIENT      = ":%s 411 %s :No recipient given (%s)"
 	ERR_NOTEXTTOSEND     = ":%s 412 %s :No text to send"
+	ERR_INPUTTOOLONG     = ":%s 417 %s :Input line was too long"
 	ERR_UNKNOWNCOMMAND   = ":%s 421 %s %s :Unknown command"
 	ERR_NONICKNAMEGIVEN  = ":%s 431 %s :No nickname given"
 	ERR_NICKNAMEINUSE    = ":%s 433 %s %s :Nickname is already in use"

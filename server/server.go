@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bufio"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -131,9 +130,10 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			msgBuf, err := c.ReadMsg()
 
 			// client went past the 512 message length requirement
-			if err == bufio.ErrBufferFull {
+			if err == client.ErrMsgSizeOverflow {
 				// TODO: discourage client from multiple buffer overflows in a
 				// row to try to prevent against denial of service attacks
+				s.numericReply(c, ERR_INPUTTOOLONG)
 				continue
 			} else if err != nil {
 				// either client closed its own connection, or they disconnected without quit

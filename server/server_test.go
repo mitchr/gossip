@@ -51,6 +51,34 @@ func TestTLS(t *testing.T) {
 	})
 }
 
+func TestMessageSize(t *testing.T) {
+	s, err := New(&Config{Network: "cafeteria", Name: "gossip", Port: ":6667"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, _ := net.Dial("tcp", ":6667")
+	defer c.Close()
+	r := bufio.NewReader(c)
+
+	t.Run("TooLong", func(t *testing.T) {
+		longMsg := make([]byte, 513)
+		c.Write(longMsg)
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 417 * :Input line was too long\r\n", s.Name), t)
+	})
+
+	// TODO
+	t.Run("JustRight", func(t *testing.T) {
+		t.Skip()
+		msg := make([]byte, 512)
+		msg[511] = '\n'
+		c.Write(msg)
+	})
+}
+
 func TestWriteMultiline(t *testing.T) {
 	s, err := New(&Config{Network: "cafeteria", Name: "gossip", Port: ":6667"})
 	if err != nil {

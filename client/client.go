@@ -26,7 +26,8 @@ type Client struct {
 	// last time that client sent a succcessful message
 	Idle time.Time
 
-	reader *bufio.Reader
+	reader     *bufio.Reader
+	maxMsgSize int
 
 	Mode              Mode
 	AwayMsg           string
@@ -52,7 +53,8 @@ func New(conn net.Conn) *Client {
 		// only read 512 bytes at a time
 		// TODO: an additional 512 bytes can be used for message tags, so
 		// this limit will have to be modified to accomodate that
-		reader: bufio.NewReaderSize(conn, 512),
+		reader:     bufio.NewReader(conn),
+		maxMsgSize: 512,
 
 		Caps: make(map[cap.Capability]bool),
 	}
@@ -104,12 +106,23 @@ func (c *Client) Write(i interface{}) (int, error) {
 	}
 }
 
+var ErrMsgSizeOverflow = errors.New("message too large")
+
 // Read until encountering a newline
 func (c *Client) ReadMsg() ([]byte, error) {
-	b, err := c.reader.ReadSlice('\n')
+	read := make([]byte, c.maxMsgSize)
+	for n := 0; n < c.maxMsgSize; n++ {
+		b, err := c.reader.ReadByte()
+		if err != nil {
+			return nil, err
+		}
+		read[n] = b
 
-	// need to copy because ReadSlice reuses the slice pointer on the next read
-	tmp := make([]byte, len(b))
-	copy(tmp, b)
-	return tmp, err
+		// accepted if we find a newline
+		if b == '\n' {
+			return read[:n+1], nil
+		}
+	}
+
+	return nil, ErrMsgSizeOverflow
 }
