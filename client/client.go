@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchr/gossip/server/cap"
+	"github.com/mitchr/gossip/cap"
 )
 
 type Client struct {

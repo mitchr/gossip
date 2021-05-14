@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mitchr/gossip/cap"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
-	"github.com/mitchr/gossip/server/cap"
 )
 
 type subcommand func(*Server, *client.Client, ...string)

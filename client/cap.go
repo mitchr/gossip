@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/mitchr/gossip/server/cap"
+	"github.com/mitchr/gossip/cap"
 )
 
 func (c *Client) ApplyCap(cap cap.Capability, remove bool) {

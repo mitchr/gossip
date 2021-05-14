@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/mitchr/gossip/server/cap"
+	"github.com/mitchr/gossip/cap"
 )
 
 func TestREQ(t *testing.T) {
