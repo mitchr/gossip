@@ -20,14 +20,23 @@ var subs = map[string]subcommand{
 
 // list capabilities that server supports
 // TODO: support additional "LS 302" version param
+// TODO: when server capabilties take up too much message space, split
+// up into multiple responses like
+// 	CAP * LS * :
+// 	CAP * LS :
 func LS(s *Server, c *client.Client, params ...string) {
 	// suspend registration if client has not yet registered
 	if !c.Is(client.Registered) {
 		c.RegSuspended = true
 	}
 
-	// TODO: generate all tags that server supports instead of hard-coding
-	c.Write(fmt.Sprintf(":%s CAP %s LS :message-tags", s.Name, c.Id()))
+	caps := make([]string, len(cap.Caps))
+	i := 0
+	for k := range cap.Caps {
+		caps[i] = k
+		i++
+	}
+	c.Write(fmt.Sprintf(":%s CAP %s LS %s", s.Name, c.Id(), strings.Join(caps, " ")))
 }
 
 // see what capabilities this client has active during this connection
