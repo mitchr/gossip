@@ -428,9 +428,6 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 		// "there MUST be either one channel parameter and multiple user
 		// parameter, or as many channel parameters as there are user
 		// parameters" - RFC2812
-
-		// TODO: okay so the spec actually doesn't say what to do in this case
-		// I assume NEEDMOREPARAMS is sufficient
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "KICK")
 		return
 	}
