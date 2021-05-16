@@ -361,7 +361,7 @@ func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel
 }
 
 func KICK(s *Server, c *client.Client, m *msg.Message) {
-	if len(m.Params) != 2 {
+	if len(m.Params) < 2 {
 		s.numericReply(c, ERR_NEEDMOREPARAMS, "KICK")
 		return
 	}
