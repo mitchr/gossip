@@ -49,9 +49,6 @@ func New(conn net.Conn) *Client {
 		JoinTime: now.Unix(),
 		Idle:     now,
 
-		// only read 512 bytes at a time
-		// TODO: an additional 512 bytes can be used for message tags, so
-		// this limit will have to be modified to accomodate that
 		reader:     bufio.NewReader(conn),
 		maxMsgSize: 512,
 
