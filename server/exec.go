@@ -252,8 +252,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			chanName := chans[i][1:]
 
 			if chanChar != channel.Remote && chanChar != channel.Local {
-				// TODO: is there a response code for this case?
-				// maybe 403 nosuchchannel?
+				s.numericReply(c, ERR_NOSUCHCHANNEL, chans[i])
 				return
 			}
 

@@ -239,6 +239,13 @@ func TestChannelCreation(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s 461 alice JOIN :Not enough parameters\r\n", s.Name), t)
 	})
 
+	t.Run("TestJoinNonexistentChannelType", func(t *testing.T) {
+		c1.Write([]byte("JOIN *testChan\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 403 alice *testChan :No such channel\r\n", s.Name), t)
+	})
+
 	t.Run("TestChanNameInsensitive", func(t *testing.T) {
 		c2.Write([]byte("JOIN #LOcAl\r\n"))
 		resp, _ := r2.ReadBytes('\n')
