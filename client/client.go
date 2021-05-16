@@ -41,7 +41,6 @@ type Client struct {
 	Cancel        context.CancelFunc // need to store for QUIT
 }
 
-// TODO: default values for Nick, User, and Realname? (maybe '*')
 func New(conn net.Conn) *Client {
 	now := time.Now()
 	c := &Client{
