@@ -9,8 +9,10 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -19,16 +21,35 @@ import (
 )
 
 func TestTLS(t *testing.T) {
-	s, err := New(&Config{Network: "cafeteria", Name: "gossip", Port: ":6667"})
+	err := generateX509()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { // cleanup files
+		os.Remove("public.cert")
+		os.Remove("private.key")
+	}()
+
+	s, err := New(&Config{
+		Network: "cafeteria",
+		Name:    "gossip",
+		Port:    ":6667",
+		TLS: struct {
+			Enabled bool   `json:"enabled"`
+			Port    string `json:"port"`
+			Pubkey  string `json:"pubkey"`
+			Privkey string `json:"privkey"`
+		}{
+			Enabled: true,
+			Port:    ":6697",
+			Pubkey:  "public.cert",
+			Privkey: "private.key",
+		},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer s.Close()
-
-	err = configureTLS(s)
-	if err != nil {
-		t.Fatal(err)
-	}
 	go s.Serve()
 
 	c, err := tls.Dial("tcp", ":6697", &tls.Config{InsecureSkipVerify: true})
@@ -37,11 +58,13 @@ func TestTLS(t *testing.T) {
 	}
 	defer c.Close()
 
-	c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice Smith\r\n"))
-	welcome, _ := bufio.NewReader(c).ReadBytes('\n')
-	assertResponse(welcome, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, s.clients["alice"]), t)
+	t.Run("TestRegisterFromTLSClient", func(t *testing.T) {
+		c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice Smith\r\n"))
+		welcome, _ := bufio.NewReader(c).ReadBytes('\n')
+		assertResponse(welcome, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, s.clients["alice"]), t)
+	})
 
-	t.Run("TestPRIVMSGInsecure", func(t *testing.T) {
+	t.Run("TestPRIVMSGFromInsecureToSecure", func(t *testing.T) {
 		c2, r2 := connectAndRegister("bob", "Bob Smith")
 		defer c2.Close()
 
@@ -196,15 +219,8 @@ func poll(s interface{}, eq interface{}) bool {
 	}
 }
 
-// It's too annoying to define a *Config object by hand, mostly
-// because of the way that anonymous structs have to be built on the
-// fly, but also because a Config has paths to the public and private
-// keys and I don't want to mess around with the file system during
-// tests. Instead, we generate our own cert+key pair and then start the
-// tlsListener ourselves.
-// Returns the PEM-encoded public key for adding to a test client's
-// rootCAs.
-func configureTLS(s *Server) error {
+// Creates a PEM-encoded public/private certificate files called "public.cert" and "private.key"
+func generateX509() error {
 	// generate simple cert
 	// mostly taken from src/crypto/tls/generate_cert.go
 	sNum, _ := rand.Int(rand.Reader, big.NewInt(128))
@@ -234,12 +250,11 @@ func configureTLS(s *Server) error {
 	pem.Encode(&certPem, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 	pem.Encode(&keyPem, &pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
 
-	cert, err := tls.X509KeyPair(certPem.Bytes(), keyPem.Bytes())
+	err = ioutil.WriteFile("public.cert", certPem.Bytes(), 0644)
 	if err != nil {
 		return err
 	}
-
-	s.tlsListener, err = tls.Listen("tcp", ":6697", &tls.Config{Certificates: []tls.Certificate{cert}})
+	err = ioutil.WriteFile("private.key", keyPem.Bytes(), 0644)
 	if err != nil {
 		return err
 	}
