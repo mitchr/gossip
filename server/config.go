@@ -39,7 +39,10 @@ func NewConfig(path string) (*Config, error) {
 	}
 
 	var c Config
-	json.Unmarshal(b, &c)
+	err = json.Unmarshal(b, &c)
+	if err != nil {
+		return nil, err
+	}
 	return &c, nil
 }
 
