@@ -2,14 +2,12 @@ package server
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"net"
 	"os"
@@ -246,18 +244,17 @@ func generateX509() error {
 		return err
 	}
 
-	var certPem, keyPem bytes.Buffer
-	pem.Encode(&certPem, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
-	pem.Encode(&keyPem, &pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
+	certFile, err := os.Create("public.cert")
+	if err != nil {
+		return err
+	}
+	keyFile, err := os.Create("private.key")
+	if err != nil {
+		return err
+	}
 
-	err = ioutil.WriteFile("public.cert", certPem.Bytes(), 0644)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile("private.key", keyPem.Bytes(), 0644)
-	if err != nil {
-		return err
-	}
+	pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+	pem.Encode(keyFile, &pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
 
 	return nil
 }
