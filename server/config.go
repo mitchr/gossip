@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"strings"
 )
 
 type Config struct {
@@ -27,8 +28,13 @@ type Config struct {
 		Privkey string `json:"privkey"`
 	} `json:"tls"`
 
-	MOTD string   `json:"motd"`
-	Ops  []string `json:"ops"`
+	// A path to a file containg the server's message of the day. A MOTD
+	// is divided when encountering a newline. If a line is too long, it
+	// may run over the 512 byte message limit.
+	MOTD string `json:"motd"`
+	motd []string
+
+	Ops []string `json:"ops"`
 }
 
 // NewConfig reads the file at path into a Config.
@@ -42,6 +48,14 @@ func NewConfig(path string) (*Config, error) {
 	err = json.Unmarshal(b, &c)
 	if err != nil {
 		return nil, err
+	}
+
+	if c.MOTD != "" {
+		m, err := ioutil.ReadFile(c.MOTD)
+		if err != nil {
+			return nil, err
+		}
+		c.motd = strings.Split(string(m), "\n")
 	}
 	return &c, nil
 }

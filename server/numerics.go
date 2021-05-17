@@ -57,6 +57,7 @@ const (
 	ERR_NOTEXTTOSEND     = ":%s 412 %s :No text to send"
 	ERR_INPUTTOOLONG     = ":%s 417 %s :Input line was too long"
 	ERR_UNKNOWNCOMMAND   = ":%s 421 %s %s :Unknown command"
+	ERR_NOMOTD           = ":%s 422 %s :MOTD file is missing"
 	ERR_NONICKNAMEGIVEN  = ":%s 431 %s :No nickname given"
 	ERR_NICKNAMEINUSE    = ":%s 433 %s %s :Nickname is already in use"
 	ERR_USERNOTINCHANNEL = ":%s 441 %s %s %s :They aren't on that channel"

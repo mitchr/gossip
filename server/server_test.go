@@ -170,7 +170,7 @@ func connectAndRegister(nick, realname string) (net.Conn, *bufio.Reader) {
 	c.Write([]byte("USER " + nick + " 0 0 :" + realname + "\r\n"))
 
 	r := bufio.NewReader(c)
-	for i := 0; i < 13; i++ {
+	for i := 0; i < 11; i++ {
 		r.ReadBytes('\n')
 	}
 

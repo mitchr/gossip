@@ -477,9 +477,16 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func MOTD(s *Server, c *client.Client, m *msg.Message) {
+	if len(s.motd) == 0 {
+		s.numericReply(c, ERR_NOMOTD)
+		return
+	}
+
 	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
 	s.numericReply(c, RPL_MOTDSTART, s.Name)
-	s.numericReply(c, RPL_MOTD, "") // TODO: parse MOTD from config file or something
+	for _, v := range s.motd {
+		s.numericReply(c, RPL_MOTD, v)
+	}
 	s.numericReply(c, RPL_ENDOFMOTD)
 }
 

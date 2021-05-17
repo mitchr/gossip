@@ -148,7 +148,7 @@ func TestPASS(t *testing.T) {
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
 
 		r := bufio.NewReader(c)
-		for i := 0; i < 13; i++ {
+		for i := 0; i < 11; i++ {
 			r.ReadBytes('\n')
 		}
 
