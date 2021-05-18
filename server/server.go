@@ -52,12 +52,7 @@ func New(c *Config) (*Server, error) {
 	}
 
 	if c.TLS.Enabled {
-		conf, err := c.TLSConfig()
-		if err != nil {
-			return nil, err
-		}
-
-		s.tlsListener, err = tls.Listen("tcp", c.TLS.Port, conf)
+		s.tlsListener, err = tls.Listen("tcp", c.TLS.Port, c.TLS.conf)
 		if err != nil {
 			return nil, err
 		}

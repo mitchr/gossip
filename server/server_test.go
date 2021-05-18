@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net"
 	"os"
@@ -23,27 +24,28 @@ func TestTLS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	configJSON := `{"network": "cafeteria",
+	"name": "gossip",
+	"port": ":6667",
+	"tls": {
+		"enabled": true,
+		"port": ":6697",
+		"pubkey": "public.cert",
+		"privkey": "private.key"
+	},
+	"motd": ""}`
+	ioutil.WriteFile("config.json", []byte(configJSON), 0664)
 	defer func() { // cleanup files
 		os.Remove("public.cert")
 		os.Remove("private.key")
+		os.Remove("config.json")
 	}()
 
-	s, err := New(&Config{
-		Network: "cafeteria",
-		Name:    "gossip",
-		Port:    ":6667",
-		TLS: struct {
-			Enabled bool   `json:"enabled"`
-			Port    string `json:"port"`
-			Pubkey  string `json:"pubkey"`
-			Privkey string `json:"privkey"`
-		}{
-			Enabled: true,
-			Port:    ":6697",
-			Pubkey:  "public.cert",
-			Privkey: "private.key",
-		},
-	})
+	conf, err := NewConfig("config.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}

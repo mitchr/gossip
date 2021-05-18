@@ -26,6 +26,8 @@ type Config struct {
 
 		// A path to the server's private key
 		Privkey string `json:"privkey"`
+
+		conf *tls.Config
 	} `json:"tls"`
 
 	// A path to a file containg the server's message of the day. A MOTD
@@ -50,6 +52,25 @@ func NewConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	if c.TLS.Enabled {
+		if c.TLS.Port == "" {
+			return nil, errors.New("TLS.Port must be defined")
+		}
+
+		if c.TLS.Pubkey == "" || c.TLS.Privkey == "" {
+			return nil, errors.New("TLS.Pubkey and TLS.Privkey must be defined to use TLS")
+		}
+
+		cert, err := tls.LoadX509KeyPair(c.TLS.Pubkey, c.TLS.Privkey)
+		if err != nil {
+			return nil, err
+		}
+
+		c.TLS.conf = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
+	}
+
 	if c.MOTD != "" {
 		m, err := ioutil.ReadFile(c.MOTD)
 		if err != nil {
@@ -58,23 +79,4 @@ func NewConfig(path string) (*Config, error) {
 		c.motd = strings.Split(string(m), "\n")
 	}
 	return &c, nil
-}
-
-func (c *Config) TLSConfig() (*tls.Config, error) {
-	if c.TLS.Port == "" {
-		return nil, errors.New("TLS.Port must be defined")
-	}
-
-	if c.TLS.Pubkey == "" || c.TLS.Privkey == "" {
-		return nil, errors.New("TLS.Pubkey and TLS.Privkey must be defined to use TLS")
-	}
-
-	cert, err := tls.LoadX509KeyPair(c.TLS.Pubkey, c.TLS.Privkey)
-	if err != nil {
-		return nil, err
-	}
-
-	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-	}, nil
 }
