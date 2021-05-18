@@ -18,6 +18,8 @@ type Config struct {
 
 	Port string `json:"port"`
 	TLS  struct {
+		*tls.Config
+
 		Enabled bool   `json:"enabled"`
 		Port    string `json:"port"`
 
@@ -26,8 +28,6 @@ type Config struct {
 
 		// A path to the server's private key
 		Privkey string `json:"privkey"`
-
-		conf *tls.Config
 	} `json:"tls"`
 
 	// A path to a file containg the server's message of the day. A MOTD
@@ -62,7 +62,7 @@ func NewConfig(path string) (*Config, error) {
 			return nil, err
 		}
 
-		c.TLS.conf = &tls.Config{Certificates: []tls.Certificate{cert}}
+		c.TLS.Config = &tls.Config{Certificates: []tls.Certificate{cert}}
 	}
 
 	if c.MOTD != "" {
