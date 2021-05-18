@@ -3,7 +3,6 @@ package server
 import (
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"strings"
 )
@@ -53,14 +52,6 @@ func NewConfig(path string) (*Config, error) {
 	}
 
 	if c.TLS.Enabled {
-		if c.TLS.Port == "" {
-			return nil, errors.New("TLS.Port must be defined")
-		}
-
-		if c.TLS.Pubkey == "" || c.TLS.Privkey == "" {
-			return nil, errors.New("TLS.Pubkey and TLS.Privkey must be defined to use TLS")
-		}
-
 		cert, err := tls.LoadX509KeyPair(c.TLS.Pubkey, c.TLS.Privkey)
 		if err != nil {
 			return nil, err
