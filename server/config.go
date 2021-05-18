@@ -57,9 +57,7 @@ func NewConfig(path string) (*Config, error) {
 			return nil, err
 		}
 
-		c.TLS.conf = &tls.Config{
-			Certificates: []tls.Certificate{cert},
-		}
+		c.TLS.conf = &tls.Config{Certificates: []tls.Certificate{cert}}
 	}
 
 	if c.MOTD != "" {
