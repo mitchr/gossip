@@ -748,6 +748,9 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 	recipients := strings.Split(m.Params[0], ",")
 	for _, v := range recipients {
 		msg := *m
+		// "Tags without the client-only prefix MUST be removed by the
+		// server before being relayed with any message to another client."
+		msg.TrimNonClientTags()
 		msg.Nick = c.Nick
 		msg.Host = c.Host.String()
 		msg.User = c.User

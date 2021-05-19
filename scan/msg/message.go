@@ -99,3 +99,11 @@ func (m Message) String() string {
 
 	return tags + prefix + " " + m.Command + params
 }
+
+func (m *Message) TrimNonClientTags() {
+	for k, v := range m.tags {
+		if !v.ClientPrefix {
+			delete(m.tags, k)
+		}
+	}
+}
