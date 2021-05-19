@@ -766,6 +766,17 @@ func TestPRIVMSG(t *testing.T) {
 		resp, _ := r2.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hello\r\n", s.clients["alice"]), t)
 	})
+	t.Run("TestMultipleTargets", func(t *testing.T) {
+		c3, _ := connectAndRegister("c", "c")
+		defer c3.Close()
+		c3.Write([]byte("JOIN #local\r\n"))
+		c3.Write([]byte("PRIVMSG #local,bob :From c\r\n"))
+		r2.ReadBytes('\n') // skip joinmsg
+		chanResp, _ := r2.ReadBytes('\n')
+		privmsgResp, _ := r2.ReadBytes('\n')
+		assertResponse(chanResp, fmt.Sprintf(":%s PRIVMSG #local :From c\r\n", s.clients["c"]), t)
+		assertResponse(privmsgResp, fmt.Sprintf(":%s PRIVMSG bob :From c\r\n", s.clients["c"]), t)
+	})
 }
 
 func TestAWAY(t *testing.T) {
