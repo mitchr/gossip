@@ -738,8 +738,10 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 		skipReplies = true
 	}
 
-	if !skipReplies && len(m.Params) < 2 {
-		s.numericReply(c, ERR_NOTEXTTOSEND)
+	if len(m.Params) < 2 {
+		if !skipReplies {
+			s.numericReply(c, ERR_NOTEXTTOSEND)
+		}
 		return
 	}
 
