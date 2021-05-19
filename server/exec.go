@@ -746,8 +746,12 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 	}
 
 	recipients := strings.Split(m.Params[0], ",")
-	msg := m.Params[1]
 	for _, v := range recipients {
+		msg := *m
+		msg.Nick = c.Nick
+		msg.Host = c.Host.String()
+		msg.User = c.User
+
 		// TODO: support sending to only a specific user mode in channel (i.e., PRIVMSG %#buffy)
 		if isChannel(v) {
 			ch, _ := s.GetChannel(v)
@@ -780,14 +784,14 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				if member.Client == c {
 					continue
 				}
-				member.Write(fmt.Sprintf(":%s %s %s :%s", c, m.Command, v, msg))
+				member.Write(msg.String())
 			}
 		} else { // client->client
 			if target, ok := s.GetClient(v); ok {
 				if target.Is(client.Away) {
 					s.numericReply(c, RPL_AWAY, target.Nick, target.AwayMsg)
 				} else {
-					target.Write(fmt.Sprintf(":%s %s %s :%s", c, m.Command, v, msg))
+					target.Write(msg.String())
 				}
 			} else if !skipReplies {
 				s.numericReply(c, ERR_NOSUCHNICK, v)

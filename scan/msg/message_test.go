@@ -47,17 +47,17 @@ func TestMessageString(t *testing.T) {
 		s string
 		m *Message
 	}{
-		{":gossip ERROR :Closing link\r\n",
+		{":gossip ERROR :Closing link",
 			&Message{
-				nick:        "gossip",
+				Nick:        "gossip",
 				Command:     "ERROR",
 				Params:      []string{"Closing link"},
 				trailingSet: true,
 			},
 		},
-		{":alice REHASH\r\n",
+		{":alice REHASH",
 			&Message{
-				nick:    "alice",
+				Nick:    "alice",
 				Command: "REHASH",
 			},
 		},
@@ -95,9 +95,9 @@ func TestParseMessage(t *testing.T) {
 	}{
 		{":dan!d@localhost PRIVMSG #chan :Hey!\r\n",
 			&Message{
-				nick:        "dan",
-				user:        "d",
-				host:        "localhost",
+				Nick:        "dan",
+				User:        "d",
+				Host:        "localhost",
 				Command:     "PRIVMSG",
 				Params:      []string{"#chan", "Hey!"},
 				trailingSet: true,
@@ -111,9 +111,9 @@ func TestParseMessage(t *testing.T) {
 		},
 		{":dan!d@123.456.789 QUIT :Quit: Bye for now!\r\n",
 			&Message{
-				nick:        "dan",
-				user:        "d",
-				host:        "123.456.789",
+				Nick:        "dan",
+				User:        "d",
+				Host:        "123.456.789",
 				Command:     "QUIT",
 				Params:      []string{"Quit: Bye for now!"},
 				trailingSet: true,

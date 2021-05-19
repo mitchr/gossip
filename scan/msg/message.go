@@ -41,7 +41,7 @@ func (t TagVal) Raw() string {
 // a Message represents a single irc Message
 type Message struct {
 	tags             map[string]TagVal
-	nick, user, host string // source/prefix information
+	Nick, User, Host string // source/prefix information
 	Command          string
 	Params           []string // command parameters + trailing (if it exists)
 	// true if a trailing lexeme is found, even if trailing itself is blank
@@ -73,12 +73,12 @@ func (m Message) String() string {
 	}
 
 	var prefix string
-	if m.user != "" {
-		prefix = fmt.Sprintf(":%s!%s@%s", m.nick, m.user, m.host)
-	} else if m.host != "" {
-		prefix = fmt.Sprintf(":%s@%s", m.nick, m.host)
-	} else if m.nick != "" {
-		prefix = ":" + m.nick
+	if m.User != "" {
+		prefix = fmt.Sprintf(":%s!%s@%s", m.Nick, m.User, m.Host)
+	} else if m.Host != "" {
+		prefix = fmt.Sprintf(":%s@%s", m.Nick, m.Host)
+	} else if m.Nick != "" {
+		prefix = ":" + m.Nick
 	} else {
 		prefix = ":*"
 	}
@@ -97,5 +97,5 @@ func (m Message) String() string {
 		params = params[:len(params)-1] // chop off ' '
 	}
 
-	return tags + prefix + " " + m.Command + params + "\r\n"
+	return tags + prefix + " " + m.Command + params
 }

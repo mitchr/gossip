@@ -26,7 +26,7 @@ func Parse(b []byte) *Message {
 	}
 	if p.Peek().TokenType == colon {
 		p.Next() // consume colon
-		m.nick, m.user, m.host = source(p)
+		m.Nick, m.User, m.Host = source(p)
 		if !p.Expect(space) {
 			log.Println("expected space")
 			return nil
