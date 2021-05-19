@@ -727,61 +727,61 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 	s.numericReply(c, RPL_ENDOFWHOIS)
 }
 
-func PRIVMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m.Params, c, false) }
-func NOTICE(s *Server, c *client.Client, m *msg.Message)  { s.communicate(m.Params, c, true) }
+func PRIVMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }
+func NOTICE(s *Server, c *client.Client, m *msg.Message)  { s.communicate(m, c) }
 
 // communicate is used for PRIVMSG/NOTICE. if notice is set to true,
 // then error replies from the server will not be sent.
-func (s *Server) communicate(params []string, c *client.Client, notice bool) {
-	command := "PRIVMSG"
-	if notice {
-		command = "NOTICE"
+func (s *Server) communicate(m *msg.Message, c *client.Client) {
+	skipReplies := false
+	if m.Command == "NOTICE" {
+		skipReplies = true
 	}
 
-	if !notice && len(params) < 2 {
+	if !skipReplies && len(m.Params) < 2 {
 		s.numericReply(c, ERR_NOTEXTTOSEND)
 		return
 	}
 
-	recipients := strings.Split(params[0], ",")
-	msg := params[1]
+	recipients := strings.Split(m.Params[0], ",")
+	msg := m.Params[1]
 	for _, v := range recipients {
 		// TODO: support sending to only a specific user mode in channel (i.e., PRIVMSG %#buffy)
 		if isChannel(v) {
 			ch, _ := s.GetChannel(v)
-			if ch == nil && !notice { // channel doesn't exist
+			if ch == nil && !skipReplies { // channel doesn't exist
 				s.numericReply(c, ERR_NOSUCHCHANNEL, v)
 				return
 			}
 
-			m, _ := ch.GetMember(c.Nick)
-			if m == nil {
+			self, _ := ch.GetMember(c.Nick)
+			if self == nil {
 				if ch.NoExternal {
 					// chan does not allow external messages; client needs to join
 					s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
 					return
 				}
-			} else if ch.Moderated && m.Prefix == "" {
+			} else if ch.Moderated && self.Prefix == "" {
 				// member has no mode, so they cannot speak in a moderated chan
 				s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
 				return
 			}
 
 			// write to everybody else in the chan besides self
-			for _, m := range ch.Members {
-				if m.Client == c {
+			for _, member := range ch.Members {
+				if member.Client == c {
 					continue
 				}
-				m.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
+				member.Write(fmt.Sprintf(":%s %s %s :%s", c, m.Command, v, msg))
 			}
 		} else { // client->client
 			if target, ok := s.GetClient(v); ok {
 				if target.Is(client.Away) {
 					s.numericReply(c, RPL_AWAY, target.Nick, target.AwayMsg)
 				} else {
-					target.Write(fmt.Sprintf(":%s %s %s :%s", c, command, v, msg))
+					target.Write(fmt.Sprintf(":%s %s %s :%s", c, m.Command, v, msg))
 				}
-			} else if !notice {
+			} else if !skipReplies {
 				s.numericReply(c, ERR_NOSUCHNICK, v)
 			}
 		}
