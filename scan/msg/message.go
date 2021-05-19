@@ -2,7 +2,6 @@ package msg
 
 import (
 	"fmt"
-	"strings"
 )
 
 // A TagVal represents the value associated with a message tag
@@ -50,8 +49,29 @@ type Message struct {
 	trailingSet bool
 }
 
-// TODO: print tags as well
 func (m Message) String() string {
+	var tags string
+	if len(m.tags) > 0 {
+		tags += "@"
+	}
+	for k, v := range m.tags {
+		if v.ClientPrefix {
+			tags += "+"
+		}
+		if v.Vendor != "" {
+			tags += v.Vendor + "/"
+		}
+		tags += k
+		if v.Value != "" {
+			tags += "=" + v.Value
+		}
+		tags += ";"
+	}
+	if len(tags) > 0 {
+		tags = tags[:len(tags)-1] // chop off ending ';'
+		tags += " "
+	}
+
 	var prefix string
 	if m.user != "" {
 		prefix = fmt.Sprintf(":%s!%s@%s", m.nick, m.user, m.host)
@@ -63,11 +83,19 @@ func (m Message) String() string {
 		prefix = ":*"
 	}
 
-	params := make([]string, len(m.Params))
-	copy(params, m.Params)
-	if m.trailingSet {
-		params[len(params)-1] = ":" + params[len(params)-1]
+	var params string
+	for i, v := range m.Params {
+		if i == 0 {
+			params += " "
+		}
+		if i == len(m.Params)-1 {
+			params += ":"
+		}
+		params += v + " "
+	}
+	if len(params) > 0 {
+		params = params[:len(params)-1] // chop off ' '
 	}
 
-	return fmt.Sprintf("%s %s %s\r\n", prefix, m.Command, strings.Join(params, " "))
+	return tags + prefix + " " + m.Command + params + "\r\n"
 }

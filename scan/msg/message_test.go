@@ -55,11 +55,33 @@ func TestMessageString(t *testing.T) {
 				trailingSet: true,
 			},
 		},
+		{":alice REHASH\r\n",
+			&Message{
+				nick:    "alice",
+				Command: "REHASH",
+			},
+		},
+		// TODO: find a way to test this even though the tags get all jumbled up when parsed
+		// {"@aaa=bbb;ccc;example.com/ddd=eee :nick!ident@host.com PRIVMSG me :Hello\r\n",
+		// 	&Message{
+		// 		nick:        "nick",
+		// 		user:        "ident",
+		// 		host:        "host.com",
+		// 		Command:     "PRIVMSG",
+		// 		Params:      []string{"me", "Hello"},
+		// 		trailingSet: true,
+		// 		tags: map[string]TagVal{
+		// 			"aaa": {Value: "bbb"},
+		// 			"ccc": {Value: ""},
+		// 			"ddd": {Value: "eee", Vendor: "example.com"},
+		// 		}},
+		// },
 	}
 
 	for _, v := range tests {
 		t.Run(v.s, func(t *testing.T) {
 			if v.s != v.m.String() {
+				t.Log([]byte(v.s), "\n", []byte(v.m.String()))
 				t.Error(v.s, v.m.String())
 			}
 		})
