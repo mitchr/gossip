@@ -755,7 +755,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 
 	recipients := strings.Split(m.Params[0], ",")
 	for _, v := range recipients {
-		msg.Params = []string{v, m.Params[1]}
+		msg.Params[0] = v
 
 		// TODO: support sending to only a specific user mode in channel (i.e., PRIVMSG %#buffy)
 		if isChannel(v) {
