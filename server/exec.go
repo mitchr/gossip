@@ -749,8 +749,10 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 		// TODO: support sending to only a specific user mode in channel (i.e., PRIVMSG %#buffy)
 		if isChannel(v) {
 			ch, _ := s.GetChannel(v)
-			if ch == nil && !skipReplies { // channel doesn't exist
-				s.numericReply(c, ERR_NOSUCHCHANNEL, v)
+			if ch == nil { // channel doesn't exist
+				if !skipReplies {
+					s.numericReply(c, ERR_NOSUCHCHANNEL, v)
+				}
 				return
 			}
 
@@ -758,12 +760,16 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			if self == nil {
 				if ch.NoExternal {
 					// chan does not allow external messages; client needs to join
-					s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
+					if !skipReplies {
+						s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
+					}
 					return
 				}
 			} else if ch.Moderated && self.Prefix == "" {
 				// member has no mode, so they cannot speak in a moderated chan
-				s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
+				if !skipReplies {
+					s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
+				}
 				return
 			}
 
