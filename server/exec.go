@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchr/gossip/cap"
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/mode"
@@ -790,18 +791,28 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				if member.Client == c {
 					continue
 				}
+				if msg.Command == "TAGMSG" && !member.Caps[cap.MessageTags] {
+					continue
+				}
 				member.Write(msg.String())
 			}
 		} else { // client->client
-			if target, ok := s.GetClient(v); ok {
-				if target.Is(client.Away) {
-					s.numericReply(c, RPL_AWAY, target.Nick, target.AwayMsg)
-				} else {
-					target.Write(msg.String())
+			target, ok := s.GetClient(v)
+			if !ok {
+				if !skipReplies {
+					s.numericReply(c, ERR_NOSUCHNICK, v)
 				}
-			} else if !skipReplies {
-				s.numericReply(c, ERR_NOSUCHNICK, v)
+				continue
 			}
+
+			if target.Is(client.Away) {
+				s.numericReply(c, RPL_AWAY, target.Nick, target.AwayMsg)
+				continue
+			}
+			if msg.Command == "TAGMSG" && !target.Caps[cap.MessageTags] {
+				continue
+			}
+			target.Write(msg.String())
 		}
 	}
 }
