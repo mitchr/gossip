@@ -766,7 +766,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				if !skipReplies {
 					s.numericReply(c, ERR_NOSUCHCHANNEL, v)
 				}
-				return
+				continue
 			}
 
 			self, _ := ch.GetMember(c.Nick)
@@ -776,14 +776,14 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 					if !skipReplies {
 						s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
 					}
-					return
+					continue
 				}
 			} else if ch.Moderated && self.Prefix == "" {
 				// member has no mode, so they cannot speak in a moderated chan
 				if !skipReplies {
 					s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
 				}
-				return
+				continue
 			}
 
 			// write to everybody else in the chan besides self
