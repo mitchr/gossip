@@ -8,8 +8,6 @@ import (
 )
 
 func TestREQ(t *testing.T) {
-	conf := &Config{Name: "gossip", Port: ":6667"}
-
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -65,4 +63,27 @@ func TestREQ(t *testing.T) {
 			t.Error("Capability not added")
 		}
 	})
+}
+
+func TestTAGMSG(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("a", "A")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("b", "B")
+	defer c2.Close()
+
+	c1.Write([]byte("CAP REQ :message-tags\r\n"))
+	c2.Write([]byte("CAP REQ :message-tags\r\n"))
+	r1.ReadBytes('\n')
+	r2.ReadBytes('\n')
+
+	c1.Write([]byte("@+aaa=b TAGMSG b\r\n"))
+	resp, _ := r2.ReadBytes('\n')
+	assertResponse(resp, fmt.Sprintf("@+aaa=b :%s TAGMSG :b\r\n", s.clients["a"]), t)
 }

@@ -100,3 +100,5 @@ func CAP(s *Server, c *client.Client, m *msg.Message) {
 	}
 	subcom(s, c, m.Params[1:]...)
 }
+
+func TAGMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }

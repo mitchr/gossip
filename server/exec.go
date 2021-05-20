@@ -46,6 +46,7 @@ var commandMap = map[string]executor{
 	// communication
 	"PRIVMSG": PRIVMSG,
 	"NOTICE":  NOTICE,
+	"TAGMSG":  TAGMSG,
 
 	// miscellaneous
 	"PING":    PING,
@@ -742,11 +743,11 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 	msg.User = c.User
 
 	skipReplies := false
-	if m.Command == "NOTICE" {
+	if m.Command == "NOTICE" || m.Command == "TAGMSG" {
 		skipReplies = true
 	}
 
-	if len(m.Params) < 2 {
+	if len(m.Params) < 2 && m.Command != "TAGMSG" {
 		if !skipReplies {
 			s.numericReply(c, ERR_NOTEXTTOSEND)
 		}
