@@ -79,8 +79,6 @@ func (m Message) String() string {
 		prefix = fmt.Sprintf(":%s@%s", m.Nick, m.Host)
 	} else if m.Nick != "" {
 		prefix = ":" + m.Nick
-	} else {
-		prefix = ":*"
 	}
 
 	var params string
