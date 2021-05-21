@@ -36,6 +36,9 @@ type Client struct {
 
 	// Represents a set of IRCv3 capabilities
 	Caps map[cap.Capability]bool
+	// The maximum CAP version that this client supports. If no version is
+	// explicity requested, this will be 0.
+	CapVersion int
 
 	ExpectingPONG bool
 	Cancel        context.CancelFunc // need to store for QUIT
@@ -98,6 +101,10 @@ func (c *Client) CapsSet() string {
 		caps[i] = k.String()
 	}
 	return strings.Join(caps, " ")
+}
+
+func (c Client) SupportsCapVersion(v int) bool {
+	return c.CapVersion >= v
 }
 
 // Write appends a crlf to the end of each message

@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/mitchr/gossip/cap"
@@ -19,15 +20,27 @@ var subs = map[string]subcommand{
 }
 
 // list capabilities that server supports
-// TODO: support additional "LS 302" version param
-// TODO: when server capabilties take up too much message space, split
-// up into multiple responses like
+// TODO (only for CAP302 clients): when server capabilties take up too
+// much message space, split up into multiple responses like
 // 	CAP * LS * :
 // 	CAP * LS :
 func LS(s *Server, c *client.Client, params ...string) {
 	// suspend registration if client has not yet registered
 	if !c.Is(client.Registered) {
 		c.RegSuspended = true
+	}
+
+	version := 0
+	if len(params) > 0 {
+		version, _ = strconv.Atoi(params[0])
+	}
+	// store largest cap version
+	if version > c.CapVersion {
+		c.CapVersion = version
+	}
+	// CAP LS 302 implicitly adds 'cap-notify' to capabilities
+	if c.SupportsCapVersion(302) {
+		c.ApplyCap(cap.CapNotify, false)
 	}
 
 	caps := make([]string, len(cap.Caps))

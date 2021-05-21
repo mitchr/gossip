@@ -4,15 +4,17 @@ package cap
 type Capability int
 
 const (
-	MessageTags Capability = iota
+	CapNotify Capability = iota
+	MessageTags
 	MultiPrefix
 )
 
 func (c Capability) String() string {
-	return []string{"message-tags", "multi-prefix"}[c]
+	return []string{"cap-notify", "message-tags", "multi-prefix"}[c]
 }
 
 var Caps = map[string]Capability{
+	"cap-notify":   CapNotify,
 	"message-tags": MessageTags,
 	"multi-prefix": MultiPrefix,
 }
