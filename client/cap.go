@@ -24,8 +24,12 @@ func (c *Client) ApplyCap(cap cap.Capability, remove bool) {
 type capHandler func(*Client, bool)
 
 var capHandlers = map[cap.Capability]capHandler{
+	cap.CapNotify:   doNothing,
 	cap.MessageTags: messageTags,
 }
+
+// used to capabilities that are just basically advertisements, like cap-notify
+func doNothing(c *Client, r bool) {}
 
 func messageTags(c *Client, remove bool) {
 	if !remove {

@@ -65,6 +65,24 @@ func TestREQ(t *testing.T) {
 	})
 }
 
+func TestCAP302(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("bob", "Bob")
+	defer c.Close()
+
+	c.Write([]byte("CAP LS 302\r\nCAP REQ message-tags\r\n"))
+	r.ReadBytes('\n')
+	if s.clients["bob"].CapVersion != 302 {
+		t.Error("did not recognize CAP LS 302")
+	}
+}
+
 func TestTAGMSG(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
