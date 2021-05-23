@@ -376,9 +376,13 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 
 	chans := strings.Split(m.Params[0], ",")
 	users := strings.Split(m.Params[1], ",")
+	if len(chans) != 1 || len(chans) != len(users) {
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "KICK")
+		return
+	}
 
-	if len(chans) == 1 {
-		ch, _ := s.GetChannel(chans[0])
+	for i, v := range chans {
+		ch, _ := s.GetChannel(v)
 		if ch == nil {
 			s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
 			return
@@ -392,48 +396,30 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 			return
 		}
 
-		for _, v := range users {
-			u, _ := ch.GetMember(v)
-			if u == nil {
-				s.numericReply(c, ERR_USERNOTINCHANNEL, u, ch)
-				continue
+		// If there are multiple channels, pair up the chans and users so
+		// that one user is kicked per each chan
+		if len(chans) != 1 {
+			s.kickMember(c, ch, users[i], comment)
+		} else {
+			// If we are only given one channel, kick all users from it
+			for _, u := range users {
+				s.kickMember(c, ch, u, comment)
 			}
-
-			ch.Write(fmt.Sprintf(":%s KICK %s %s :%s\r\n", c, ch, u.Nick, comment))
-			ch.DeleteMember(u.Nick)
 		}
-	} else if len(chans) == len(users) {
-		for i := 0; i < len(chans); i++ {
-			ch, _ := s.GetChannel(chans[i])
-			if ch == nil {
-				s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
-				continue
-			}
-			self, _ := ch.GetMember(c.Nick)
-			if self == nil {
-				s.numericReply(c, ERR_NOTONCHANNEL, ch)
-				continue
-			} else if !self.Is(channel.Operator) {
-				s.numericReply(c, ERR_CHANOPRIVSNEEDED, ch)
-				continue
-			}
+	}
+}
 
-			u, _ := ch.GetMember(users[i])
-			if u == nil {
-				s.numericReply(c, ERR_USERNOTINCHANNEL, u, ch)
-				continue
-			}
-
-			ch.Write(fmt.Sprintf(":%s KICK %s %s :%s\r\n", c, ch, u.Nick, comment))
-			ch.DeleteMember(u.Nick)
-		}
-	} else {
-		// "there MUST be either one channel parameter and multiple user
-		// parameter, or as many channel parameters as there are user
-		// parameters" - RFC2812
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "KICK")
+// Given a nickname, determine if they belong to the Channel ch and kick
+// them. If a comment is given, it will be sent along with the KICK.
+func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick string, comment string) {
+	u, _ := ch.GetMember(memberNick)
+	if u == nil {
+		s.numericReply(c, ERR_USERNOTINCHANNEL, u, ch)
 		return
 	}
+
+	ch.Write(fmt.Sprintf(":%s KICK %s %s :%s\r\n", c, ch, u.Nick, comment))
+	ch.DeleteMember(u.Nick)
 }
 
 func NAMES(s *Server, c *client.Client, m *msg.Message) {
