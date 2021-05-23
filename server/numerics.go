@@ -48,6 +48,7 @@ const (
 	RPL_MOTDSTART        = ":%s 375 %s :- %s Message of the Day -"
 	RPL_MOTD             = ":%s 371 %s :%s"
 	RPL_ENDOFMOTD        = ":%s 376 %s :End of /MOTD command"
+	RPL_REHASHING        = ":%s 381 $s %s :Rehashing"
 	RPL_TIME             = ":%s 391 %s %s :%s"
 	ERR_NOSUCHNICK       = ":%s 401 %s %s :No such nick/channel"
 	ERR_NOSUCHCHANNEL    = ":%s 403 %s %s :No such channel"
@@ -71,7 +72,8 @@ const (
 	ERR_BANNEDFROMCHAN   = ":%s 474 %s %s :Cannot join channel (+b)"
 	ERR_INVITEONLYCHAN   = ":%s 473 %s %s :Cannot join channel (+i)"
 	ERR_BADCHANNELKEY    = ":%s 475 %s %s :Cannot join channel (+k)"
-	ERR_CHANOPRIVSNEEDED = ":%s 482 %s %s :You're not channel operator"
+	ERR_NOPRIVILEGES     = ":%s 481 %s :Permission Denied - You're not an IRC operator"
+	ERR_CHANOPRIVSNEEDED = ":%s 482 %s %s :You're not a channel operator"
 	ERR_UMODEUNKNOWNFLAG = ":%s 501 %s :Unknown MODE flag"
 	ERR_USERSDONTMATCH   = ":%s 502 %s :Can't change mode for other users"
 )

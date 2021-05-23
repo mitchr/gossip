@@ -55,7 +55,8 @@ var commandMap = map[string]executor{
 	"WALLOPS": WALLOPS,
 	"ERROR":   ERROR,
 
-	"AWAY": AWAY,
+	"AWAY":   AWAY,
+	"REHASH": REHASH,
 }
 
 func PASS(s *Server, c *client.Client, m *msg.Message) {
@@ -841,6 +842,17 @@ func AWAY(s *Server, c *client.Client, m *msg.Message) {
 	c.AwayMsg = m.Params[0]
 	c.Mode |= client.Away
 	s.numericReply(c, RPL_NOWAWAY)
+}
+
+func REHASH(s *Server, c *client.Client, m *msg.Message) {
+	if !c.Is(client.Op) {
+		s.numericReply(c, ERR_NOPRIVILEGES)
+		return
+	}
+
+	conf, _ := NewConfig(s.path)
+	s.Config = conf
+	s.numericReply(c, RPL_REHASHING, s.path)
 }
 
 func WALLOPS(s *Server, c *client.Client, m *msg.Message) {

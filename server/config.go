@@ -9,6 +9,9 @@ import (
 )
 
 type Config struct {
+	// path to the underlying config file; used for rehashing
+	path string
+
 	// The name of the network associated with the server
 	Network string `json:"network"`
 
@@ -46,7 +49,7 @@ func NewConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
-	var c Config
+	c := Config{path: path}
 	err = json.Unmarshal(b, &c)
 	if err != nil {
 		return nil, err
