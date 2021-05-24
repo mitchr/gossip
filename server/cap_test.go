@@ -119,11 +119,20 @@ func TestMessageTags(t *testing.T) {
 	c2, r2 := connectAndRegister("b", "B")
 	defer c2.Close()
 	c1.Write([]byte("CAP REQ :message-tags\r\n"))
-	c2.Write([]byte("CAP REQ :message-tags\r\n"))
 	r1.ReadBytes('\n')
-	r2.ReadBytes('\n')
 
-	c1.Write([]byte("@+testTag PRIVMSG b :hey I attached a tag\r\n"))
-	resp, _ := r2.ReadBytes('\n')
-	assertResponse(resp, fmt.Sprintf("@+testTag :%s PRIVMSG b :hey I attached a tag\r\n", s.clients["a"]), t)
+	t.Run("TestSendToClientWithoutMessageTagCap", func(t *testing.T) {
+		c1.Write([]byte("@+testTag PRIVMSG b :hey I attached a tag\r\n"))
+		resp, _ := r2.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG b :hey I attached a tag\r\n", s.clients["a"]), t)
+	})
+
+	t.Run("TestSendToClientWithMessageTagCap", func(t *testing.T) {
+		c2.Write([]byte("CAP REQ :message-tags\r\n"))
+		r2.ReadBytes('\n')
+
+		c1.Write([]byte("@+testTag PRIVMSG b :hey I attached a tag\r\n"))
+		resp, _ := r2.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf("@+testTag :%s PRIVMSG b :hey I attached a tag\r\n", s.clients["a"]), t)
+	})
 }

@@ -105,3 +105,11 @@ func (m *Message) TrimNonClientTags() {
 		}
 	}
 }
+
+// Return a copy of the message with the tags removed. Used for sending
+// messages to clients that do not support message-tags
+func (m *Message) RemoveAllTags() Message {
+	msg := *m
+	msg.tags = nil
+	return msg
+}

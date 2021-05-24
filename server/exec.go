@@ -781,7 +781,11 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				if msg.Command == "TAGMSG" && !member.Caps[cap.MessageTags] {
 					continue
 				}
-				member.Write(msg.String())
+				if !member.Caps[cap.MessageTags] {
+					member.Write(msg.RemoveAllTags().String())
+				} else {
+					member.Write(msg.String())
+				}
 			}
 		} else { // client->client
 			target, ok := s.GetClient(v)
@@ -799,7 +803,11 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			if msg.Command == "TAGMSG" && !target.Caps[cap.MessageTags] {
 				continue
 			}
-			target.Write(msg.String())
+			if !target.Caps[cap.MessageTags] {
+				target.Write(msg.RemoveAllTags().String())
+			} else {
+				target.Write(msg.String())
+			}
 		}
 	}
 }
