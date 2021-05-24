@@ -87,7 +87,7 @@ func TestCAP302(t *testing.T) {
 	capBackup := cap.Caps
 	cap.Caps = make(map[string]cap.Capability)
 	cap.Caps["sasl"] = cap.Capability{"sasl", "PLAIN,EXTERNAL"}
-	t.Run("TestCapLS302Values", func(t *testing.T) {
+	t.Run("TestCAPLS302Values", func(t *testing.T) {
 		c.Write([]byte("CAP LS 302\r\n"))
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, ":gossip CAP bob LS sasl=PLAIN,EXTERNAL\r\n", t)
@@ -95,7 +95,7 @@ func TestCAP302(t *testing.T) {
 
 	// even if the client had initally shown support for >=302, still give
 	// back un-302 values for an LS of lesser value
-	t.Run("TestCapLSValues", func(t *testing.T) {
+	t.Run("TestCAPLSValues", func(t *testing.T) {
 		c.Write([]byte("CAP LS\r\n"))
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, ":gossip CAP bob LS sasl\r\n", t)
@@ -104,6 +104,14 @@ func TestCAP302(t *testing.T) {
 		}
 	})
 	cap.Caps = capBackup
+
+	t.Run("TestCAPUpgrade", func(t *testing.T) {
+		c.Write([]byte("CAP LS 306\r\n"))
+		r.ReadBytes('\n')
+		if s.clients["bob"].CapVersion != 306 {
+			t.Error("could not upgrade CAP version")
+		}
+	})
 }
 
 func TestTAGMSG(t *testing.T) {
