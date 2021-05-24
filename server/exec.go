@@ -22,6 +22,7 @@ var commandMap = map[string]executor{
 	"PASS": PASS,
 	"NICK": NICK,
 	"USER": USER,
+	"OPER": OPER,
 	"QUIT": QUIT,
 	"CAP":  CAP,
 
@@ -129,6 +130,24 @@ func USER(s *Server, c *client.Client, m *msg.Message) {
 	c.User = m.Params[0]
 	c.Realname = m.Params[3]
 	s.endRegistration(c)
+}
+
+func OPER(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) != 2 {
+		s.numericReply(c, ERR_NEEDMOREPARAMS, "OPER")
+		return
+	}
+
+	name := m.Params[0]
+	pass := m.Params[1]
+	if s.Ops[name] != pass {
+		s.numericReply(c, ERR_PASSWDMISMATCH)
+		return
+	}
+
+	c.Mode |= client.Op
+	s.numericReply(c, RPL_YOUREOPER)
+	c.Write(fmt.Sprintf(":%s MODE %s +o", s.Name, c.Nick))
 }
 
 func QUIT(s *Server, c *client.Client, m *msg.Message) {

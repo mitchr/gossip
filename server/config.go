@@ -39,7 +39,8 @@ type Config struct {
 	MOTD string `json:"motd"`
 	motd []string
 
-	Ops []string `json:"ops"`
+	// A map where operator names are the keys and pass is the value
+	Ops map[string]string `json:"ops"`
 }
 
 // NewConfig reads the file at path into a Config.

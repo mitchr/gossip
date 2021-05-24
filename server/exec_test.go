@@ -81,6 +81,36 @@ func TestRegistration(t *testing.T) {
 	})
 }
 
+func TestOPER(t *testing.T) {
+	conf2 := *conf
+	conf2.Ops = map[string]string{"admin": "adminpass"}
+	s, err := New(&conf2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("a", "Alice")
+	defer c.Close()
+
+	t.Run("TestMissingParams", func(t *testing.T) {
+		c.Write([]byte("OPER\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 461 a OPER :Not enough parameters\r\n", s.Name), t)
+	})
+	t.Run("TestIncorrectpassword", func(t *testing.T) {
+		c.Write([]byte("OPER admin wrongPass\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 464 a :Password Incorrect\r\n", s.Name), t)
+	})
+	t.Run("TestCorrectpassword", func(t *testing.T) {
+		c.Write([]byte("OPER admin adminpass\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 381 a :You are now an IRC operator\r\n", s.Name), t)
+	})
+}
+
 // test cases are taken from https://www.irc.com/dev/docs/refs/commands/pass
 func TestPASS(t *testing.T) {
 	// need a special conf so we don't mess with the password for all the other tests
