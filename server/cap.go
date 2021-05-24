@@ -45,8 +45,11 @@ func LS(s *Server, c *client.Client, params ...string) {
 
 	caps := make([]string, len(cap.Caps))
 	i := 0
-	for k := range cap.Caps {
-		caps[i] = k
+	for _, v := range cap.Caps {
+		caps[i] = v.Name
+		if version >= 302 && len(v.Value) > 0 {
+			caps[i] += "=" + v.Value
+		}
 		i++
 	}
 	c.Write(fmt.Sprintf(":%s CAP %s LS %s", s.Name, c.Id(), strings.Join(caps, " ")))

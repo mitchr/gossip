@@ -1,17 +1,17 @@
 package cap
 
 // A Capabiltity is a capability that the server implements
-type Capability int
+type Capability struct {
+	Name, Value string
+}
 
-const (
-	CapNotify Capability = iota
-	MessageTags
-	MultiPrefix
+var (
+	CapNotify   = Capability{"cap-notify", ""}
+	MessageTags = Capability{"message-tags", ""}
+	MultiPrefix = Capability{"multi-prefix", ""}
 )
 
-func (c Capability) String() string {
-	return []string{"cap-notify", "message-tags", "multi-prefix"}[c]
-}
+func (c Capability) String() string { return c.Name }
 
 var Caps = map[string]Capability{
 	"cap-notify":   CapNotify,
