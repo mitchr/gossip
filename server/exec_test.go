@@ -106,8 +106,13 @@ func TestOPER(t *testing.T) {
 	})
 	t.Run("TestCorrectpassword", func(t *testing.T) {
 		c.Write([]byte("OPER admin adminpass\r\n"))
-		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 381 a :You are now an IRC operator\r\n", s.Name), t)
+		operResp, _ := r.ReadBytes('\n')
+		modeResp, _ := r.ReadBytes('\n')
+		assertResponse(operResp, fmt.Sprintf(":%s 381 a :You are now an IRC operator\r\n", s.Name), t)
+		assertResponse(modeResp, fmt.Sprintf(":%s MODE a +o\r\n", s.Name), t)
+		if !s.clients["a"].Is(client.Op) {
+			t.Error("client could not oper")
+		}
 	})
 }
 
