@@ -90,7 +90,7 @@ func TestCAP302(t *testing.T) {
 	t.Run("TestCAPLS302Values", func(t *testing.T) {
 		c.Write([]byte("CAP LS 302\r\n"))
 		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, ":gossip CAP bob LS sasl=PLAIN,EXTERNAL\r\n", t)
+		assertResponse(resp, ":gossip CAP bob LS :sasl=PLAIN,EXTERNAL\r\n", t)
 	})
 
 	// even if the client had initally shown support for >=302, still give
@@ -98,7 +98,7 @@ func TestCAP302(t *testing.T) {
 	t.Run("TestCAPLSValues", func(t *testing.T) {
 		c.Write([]byte("CAP LS\r\n"))
 		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, ":gossip CAP bob LS sasl\r\n", t)
+		assertResponse(resp, ":gossip CAP bob LS :sasl\r\n", t)
 		if s.clients["bob"].CapVersion != 302 {
 			t.Error("downgraded CAP version for some reason")
 		}

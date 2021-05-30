@@ -52,7 +52,7 @@ func LS(s *Server, c *client.Client, params ...string) {
 		}
 		i++
 	}
-	c.Write(fmt.Sprintf(":%s CAP %s LS %s", s.Name, c.Id(), strings.Join(caps, " ")))
+	c.Write(fmt.Sprintf(":%s CAP %s LS :%s", s.Name, c.Id(), strings.Join(caps, " ")))
 }
 
 // see what capabilities this client has active during this connection
