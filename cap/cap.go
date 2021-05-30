@@ -8,7 +8,7 @@ type Capability struct {
 var (
 	CapNotify   = Capability{"cap-notify", ""}
 	MessageTags = Capability{"message-tags", ""}
-	MultiPrefix = Capability{"multi-prefix", ""}
+	// MultiPrefix = Capability{"multi-prefix", ""}
 )
 
 func (c Capability) String() string { return c.Name }
@@ -16,5 +16,5 @@ func (c Capability) String() string { return c.Name }
 var Caps = map[string]Capability{
 	"cap-notify":   CapNotify,
 	"message-tags": MessageTags,
-	"multi-prefix": MultiPrefix,
+	// "multi-prefix": MultiPrefix,
 }
