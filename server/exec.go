@@ -187,8 +187,8 @@ func (s *Server) endRegistration(c *client.Client) {
 		return
 	}
 
-	if s.Password != nil {
-		if bcrypt.CompareHashAndPassword(s.Password, []byte(c.ServerPassAttempt)) != nil {
+	if s.Password != "" {
+		if bcrypt.CompareHashAndPassword([]byte(s.Password), []byte(c.ServerPassAttempt)) != nil {
 			s.numericReply(c, ERR_PASSWDMISMATCH)
 			s.ERROR(c, "Closing Link: "+s.Name+" (Bad Password)")
 			c.Cancel()

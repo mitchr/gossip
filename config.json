@@ -1,7 +1,7 @@
 {
 	"network": "cafeteria",
 	"name": "gossip",
-	"password": null,
+	"password": "",
 	"port": ":6667",
 	"tls": {
 		"enabled": false,

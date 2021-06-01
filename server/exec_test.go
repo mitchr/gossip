@@ -2,7 +2,6 @@ package server
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"net"
 	"testing"
@@ -86,7 +85,7 @@ func TestRegistration(t *testing.T) {
 func TestOPER(t *testing.T) {
 	conf2 := *conf
 	pass, _ := bcrypt.GenerateFromPassword([]byte("adminpass"), bcrypt.MinCost)
-	conf2.Ops = map[string]json.RawMessage{"admin": pass}
+	conf2.Ops = map[string]string{"admin": string(pass)}
 	s, err := New(&conf2)
 	if err != nil {
 		t.Fatal(err)
@@ -123,7 +122,8 @@ func TestOPER(t *testing.T) {
 func TestPASS(t *testing.T) {
 	// need a special conf so we don't mess with the password for all the other tests
 	conf2 := *conf
-	conf2.Password, _ = bcrypt.GenerateFromPassword([]byte("letmein"), bcrypt.MinCost)
+	pass, _ := bcrypt.GenerateFromPassword([]byte("letmein"), bcrypt.MinCost)
+	conf2.Password = string(pass)
 
 	s, err := New(&conf2)
 	if err != nil {
