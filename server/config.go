@@ -21,7 +21,7 @@ type Config struct {
 
 	Port string `json:"port"`
 	TLS  struct {
-		*tls.Config
+		*tls.Config `json:"-"`
 
 		Enabled bool   `json:"enabled"`
 		Port    string `json:"port"`
