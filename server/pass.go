@@ -27,7 +27,7 @@ func getPassFromTerm() ([]byte, error) {
 	fmt.Println()
 
 	if !bytes.Equal(p1, p2) {
-		return nil, errors.New("password do not match")
+		return nil, errors.New("passwords do not match")
 	}
 
 	return bcrypt.GenerateFromPassword(p1, bcrypt.DefaultCost)
