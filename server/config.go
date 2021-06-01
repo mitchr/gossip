@@ -10,7 +10,8 @@ import (
 
 type Config struct {
 	// path to the underlying config file; used for rehashing
-	path string
+	path  string
+	Debug bool `json:"-"`
 
 	// The name of the network associated with the server
 	Network string `json:"network"`

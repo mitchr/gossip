@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"log"
 	"net"
 	"strings"
 	"sync"
@@ -159,6 +160,9 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			return
 		case msgBuf := <-input:
 			msg := msg.Parse(msgBuf)
+			if s.Debug {
+				log.Println(msg)
+			}
 			// implicitly ignore all nil messages
 			if msg != nil {
 				s.msgQueue <- func() { s.executeMessage(msg, c) }

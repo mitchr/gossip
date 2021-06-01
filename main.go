@@ -12,12 +12,14 @@ import (
 var (
 	sPass      bool
 	oPass      bool
+	debug      bool
 	configPath = "./config.json"
 )
 
 func init() {
 	flag.BoolVar(&sPass, "s", false, "sets server password")
 	flag.BoolVar(&oPass, "o", false, "add a server operator (username and pass)")
+	flag.BoolVar(&debug, "d", false, "print incoming messages stdio")
 	flag.Parse()
 }
 
@@ -26,6 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	c.Debug = debug
 
 	if sPass {
 		err := server.SetPass(c)
