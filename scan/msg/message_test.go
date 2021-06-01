@@ -47,6 +47,12 @@ func TestMessageString(t *testing.T) {
 		s string
 		m *Message
 	}{
+		{"CAP LS :302",
+			&Message{
+				Command:     "CAP",
+				Params:      []string{"LS", "302"},
+				trailingSet: true,
+			}},
 		{":gossip ERROR :Closing link",
 			&Message{
 				Nick:        "gossip",

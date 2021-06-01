@@ -74,11 +74,11 @@ func (m Message) String() string {
 
 	var prefix string
 	if m.User != "" {
-		prefix = fmt.Sprintf(":%s!%s@%s", m.Nick, m.User, m.Host)
+		prefix = fmt.Sprintf(":%s!%s@%s ", m.Nick, m.User, m.Host)
 	} else if m.Host != "" {
-		prefix = fmt.Sprintf(":%s@%s", m.Nick, m.Host)
+		prefix = fmt.Sprintf(":%s@%s ", m.Nick, m.Host)
 	} else if m.Nick != "" {
-		prefix = ":" + m.Nick
+		prefix = ":" + m.Nick + " "
 	}
 
 	var params string
@@ -95,7 +95,7 @@ func (m Message) String() string {
 		params = params[:len(params)-1] // chop off ' '
 	}
 
-	return tags + prefix + " " + m.Command + params
+	return tags + prefix + m.Command + params
 }
 
 func (m *Message) TrimNonClientTags() {
