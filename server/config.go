@@ -16,8 +16,8 @@ type Config struct {
 	Network string `json:"network"`
 
 	// The name of this server
-	Name     string `json:"name"`
-	Password string `json:"password"`
+	Name     string          `json:"name"`
+	Password json.RawMessage `json:"password"`
 
 	Port string `json:"port"`
 	TLS  struct {
@@ -40,7 +40,7 @@ type Config struct {
 	motd []string
 
 	// A map where operator names are the keys and pass is the value
-	Ops map[string]string `json:"ops"`
+	Ops map[string]json.RawMessage `json:"ops"`
 }
 
 // Unmarshal's the server's config file

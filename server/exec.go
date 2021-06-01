@@ -13,6 +13,7 @@ import (
 	"github.com/mitchr/gossip/scan/mode"
 	"github.com/mitchr/gossip/scan/msg"
 	"github.com/mitchr/gossip/scan/wild"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type executor func(*Server, *client.Client, *msg.Message)
@@ -140,7 +141,9 @@ func OPER(s *Server, c *client.Client, m *msg.Message) {
 
 	name := m.Params[0]
 	pass := m.Params[1]
-	if s.Ops[name] != pass {
+
+	// will fail if username doesn't exist or if pass is incorrect
+	if bcrypt.CompareHashAndPassword([]byte(s.Ops[name]), []byte(pass)) != nil {
 		s.numericReply(c, ERR_PASSWDMISMATCH)
 		return
 	}
@@ -184,11 +187,13 @@ func (s *Server) endRegistration(c *client.Client) {
 		return
 	}
 
-	if c.ServerPassAttempt != s.Password {
-		s.numericReply(c, ERR_PASSWDMISMATCH)
-		s.ERROR(c, "Closing Link: "+s.Name+" (Bad Password)")
-		c.Cancel()
-		return
+	if s.Password != nil {
+		if bcrypt.CompareHashAndPassword(s.Password, []byte(c.ServerPassAttempt)) != nil {
+			s.numericReply(c, ERR_PASSWDMISMATCH)
+			s.ERROR(c, "Closing Link: "+s.Name+" (Bad Password)")
+			c.Cancel()
+			return
+		}
 	}
 
 	c.Mode |= client.Registered

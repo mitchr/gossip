@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"net"
 	"testing"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var conf = &Config{Name: "gossip", Port: ":6667"}
@@ -83,7 +85,8 @@ func TestRegistration(t *testing.T) {
 
 func TestOPER(t *testing.T) {
 	conf2 := *conf
-	conf2.Ops = map[string]string{"admin": "adminpass"}
+	pass, _ := bcrypt.GenerateFromPassword([]byte("adminpass"), bcrypt.MinCost)
+	conf2.Ops = map[string]json.RawMessage{"admin": pass}
 	s, err := New(&conf2)
 	if err != nil {
 		t.Fatal(err)
@@ -120,7 +123,7 @@ func TestOPER(t *testing.T) {
 func TestPASS(t *testing.T) {
 	// need a special conf so we don't mess with the password for all the other tests
 	conf2 := *conf
-	conf2.Password = "letmein"
+	conf2.Password, _ = bcrypt.GenerateFromPassword([]byte("letmein"), bcrypt.MinCost)
 
 	s, err := New(&conf2)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
@@ -44,7 +45,8 @@ func SetPass(path string) error {
 	if err != nil {
 		return err
 	}
-	c.Password = string(pass)
+
+	c.Password = []byte(strconv.Quote(string(pass)))
 	out, err := json.MarshalIndent(c, "", "\t")
 	if err != nil {
 		return err
@@ -69,7 +71,7 @@ func AddOp(path string) error {
 		return err
 	}
 
-	c.Ops[user] = string(pass)
+	c.Ops[user] = []byte(strconv.Quote(string(pass)))
 	out, err := json.MarshalIndent(c, "", "\t")
 	if err != nil {
 		return err
