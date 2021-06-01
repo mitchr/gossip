@@ -9,10 +9,35 @@ import (
 	"github.com/mitchr/gossip/server"
 )
 
-func main() {
-	flag.Parse()
+var (
+	sPass      bool
+	oPass      bool
+	configPath = "./config.json"
+)
 
-	c, err := server.NewConfig("./config.json")
+func init() {
+	flag.BoolVar(&sPass, "s", false, "sets server password")
+	flag.BoolVar(&oPass, "o", false, "add a server operator (username and pass)")
+	flag.Parse()
+}
+
+func main() {
+	if sPass {
+		err := server.SetPass(configPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if oPass {
+		err := server.AddOp(configPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	c, err := server.NewConfig(configPath)
 	if err != nil {
 		log.Fatalln(err)
 	}

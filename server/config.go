@@ -43,15 +43,21 @@ type Config struct {
 	Ops map[string]string `json:"ops"`
 }
 
-// NewConfig reads the file at path into a Config.
-func NewConfig(path string) (*Config, error) {
-	b, err := ioutil.ReadFile(path)
+// Unmarshal's the server's config file
+func loadConfig(file string) (*Config, error) {
+	b, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
 
-	c := Config{path: path}
+	c := Config{path: file}
 	err = json.Unmarshal(b, &c)
+	return &c, err
+}
+
+// NewConfig reads the file at path into a Config.
+func NewConfig(path string) (*Config, error) {
+	c, err := loadConfig(path)
 	if err != nil {
 		return nil, err
 	}
@@ -76,5 +82,5 @@ func NewConfig(path string) (*Config, error) {
 		}
 		c.motd = strings.Split(string(m), "\n")
 	}
-	return &c, nil
+	return c, nil
 }
