@@ -22,24 +22,24 @@ func init() {
 }
 
 func main() {
+	c, err := server.NewConfig(configPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	if sPass {
-		err := server.SetPass(configPath)
+		err := server.SetPass(c)
 		if err != nil {
 			log.Fatal(err)
 		}
 		return
 	}
 	if oPass {
-		err := server.AddOp(configPath)
+		err := server.AddOp(c)
 		if err != nil {
 			log.Fatal(err)
 		}
 		return
-	}
-
-	c, err := server.NewConfig(configPath)
-	if err != nil {
-		log.Fatalln(err)
 	}
 
 	s, err := server.New(c)

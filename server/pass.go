@@ -34,13 +34,8 @@ func getPassFromTerm() ([]byte, error) {
 }
 
 // Sets the server's password in its config file
-func SetPass(path string) error {
+func SetPass(c *Config) error {
 	pass, err := getPassFromTerm()
-	if err != nil {
-		return err
-	}
-
-	c, err := loadConfig(path)
 	if err != nil {
 		return err
 	}
@@ -51,21 +46,16 @@ func SetPass(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, out, 0664)
+	return ioutil.WriteFile(c.path, out, 0664)
 }
 
 // Adds an operator to the server's config file
-func AddOp(path string) error {
+func AddOp(c *Config) error {
 	var user string
 	fmt.Print("Username: ")
 	fmt.Scanln(&user)
 
 	pass, err := getPassFromTerm()
-	if err != nil {
-		return err
-	}
-
-	c, err := loadConfig(path)
 	if err != nil {
 		return err
 	}
@@ -76,5 +66,5 @@ func AddOp(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, out, 0664)
+	return ioutil.WriteFile(c.path, out, 0664)
 }
