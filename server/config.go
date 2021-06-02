@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -18,7 +19,7 @@ type Config struct {
 
 	// The name of this server
 	Name     string `json:"name"`
-	Password string `json:"password"`
+	Password []byte `json:"password"`
 
 	Port string `json:"port"`
 	TLS  struct {
@@ -41,7 +42,7 @@ type Config struct {
 	motd []string
 
 	// A map where operator names are the keys and pass is the value
-	Ops map[string]string `json:"ops"`
+	Ops map[string][]byte `json:"ops"`
 }
 
 // Unmarshal's the server's config file
@@ -53,6 +54,16 @@ func loadConfig(file string) (*Config, error) {
 
 	c := Config{path: file}
 	err = json.Unmarshal(b, &c)
+	if err != nil {
+		return nil, err
+	}
+
+	// convert []byte back from base64
+	base64.StdEncoding.Decode(c.Password, c.Password)
+	for k := range c.Ops {
+		base64.StdEncoding.Decode(c.Ops[k], c.Ops[k])
+	}
+
 	return &c, err
 }
 

@@ -31,7 +31,7 @@ type Client struct {
 
 	Mode              Mode
 	AwayMsg           string
-	ServerPassAttempt string
+	ServerPassAttempt []byte
 	RegSuspended      bool
 
 	// Represents a set of IRCv3 capabilities

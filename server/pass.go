@@ -40,7 +40,7 @@ func SetPass(c *Config) error {
 		return err
 	}
 
-	c.Password = string(pass)
+	c.Password = pass
 	out, err := json.MarshalIndent(c, "", "\t")
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func AddOp(c *Config) error {
 		return err
 	}
 
-	c.Ops[user] = string(pass)
+	c.Ops[user] = pass
 	out, err := json.MarshalIndent(c, "", "\t")
 	if err != nil {
 		return err
