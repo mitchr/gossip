@@ -60,6 +60,9 @@ func AddOp(c *Config) error {
 		return err
 	}
 
+	if c.Ops == nil {
+		c.Ops = make(map[string][]byte)
+	}
 	c.Ops[user] = pass
 	out, err := json.MarshalIndent(c, "", "\t")
 	if err != nil {
