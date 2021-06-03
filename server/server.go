@@ -126,7 +126,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	s.unknowns++
 	s.unknownLock.Unlock()
 
-	// featch a message from the client, parse it, then send it to the
+	// fetch a message from the client, parse it, then send it to the
 	// server's message queue. This will be implicitly closed when
 	// clientCtx is canceled.
 	go func() {
