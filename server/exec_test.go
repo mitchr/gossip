@@ -290,7 +290,7 @@ func TestChannelCreation(t *testing.T) {
 		r2.ReadBytes('\n')
 		r1.ReadBytes('\n') // alice reading bob's join msg
 
-		assertResponse(resp, fmt.Sprintf(":%s JOIN #local\r\n", s.clients["bob"]), t)
+		assertResponse(resp, ":bob!bob@localhost JOIN #local\r\n", t)
 	})
 
 	t.Run("TestChannelPART", func(t *testing.T) {
@@ -298,14 +298,14 @@ func TestChannelCreation(t *testing.T) {
 		c1.Write([]byte("PART #local :Goodbye\r\n"))
 		aliceResp, _ := r1.ReadBytes('\n')
 		bobResp, _ := r2.ReadBytes('\n')
-		assertResponse(aliceResp, fmt.Sprintf(":%s PART #local :Goodbye\r\n", s.clients["alice"]), t)
-		assertResponse(bobResp, fmt.Sprintf(":%s PART #local :Goodbye\r\n", s.clients["alice"]), t)
+		assertResponse(aliceResp, ":alice!alice@localhost PART #local :Goodbye\r\n", t)
+		assertResponse(bobResp, ":alice!alice@localhost PART #local :Goodbye\r\n", t)
 	})
 
 	t.Run("TestChannelDestruction", func(t *testing.T) {
 		c2.Write([]byte("PART #local\r\n"))
 		response, _ := r2.ReadBytes('\n')
-		assertResponse(response, fmt.Sprintf(":%s PART #local\r\n", s.clients["bob"]), t)
+		assertResponse(response, ":bob!bob@localhost PART #local\r\n", t)
 
 		if !poll(&s.channels, 0) {
 			t.Error("Could not destroy empty channel on PART")
@@ -353,9 +353,9 @@ func TestChannelKeys(t *testing.T) {
 	r.ReadBytes('\n')
 	join3, _ := r.ReadBytes('\n')
 
-	assertResponse(join1, fmt.Sprintf(":%s JOIN #1\r\n", s.clients["alice"]), t)
-	assertResponse(join2, fmt.Sprintf(":%s JOIN #2\r\n", s.clients["alice"]), t)
-	assertResponse(join3, fmt.Sprintf(":%s JOIN #3\r\n", s.clients["alice"]), t)
+	assertResponse(join1, ":alice!alice@localhost JOIN #1\r\n", t)
+	assertResponse(join2, ":alice!alice@localhost JOIN #2\r\n", t)
+	assertResponse(join3, ":alice!alice@localhost JOIN #3\r\n", t)
 
 	t.Run("TestBadChannelKey", func(t *testing.T) {
 		c2, r2 := connectAndRegister("dan", "Dan Smith")
@@ -423,8 +423,8 @@ func TestKICK(t *testing.T) {
 	bobKick, _ := r2.ReadBytes('\n')
 
 	// check received correct response
-	assertResponse(aliceKick, fmt.Sprintf(":%s KICK #local bob :alice\r\n", s.clients["alice"]), t)
-	assertResponse(bobKick, fmt.Sprintf(":%s KICK #local bob :alice\r\n", s.clients["alice"]), t)
+	assertResponse(aliceKick, ":alice!alice@localhost KICK #local bob :alice\r\n", t)
+	assertResponse(bobKick, ":alice!alice@localhost KICK #local bob :alice\r\n", t)
 
 	// check actually bob removed from channel
 	if !poll(&s.channels["#local"].Members, 1) {
@@ -623,7 +623,7 @@ func TestWHO(t *testing.T) {
 		c1.Write([]byte("WHO\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice %s %s alice H :0 Alice Smith\r\n", s.Name, s.clients["alice"].Host, s.Name), t)
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice localhost %s alice H :0 Alice Smith\r\n", s.Name, s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.Name), t)
 	})
 }
@@ -796,13 +796,13 @@ func TestPRIVMSG(t *testing.T) {
 		// alice sends message to bob
 		c1.Write([]byte("PRIVMSG bob :hello\r\n"))
 		msgResp, _ := r2.ReadBytes('\n')
-		assertResponse(msgResp, fmt.Sprintf(":%s PRIVMSG bob :hello\r\n", s.clients["alice"]), t)
+		assertResponse(msgResp, ":alice!alice@localhost PRIVMSG bob :hello\r\n", t)
 	})
 	t.Run("TestChannelPRIVMSG", func(t *testing.T) {
 		// message sent to channel should broadcast to all members
 		c1.Write([]byte("PRIVMSG #local :hello\r\n"))
 		resp, _ := r2.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hello\r\n", s.clients["alice"]), t)
+		assertResponse(resp, ":alice!alice@localhost PRIVMSG #local :hello\r\n", t)
 	})
 	t.Run("TestMultipleTargets", func(t *testing.T) {
 		c3, _ := connectAndRegister("c", "c")
@@ -812,8 +812,8 @@ func TestPRIVMSG(t *testing.T) {
 		r2.ReadBytes('\n') // skip joinmsg
 		chanResp, _ := r2.ReadBytes('\n')
 		privmsgResp, _ := r2.ReadBytes('\n')
-		assertResponse(chanResp, fmt.Sprintf(":%s PRIVMSG #local :From c\r\n", s.clients["c"]), t)
-		assertResponse(privmsgResp, fmt.Sprintf(":%s PRIVMSG bob :From c\r\n", s.clients["c"]), t)
+		assertResponse(chanResp, ":c!c@localhost PRIVMSG #local :From c\r\n", t)
+		assertResponse(privmsgResp, ":c!c@localhost PRIVMSG bob :From c\r\n", t)
 	})
 }
 

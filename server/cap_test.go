@@ -134,7 +134,7 @@ func TestTAGMSG(t *testing.T) {
 
 	c1.Write([]byte("@+aaa=b TAGMSG b\r\n"))
 	resp, _ := r2.ReadBytes('\n')
-	assertResponse(resp, fmt.Sprintf("@+aaa=b :%s TAGMSG :b\r\n", s.clients["a"]), t)
+	assertResponse(resp, "@+aaa=b :a!a@localhost TAGMSG :b\r\n", t)
 }
 
 func TestMessageTags(t *testing.T) {
@@ -155,7 +155,7 @@ func TestMessageTags(t *testing.T) {
 	t.Run("TestSendToClientWithoutMessageTagCap", func(t *testing.T) {
 		c1.Write([]byte("@+testTag PRIVMSG b :hey I attached a tag\r\n"))
 		resp, _ := r2.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s PRIVMSG b :hey I attached a tag\r\n", s.clients["a"]), t)
+		assertResponse(resp, ":a!a@localhost PRIVMSG b :hey I attached a tag\r\n", t)
 	})
 
 	t.Run("TestSendToClientWithMessageTagCap", func(t *testing.T) {
@@ -164,6 +164,6 @@ func TestMessageTags(t *testing.T) {
 
 		c1.Write([]byte("@+testTag PRIVMSG b :hey I attached a tag\r\n"))
 		resp, _ := r2.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf("@+testTag :%s PRIVMSG b :hey I attached a tag\r\n", s.clients["a"]), t)
+		assertResponse(resp, "@+testTag :a!a@localhost PRIVMSG b :hey I attached a tag\r\n", t)
 	})
 }

@@ -61,7 +61,7 @@ func TestTLS(t *testing.T) {
 	t.Run("TestRegisterFromTLSClient", func(t *testing.T) {
 		c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice Smith\r\n"))
 		welcome, _ := bufio.NewReader(c).ReadBytes('\n')
-		assertResponse(welcome, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, s.clients["alice"]), t)
+		assertResponse(welcome, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network alice!alice@localhost\r\n", s.Name, s.Network), t)
 	})
 
 	t.Run("TestPRIVMSGFromInsecureToSecure", func(t *testing.T) {
@@ -70,7 +70,7 @@ func TestTLS(t *testing.T) {
 
 		c.Write([]byte("PRIVMSG bob :hey\r\n"))
 		msg, _ := r2.ReadBytes('\n')
-		assertResponse(msg, fmt.Sprintf(":%s PRIVMSG bob :hey\r\n", s.clients["alice"]), t)
+		assertResponse(msg, ":alice!alice@localhost PRIVMSG bob :hey\r\n", t)
 	})
 }
 
@@ -115,7 +115,7 @@ func TestWriteMultiline(t *testing.T) {
 
 	c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice\r\n"))
 	resp, _ := bufio.NewReader(c).ReadBytes('\n')
-	assertResponse(resp, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, s.clients["alice"]), t)
+	assertResponse(resp, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network alice!alice@localhost\r\n", s.Name, s.Network), t)
 }
 
 func TestCaseInsensitivity(t *testing.T) {
@@ -147,7 +147,7 @@ func TestCaseInsensitivity(t *testing.T) {
 		r1.ReadBytes('\n')
 
 		resp, _ := r2.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s JOIN #test\r\n", s.clients["bob"]), t)
+		assertResponse(resp, ":bob!bob@localhost JOIN #test\r\n", t)
 	})
 
 	t.Run("TestCommandCaseInsensitive", func(t *testing.T) {
