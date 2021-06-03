@@ -716,8 +716,10 @@ func TestModerated(t *testing.T) {
 	c1.Write([]byte("JOIN #l\r\n"))
 	c1.Write([]byte("MODE #l +m\r\n")) // add moderated
 	r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #l\r\n"))
 	c2.Write([]byte("PRIVMSG #l :hey\r\n"))
+	r1.ReadBytes('\n')
 	r2.ReadBytes('\n')
 	r2.ReadBytes('\n')
 	resp, _ := r2.ReadBytes('\n')
@@ -827,14 +829,20 @@ func TestPRIVMSG(t *testing.T) {
 		assertResponse(resp, ":alice!alice@localhost PRIVMSG #local :hello\r\n", t)
 	})
 	t.Run("TestMultipleTargets", func(t *testing.T) {
-		c3, _ := connectAndRegister("c", "c")
+		c3, r3 := connectAndRegister("c", "c")
 		defer c3.Close()
 		c3.Write([]byte("JOIN #local\r\n"))
+		// skip joinmsgs
+		r1.ReadBytes('\n')
+		r2.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n') // namereply
 		c3.Write([]byte("PRIVMSG #local,bob :From c\r\n"))
-		r2.ReadBytes('\n') // skip joinmsg
-		chanResp, _ := r2.ReadBytes('\n')
+		chanResp1, _ := r1.ReadBytes('\n')
+		chanResp2, _ := r2.ReadBytes('\n')
 		privmsgResp, _ := r2.ReadBytes('\n')
-		assertResponse(chanResp, ":c!c@localhost PRIVMSG #local :From c\r\n", t)
+		assertResponse(chanResp1, ":c!c@localhost PRIVMSG #local :From c\r\n", t)
+		assertResponse(chanResp2, ":c!c@localhost PRIVMSG #local :From c\r\n", t)
 		assertResponse(privmsgResp, ":c!c@localhost PRIVMSG bob :From c\r\n", t)
 	})
 }
