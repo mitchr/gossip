@@ -113,7 +113,7 @@ func (c *Channel) Write(b interface{}) (int, error) {
 		written, err := v.Write(b)
 		if err != nil {
 			errStrings = append(errStrings, err.Error())
-			log.Println(err)
+			log.Println(b.(string), err)
 		}
 		n += written
 	}
