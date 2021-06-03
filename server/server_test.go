@@ -9,12 +9,17 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/big"
 	"net"
 	"os"
 	"testing"
 	"time"
 )
+
+func init() {
+	log.SetFlags(log.Lshortfile)
+}
 
 func TestTLS(t *testing.T) {
 	err := generateX509()
