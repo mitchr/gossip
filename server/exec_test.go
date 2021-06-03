@@ -765,8 +765,6 @@ func TestInvite(t *testing.T) {
 
 	c1.Write([]byte("JOIN #local\r\n"))
 	c1.Write([]byte("MODE #local +i\r\n"))
-	c1.Write([]byte("MODE #local\r\n"))
-	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
 	resp, _ := r2.ReadBytes('\n')
@@ -789,7 +787,6 @@ func TestBan(t *testing.T) {
 
 	c1.Write([]byte("JOIN #local\r\n"))
 	c1.Write([]byte("MODE #local +b bob!*@*\r\n")) // ban all nicks named bob
-	c1.Write([]byte("MODE #local\r\n"))
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
