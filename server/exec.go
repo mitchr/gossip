@@ -751,7 +751,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 	// server before being relayed with any message to another client."
 	msg.TrimNonClientTags()
 	msg.Nick = c.Nick
-	msg.Host = c.Host.String()
+	msg.Host = c.Host
 	msg.User = c.User
 
 	skipReplies := false

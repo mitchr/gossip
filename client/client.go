@@ -19,7 +19,7 @@ type Client struct {
 	Nick     string
 	User     string
 	Realname string
-	Host     net.Addr
+	Host     string
 
 	// uxin timestamp when client first connects
 	JoinTime int64
@@ -48,7 +48,6 @@ func New(conn net.Conn) *Client {
 	now := time.Now()
 	c := &Client{
 		Conn:     conn,
-		Host:     conn.RemoteAddr(),
 		JoinTime: now.Unix(),
 		Idle:     now,
 
@@ -56,6 +55,12 @@ func New(conn net.Conn) *Client {
 		maxMsgSize: 512,
 
 		Caps: make(map[cap.Capability]bool),
+	}
+
+	c.Host, _, _ = net.SplitHostPort(conn.RemoteAddr().String())
+	names, err := net.LookupAddr(c.Host)
+	if err == nil {
+		c.Host = names[0]
 	}
 
 	// give a small window for client to register before kicking them off
@@ -74,7 +79,7 @@ func New(conn net.Conn) *Client {
 func (c Client) String() string {
 	if c.User != "" {
 		return fmt.Sprintf("%s!%s@%s", c.Nick, c.User, c.Host)
-	} else if c.Host.String() != "" {
+	} else if c.Host != "" {
 		return fmt.Sprintf("%s@%s", c.Nick, c.Host)
 	} else if c.Nick != "" {
 		return c.Nick
