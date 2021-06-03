@@ -15,6 +15,10 @@ import (
 	"github.com/mitchr/gossip/scan/msg"
 )
 
+// freeze is used for testing. when locked, message execution is paused
+// allowing a test to read the state of the server exclusively
+var freeze sync.Mutex
+
 type Server struct {
 	*Config
 
@@ -85,7 +89,9 @@ func (s *Server) Serve() {
 	// grabs messages from the queue and executes them in sequential order
 	go func() {
 		for msg, ok := <-s.msgQueue; ok; msg, ok = <-s.msgQueue {
+			freeze.Lock()
 			msg()
+			freeze.Unlock()
 		}
 	}()
 
