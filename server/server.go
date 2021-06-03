@@ -126,9 +126,9 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	s.unknowns++
 	s.unknownLock.Unlock()
 
-	// continuously try to read from the client. this will implicitly end
-	// when c.Cancel is called because the client will be closed
-	input := make(chan []byte)
+	// featch a message from the client, parse it, then send it to the
+	// server's message queue. This will be implicitly closed when
+	// clientCtx is canceled.
 	go func() {
 		for {
 			// read until encountering a newline; the parser checks that \r exists
@@ -145,38 +145,33 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				c.Cancel()
 				return
 			}
-			input <- msgBuf
-		}
-	}()
 
-	for {
-		select {
-		case <-clientCtx.Done():
-			s.msgQueue <- func() {
-				defer s.wg.Done()
-
-				if !c.Is(client.Registered) {
-					s.unknownLock.Lock()
-					s.unknowns--
-					s.unknownLock.Unlock()
-					c.Close()
-				} else {
-					// client was kicked off without first sending a QUIT
-					// command, so we need to remove them from all the channels they
-					// are still connected to
-					QUIT(s, c, &msg.Message{Command: "PART", Params: []string{"Client left without saying goodbye :("}})
-				}
-			}
-			return
-		case msgBuf := <-input:
 			msg := msg.Parse(msgBuf)
 			if s.Debug {
 				log.Println(msg)
 			}
+
 			// implicitly ignore all nil messages
 			if msg != nil {
 				s.msgQueue <- func() { s.executeMessage(msg, c) }
 			}
+		}
+	}()
+
+	<-clientCtx.Done()
+	s.msgQueue <- func() {
+		defer s.wg.Done()
+
+		if !c.Is(client.Registered) {
+			s.unknownLock.Lock()
+			s.unknowns--
+			s.unknownLock.Unlock()
+			c.Close()
+		} else {
+			// client was kicked off without first sending a QUIT
+			// command, so we need to remove them from all the channels they
+			// are still connected to
+			QUIT(s, c, &msg.Message{Command: "PART", Params: []string{"Client left without saying goodbye :("}})
 		}
 	}
 }
