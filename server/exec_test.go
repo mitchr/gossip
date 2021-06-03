@@ -233,12 +233,14 @@ func TestQUIT(t *testing.T) {
 		quitResp, _ := r.ReadBytes('\n')
 		assertResponse(quitResp, "ERROR :alice quit\r\n", t)
 
-		if !poll(&s.clients, 0) {
+		freeze.Lock()
+		if len(s.clients) != 0 {
 			t.Error("client could not quit")
 		}
+		freeze.Unlock()
 	})
 
-	t.Run("TestReason", func(t *testing.T) {
+	t.Run("TestReasonInChannel", func(t *testing.T) {
 		c1, r1 := connectAndRegister("bob", "Bob Smith")
 		defer c1.Close()
 		c2, r2 := connectAndRegister("dan", "Dan Jones")
@@ -260,9 +262,11 @@ func TestQUIT(t *testing.T) {
 		danReceivesReason, _ := r2.ReadBytes('\n')
 		assertResponse(danReceivesReason, fmt.Sprintf(":%s QUIT :Done for the day\r\n", bobPrefix), t)
 
-		if !poll(&s.clients, 1) {
+		freeze.Lock()
+		if len(s.clients) != 1 {
 			t.Error("client could not quit")
 		}
+		freeze.Unlock()
 	})
 }
 

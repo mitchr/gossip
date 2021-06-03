@@ -175,8 +175,9 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 
-	s.ERROR(c, c.Nick+" quit")
-	c.Cancel()
+	s.ERROR(c, fmt.Sprintf("%s quit", c.Nick))
+	c.Close()
+	s.DeleteClient(c.Nick)
 }
 
 func (s *Server) endRegistration(c *client.Client) {
