@@ -694,6 +694,7 @@ func TestChanFull(t *testing.T) {
 	c1.Write([]byte("JOIN #l\r\n"))
 	c1.Write([]byte("MODE #l +l 0\r\n"))
 	r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #l\r\n"))
 	resp, _ := r2.ReadBytes('\n')
 
