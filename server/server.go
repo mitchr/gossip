@@ -89,7 +89,7 @@ func (s *Server) Serve() {
 
 	// grabs messages from the queue and executes them in sequential order
 	go func() {
-		for msg, ok := <-s.msgQueue; ok; msg, ok = <-s.msgQueue {
+		for msg := range s.msgQueue {
 			freeze.Lock()
 			msg()
 			freeze.Unlock()
