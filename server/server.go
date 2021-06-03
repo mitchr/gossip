@@ -33,7 +33,8 @@ type Server struct {
 
 	// a running count of connected users who are unregistered
 	// (used for LUSER replies)
-	unknowns int
+	unknownLock sync.Mutex
+	unknowns    int
 
 	// calling this cancel also cancels all the child client's contexts
 	cancel   context.CancelFunc
@@ -121,7 +122,9 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	clientCtx, cancel := context.WithCancel(ctx)
 	c.Cancel = cancel
 
+	s.unknownLock.Lock()
 	s.unknowns++
+	s.unknownLock.Unlock()
 
 	// continuously try to read from the client. this will implicitly end
 	// when c.Cancel is called because the client will be closed
@@ -151,7 +154,9 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		case <-clientCtx.Done():
 			s.msgQueue <- func() {
 				if !c.Is(client.Registered) {
+					s.unknownLock.Lock()
 					s.unknowns--
+					s.unknownLock.Unlock()
 				} else {
 					// client may have been kicked off without first sending a QUIT
 					// command, so we need to remove them from all the channels they

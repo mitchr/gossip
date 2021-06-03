@@ -198,7 +198,9 @@ func (s *Server) endRegistration(c *client.Client) {
 
 	c.Mode |= client.Registered
 	s.SetClient(c.Nick, c)
+	s.unknownLock.Lock()
 	s.unknowns--
+	s.unknownLock.Unlock()
 
 	// send RPL_WELCOME and friends in acceptance
 	s.numericReply(c, RPL_WELCOME, s.Network, c)
@@ -519,7 +521,9 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 
 	s.numericReply(c, RPL_LUSERCLIENT, len(s.clients), invis, 1)
 	s.numericReply(c, RPL_LUSEROP, ops)
+	s.unknownLock.Lock()
 	s.numericReply(c, RPL_LUSERUNKNOWN, s.unknowns)
+	s.unknownLock.Unlock()
 	s.numericReply(c, RPL_LUSERCHANNELS, len(s.channels))
 	s.numericReply(c, RPL_LUSERME, len(s.clients), 1)
 }
