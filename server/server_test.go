@@ -14,9 +14,6 @@ import (
 	"os"
 	"testing"
 	"time"
-
-	"github.com/mitchr/gossip/channel"
-	"github.com/mitchr/gossip/client"
 )
 
 func TestTLS(t *testing.T) {
@@ -180,42 +177,6 @@ func connectAndRegister(nick, realname string) (net.Conn, *bufio.Reader) {
 func assertResponse(resp []byte, eq string, t *testing.T) {
 	if string(resp) != eq {
 		t.Error("expected", eq, "got", string(resp))
-	}
-}
-
-func poll(s interface{}, eq interface{}) bool {
-	c := make(chan bool)
-
-	// start goroutine that continually checks pointer reference against
-	// eq, and signals channel if true
-	go func() {
-		for {
-			switch v := s.(type) {
-			case *map[string]*client.Client:
-				if len(*v) == eq {
-					c <- true
-					return
-				}
-			case *map[string]*channel.Member:
-				if len(*v) == eq {
-					c <- true
-					return
-				}
-			case *map[string]*channel.Channel:
-				if len(*v) == eq {
-					c <- true
-					return
-				}
-			}
-		}
-	}()
-
-	// returns true if c returns a value before 500 miliseconds have elapsed
-	select {
-	case <-c:
-		return true
-	case <-time.After(time.Millisecond * 500):
-		return false
 	}
 }
 
