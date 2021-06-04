@@ -742,7 +742,8 @@ func TestNoExternal(t *testing.T) {
 	defer c2.Close()
 
 	c1.Write([]byte("JOIN #l\r\n"))
-	c1.Write([]byte("MODE #l +n\r\n")) // add moderated
+	c1.Write([]byte("MODE #l +n\r\n"))
+	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	c2.Write([]byte("PRIVMSG #l :hey\r\n"))
 	resp, _ := r2.ReadBytes('\n')
@@ -765,6 +766,7 @@ func TestInvite(t *testing.T) {
 
 	c1.Write([]byte("JOIN #local\r\n"))
 	c1.Write([]byte("MODE #local +i\r\n"))
+	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
 	resp, _ := r2.ReadBytes('\n')
