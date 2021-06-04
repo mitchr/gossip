@@ -57,7 +57,7 @@ func New(conn net.Conn) *Client {
 		Caps: make(map[cap.Capability]bool),
 	}
 
-	c.Host, _, _ = net.SplitHostPort(conn.RemoteAddr().String())
+	c.Host, _, _ = net.SplitHostPort(c.RemoteAddr().String())
 	names, err := net.LookupAddr(c.Host)
 	if err == nil {
 		c.Host = names[0]
