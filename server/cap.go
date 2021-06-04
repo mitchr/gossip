@@ -109,7 +109,7 @@ func CAP(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	subcom, ok := subs[m.Params[0]]
+	subcom, ok := subs[strings.ToUpper(m.Params[0])]
 	if !ok {
 		s.numericReply(c, ERR_INVALIDCAPCMD, c.Id(), "CAP "+m.Params[0])
 		return
