@@ -288,8 +288,11 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 
 			newChan := channel.New(chanName, chanChar)
 			s.SetChannel(chans[i], newChan)
-			newChan.SetMember(c.Nick, &channel.Member{c, string(channel.Founder)})
+			newChan.SetMember(c.Nick, &channel.Member{Client: c, Prefix: string(channel.Founder)})
 			c.Write(fmt.Sprintf(":%s JOIN %s", c, newChan))
+
+			sym, members := constructNAMREPLY(newChan, ok)
+			s.numericReply(c, RPL_NAMREPLY, sym, newChan, members)
 		}
 	}
 }
