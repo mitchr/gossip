@@ -146,6 +146,7 @@ func TestCaseInsensitivity(t *testing.T) {
 		c1.Write([]byte("JOIN #test\r\n"))
 		r1.ReadBytes('\n')
 		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
 		c2.Write([]byte("JOIN #tEsT\r\n"))
 		r1.ReadBytes('\n')
 

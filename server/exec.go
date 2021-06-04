@@ -254,6 +254,8 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 		copy(keys, k)
 	}
 
+	nameMsg := *m
+	nameMsg.Command = "NAMES"
 	for i := range chans {
 		if ch, ok := s.GetChannel(chans[i]); ok { // channel already exists
 			err := ch.Admit(c, keys[i])
@@ -275,8 +277,8 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 				// only send topic if it exists
 				TOPIC(s, c, &msg.Message{Params: []string{ch.String()}})
 			}
-			sym, members := constructNAMREPLY(ch, ok)
-			s.numericReply(c, RPL_NAMREPLY, sym, ch, members)
+			nameMsg.Params = []string{ch.Name}
+			NAMES(s, c, &nameMsg)
 		} else { // create new channel
 			chanChar := channel.ChanType(chans[i][0])
 			chanName := chans[i][1:]
@@ -291,8 +293,8 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			newChan.SetMember(c.Nick, &channel.Member{Client: c, Prefix: string(channel.Founder)})
 			c.Write(fmt.Sprintf(":%s JOIN %s", c, newChan))
 
-			sym, members := constructNAMREPLY(newChan, ok)
-			s.numericReply(c, RPL_NAMREPLY, sym, newChan, members)
+			nameMsg.Params = []string{chans[i]}
+			NAMES(s, c, &nameMsg)
 		}
 	}
 }

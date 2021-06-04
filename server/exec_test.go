@@ -246,6 +246,7 @@ func TestQUIT(t *testing.T) {
 		c1.Write([]byte("JOIN #l\r\n"))
 		r1.ReadBytes('\n')
 		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
 		c2.Write([]byte("JOIN #l\r\n"))
 		r1.ReadBytes('\n')
 		r2.ReadBytes('\n')
@@ -284,9 +285,11 @@ func TestChannelCreation(t *testing.T) {
 	c1.Write([]byte("JOIN #local\r\n"))
 	joinResp, _ := r1.ReadBytes('\n')
 	namreply, _ := r1.ReadBytes('\n')
+	endNames, _ := r1.ReadBytes('\n')
 
 	assertResponse(joinResp, ":alice!alice@localhost JOIN #local\r\n", t)
 	assertResponse(namreply, fmt.Sprintf(":%s 353 alice = #local :~alice\r\n", s.Name), t)
+	assertResponse(endNames, fmt.Sprintf(":%s 366 alice #local :End of /NAMES list\r\n", s.Name), t)
 
 	freeze.Lock()
 	if len(s.channels) != 1 {
@@ -340,6 +343,9 @@ func TestChannelCreation(t *testing.T) {
 
 	t.Run("TestJOIN0", func(t *testing.T) {
 		c1.Write([]byte("JOIN #chan1\r\nJOIN #chan2\r\nJOIN #chan3\r\n"))
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
 		r1.ReadBytes('\n')
 		r1.ReadBytes('\n')
 		r1.ReadBytes('\n')
@@ -410,6 +416,7 @@ func TestTOPIC(t *testing.T) {
 	c.Write([]byte("JOIN &test\r\n"))
 	r.ReadBytes('\n')
 	r.ReadBytes('\n')
+	r.ReadBytes('\n')
 
 	c.Write([]byte("TOPIC &test\r\n"))
 	c.Write([]byte("TOPIC &test :This is a test\r\n"))
@@ -445,6 +452,7 @@ func TestKICK(t *testing.T) {
 	c1.Write([]byte("JOIN #local\r\n"))
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
 	r1.ReadBytes('\n')
 	r2.ReadBytes('\n')
@@ -478,6 +486,7 @@ func TestNAMES(t *testing.T) {
 	c.Write([]byte("JOIN &test\r\n"))
 	r.ReadBytes('\n')
 	r.ReadBytes('\n')
+	r.ReadBytes('\n')
 	c.Write([]byte("NAMES &test\r\n"))
 	namreply, _ := r.ReadBytes('\n')
 	end, _ := r.ReadBytes('\n')
@@ -501,6 +510,7 @@ func TestLIST(t *testing.T) {
 		c.Write([]byte("JOIN &test\r\n"))
 		r.ReadBytes('\n')
 		r.ReadBytes('\n')
+		r.ReadBytes('\n')
 		c.Write([]byte("LIST\r\n"))
 		listReply, _ := r.ReadBytes('\n')
 		end, _ := r.ReadBytes('\n')
@@ -511,6 +521,7 @@ func TestLIST(t *testing.T) {
 
 	t.Run("TestParam", func(t *testing.T) {
 		c.Write([]byte("JOIN &params\r\n"))
+		r.ReadBytes('\n')
 		r.ReadBytes('\n')
 		r.ReadBytes('\n')
 		c.Write([]byte("LIST &params\r\n"))
@@ -536,6 +547,7 @@ func TestMODE(t *testing.T) {
 	defer c2.Close()
 
 	c1.Write([]byte("JOIN #local\r\n"))
+	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 
@@ -710,6 +722,7 @@ func TestChanFull(t *testing.T) {
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #l\r\n"))
 	resp, _ := r2.ReadBytes('\n')
 
@@ -731,6 +744,7 @@ func TestModerated(t *testing.T) {
 
 	c1.Write([]byte("JOIN #l\r\n"))
 	c1.Write([]byte("MODE #l +m\r\n")) // add moderated
+	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
@@ -762,6 +776,7 @@ func TestNoExternal(t *testing.T) {
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
 	c2.Write([]byte("PRIVMSG #l :hey\r\n"))
 	resp, _ := r2.ReadBytes('\n')
 
@@ -783,6 +798,7 @@ func TestInvite(t *testing.T) {
 
 	c1.Write([]byte("JOIN #local\r\n"))
 	c1.Write([]byte("MODE #local +i\r\n"))
+	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
@@ -810,6 +826,7 @@ func TestBan(t *testing.T) {
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
 	resp, _ := r2.ReadBytes('\n')
 
@@ -829,6 +846,7 @@ func TestPRIVMSG(t *testing.T) {
 	c2, r2 := connectAndRegister("bob", "Bob Smith")
 	defer c2.Close()
 	c1.Write([]byte("JOIN #local\r\n"))
+	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
