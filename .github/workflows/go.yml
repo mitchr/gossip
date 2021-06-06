@@ -1,4 +1,4 @@
-name: Go
+name: build
 
 on:
   push:
@@ -23,3 +23,6 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+    
+    - name: Race
+      run: go test ./... -race

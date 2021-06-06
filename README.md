@@ -1,4 +1,4 @@
-# `gossip` ![build status](https://github.com/mitchr/gossip/workflows/Go/badge.svg)
+# `gossip` ![build status](https://github.com/mitchr/gossip/actions/workflows/go.yml/badge.svg)
 `gossip` is an IRC server.
 
 ## Install
