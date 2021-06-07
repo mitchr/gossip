@@ -94,10 +94,9 @@ func key(p *scan.Parser) (vendor, key string) {
 	unusedDot := false
 	for {
 		k := p.Peek()
-		r := rune(p.Peek().Value[0])
 
-		if !isKeyname(r) {
-			if k.Value[0] == '.' { // found a DNS name
+		if !isKeyname(k.Value) {
+			if k.Value == '.' { // found a DNS name
 				unusedDot = true
 			} else if k.TokenType == fwdSlash { // vendor token is finished
 				unusedDot = false
@@ -113,7 +112,7 @@ func key(p *scan.Parser) (vendor, key string) {
 				return
 			}
 		}
-		name += k.Value
+		name += string(k.Value)
 		p.Next()
 	}
 }
@@ -123,10 +122,10 @@ func escapedVal(p *scan.Parser) string {
 	val := ""
 	for {
 		v := p.Peek()
-		if r := rune(v.Value[0]); !isEscaped(r) {
+		if !isEscaped(v.Value) {
 			break
 		}
-		val += v.Value
+		val += string(v.Value)
 		p.Next()
 	}
 	return val
@@ -146,7 +145,7 @@ func source(p *scan.Parser) (nick, user, host string) {
 			break
 		}
 
-		nick += n.Value
+		nick += string(n.Value)
 		p.Next()
 	}
 	// get user
@@ -158,7 +157,7 @@ func source(p *scan.Parser) (nick, user, host string) {
 				break
 			}
 
-			user += u.Value
+			user += string(u.Value)
 			p.Next()
 		}
 	}
@@ -171,7 +170,7 @@ func source(p *scan.Parser) (nick, user, host string) {
 				break
 			}
 
-			host += h.Value
+			host += string(h.Value)
 			p.Next()
 		}
 	}
@@ -182,8 +181,8 @@ func source(p *scan.Parser) (nick, user, host string) {
 // 1*letter / 3digit
 func command(p *scan.Parser) string {
 	c := ""
-	for scan.IsLetter(rune(p.Peek().Value[0])) {
-		c += p.Next().Value
+	for scan.IsLetter(p.Peek().Value) {
+		c += string(p.Next().Value)
 	}
 	return c
 }
@@ -211,7 +210,7 @@ func params(p *scan.Parser) (m []string, trailingSet bool) {
 // nospcrlfcl *( ":" / nospcrlfcl )
 func middle(p *scan.Parser) string {
 	// should expect a first nospcrlfcl
-	if !isNospcrlfcl(p.Peek().Value[0]) {
+	if !isNospcrlfcl(p.Peek().Value) {
 		return ""
 	}
 	m := nospcrlfcl(p)
@@ -219,9 +218,9 @@ func middle(p *scan.Parser) string {
 	for {
 		t := p.Peek()
 		if t.TokenType == colon {
-			m += t.Value
+			m += string(t.Value)
 			p.Next()
-		} else if isNospcrlfcl(t.Value[0]) {
+		} else if isNospcrlfcl(t.Value) {
 			m += nospcrlfcl(p)
 		} else {
 			break
@@ -236,11 +235,11 @@ func trailing(p *scan.Parser) string {
 	for {
 		t := p.Peek()
 		if t.TokenType == colon || t.TokenType == space {
-			m += t.Value
+			m += string(t.Value)
 			p.Next()
 		} else if t.TokenType == scan.EOF {
 			break
-		} else if isNospcrlfcl(t.Value[0]) {
+		} else if isNospcrlfcl(t.Value) {
 			m += nospcrlfcl(p)
 		} else {
 			break
@@ -254,8 +253,8 @@ func nospcrlfcl(p *scan.Parser) string {
 	tok := ""
 	for {
 		s := p.Peek()
-		if s.TokenType != scan.EOF && isNospcrlfcl(s.Value[0]) {
-			tok += s.Value
+		if s.TokenType != scan.EOF && isNospcrlfcl(s.Value) {
+			tok += string(s.Value)
 			p.Next()
 		} else {
 			break
@@ -265,9 +264,8 @@ func nospcrlfcl(p *scan.Parser) string {
 }
 
 // is not space, cr, lf, or colon (or NULL)
-func isNospcrlfcl(b byte) bool {
-	// use <= 0 to account for NUL and eof at same time
-	return b != 0 && b != '\r' && b != '\n' && b != ':' && b != ' '
+func isNospcrlfcl(r rune) bool {
+	return r != 0 && r != '\r' && r != '\n' && r != ':' && r != ' '
 }
 
 // <non-empty sequence of ascii letters, digits, hyphens ('-')>

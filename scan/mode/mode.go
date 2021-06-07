@@ -66,7 +66,7 @@ func modeset(p *scan.Parser) ([]rune, scan.TokenType) {
 	for {
 		if p.Peek().TokenType == modechar {
 			r := p.Next()
-			set = append(set, rune(r.Value[0]))
+			set = append(set, r.Value)
 		} else {
 			break
 		}

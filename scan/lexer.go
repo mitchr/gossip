@@ -4,7 +4,9 @@
 
 package scan
 
-import "unicode/utf8"
+import (
+	"unicode/utf8"
+)
 
 type TokenType int
 
@@ -14,8 +16,10 @@ const (
 
 type Token struct {
 	TokenType TokenType
-	Value     string
+	Value     rune
 }
+
+func (t Token) String() string { return string(t.Value) }
 
 type State func(*Lexer) State
 
@@ -55,7 +59,8 @@ func (l *Lexer) Ignore() {
 }
 
 func (l *Lexer) Push(t TokenType) {
-	l.tokens = append(l.tokens, Token{t, string(l.input[l.start:l.position])})
+	r, _ := utf8.DecodeRune(l.input[l.start:])
+	l.tokens = append(l.tokens, Token{t, r})
 	l.start = l.position
 }
 
