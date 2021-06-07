@@ -164,6 +164,20 @@ func TestCaseInsensitivity(t *testing.T) {
 	})
 }
 
+func TestUnicodeNICK(t *testing.T) {
+	s, err := New(&Config{Name: "gossip", Port: ":6667", Network: "cafe"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, _ := net.Dial("tcp", "localhost:6667")
+	c.Write([]byte("NICK 🛩️\r\nUSER airplane 0 0 :A\r\n"))
+	resp, _ := bufio.NewReader(c).ReadBytes('\n')
+	assertResponse(resp, ":gossip 001 🛩️ :Welcome to the cafe IRC Network 🛩️!airplane@localhost\r\n", t)
+}
+
 // given a nick and a realname, return a connection that is already
 // registered and a bufio.Reader that has already read past all the
 // initial connection rigamarole (RPL's, MOTD, etc.)
