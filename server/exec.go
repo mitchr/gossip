@@ -376,7 +376,7 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	ch.Invited = append(ch.Invited, nick)
-	recipient.Write(fmt.Sprintf(":%s INVITE %s %s\r\n", sender, nick, ch))
+	recipient.Write(fmt.Sprintf(":%s INVITE %s %s", sender, nick, ch))
 	s.numericReply(c, RPL_INVITING, ch, nick)
 }
 
@@ -450,7 +450,7 @@ func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick st
 		return
 	}
 
-	ch.Write(fmt.Sprintf(":%s KICK %s %s :%s\r\n", c, ch, u.Nick, comment))
+	ch.Write(fmt.Sprintf(":%s KICK %s %s :%s", c, ch, u.Nick, comment))
 	ch.DeleteMember(u.Nick)
 }
 
