@@ -13,21 +13,17 @@ const (
 
 // mode lexing
 func lexMode(l *scan.Lexer) scan.State {
-	switch r := l.Next(); {
-	case r == scan.EOF:
-		return nil
-	case r == '+':
-		l.Push(plus)
-		return lexMode
-	case r == '-':
-		l.Push(minus)
-		return lexMode
-	case scan.IsLetter(r):
-		l.Push(modechar)
-		return lexMode
-	default:
-		return nil
+	for r := l.Next(); r != scan.EOF; r = l.Next() {
+		switch k := r; {
+		case k == '+':
+			l.Push(plus)
+		case k == '-':
+			l.Push(minus)
+		case scan.IsLetter(k):
+			l.Push(modechar)
+		}
 	}
+	return nil
 }
 
 type Mode struct {
