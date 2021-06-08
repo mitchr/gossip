@@ -57,10 +57,6 @@ func (l *Lexer) Peek() rune {
 	return r
 }
 
-func (l *Lexer) Ignore() {
-	l.start = l.position
-}
-
 func (l *Lexer) Push(t TokenType) {
 	r, _ := utf8.DecodeRune(l.input[l.start:])
 	l.tokens.offer(&Token{TokenType: t, Value: r})
