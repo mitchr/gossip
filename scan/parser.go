@@ -1,25 +1,24 @@
 package scan
 
 type Parser struct {
-	Tokens []Token
-	pos    int
+	Tokens *queue
 }
 
-func (p *Parser) Next() Token {
-	if p.pos == len(p.Tokens) {
-		return Token{EOF, -1} // nil token
+var nilToken *Token = &Token{TokenType: EOF, Value: -1}
+
+func (p *Parser) Next() *Token {
+	t := p.Tokens.poll()
+	if t == nil {
+		return nilToken
 	}
-	t := p.Tokens[p.pos]
-	p.pos++
 	return t
 }
 
-func (p *Parser) Peek() Token {
-	if p.pos == len(p.Tokens) {
-		return Token{EOF, -1} // nil token
+func (p *Parser) Peek() *Token {
+	t := p.Tokens.peek()
+	if t == nil {
+		return nilToken
 	}
-	t := p.Next()
-	p.pos--
 	return t
 }
 

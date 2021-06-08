@@ -14,9 +14,12 @@ const (
 	EOF = -1
 )
 
+// A Token is also a node for a queue
 type Token struct {
 	TokenType TokenType
 	Value     rune
+
+	next *Token
 }
 
 func (t Token) String() string { return string(t.Value) }
@@ -24,7 +27,7 @@ func (t Token) String() string { return string(t.Value) }
 type State func(*Lexer) State
 
 type Lexer struct {
-	tokens   []Token
+	tokens   *queue
 	input    []byte
 	start    int
 	position int
@@ -60,14 +63,15 @@ func (l *Lexer) Ignore() {
 
 func (l *Lexer) Push(t TokenType) {
 	r, _ := utf8.DecodeRune(l.input[l.start:])
-	l.tokens = append(l.tokens, Token{t, r})
+	l.tokens.offer(&Token{TokenType: t, Value: r})
 	l.start = l.position
 }
 
-func Lex(b []byte, initState State) []Token {
+func Lex(b []byte, initState State) *queue {
 	l := &Lexer{
-		state: initState,
-		input: b,
+		state:  initState,
+		input:  b,
+		tokens: &queue{},
 	}
 
 	for l.state != nil {
