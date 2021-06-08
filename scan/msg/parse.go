@@ -2,6 +2,7 @@ package msg
 
 import (
 	"log"
+	"strings"
 
 	"github.com/mitchr/gossip/scan"
 )
@@ -250,17 +251,17 @@ func trailing(p *scan.Parser) string {
 
 // <sequence of any characters except NUL, CR, LF, colon (`:`) and SPACE>
 func nospcrlfcl(p *scan.Parser) string {
-	tok := ""
+	var tok strings.Builder
 	for {
 		s := p.Peek()
 		if s.TokenType != scan.EOF && isNospcrlfcl(s.Value) {
-			tok += string(s.Value)
+			tok.WriteRune(s.Value)
 			p.Next()
 		} else {
 			break
 		}
 	}
-	return tok
+	return tok.String()
 }
 
 // is not space, cr, lf, or colon (or NULL)
