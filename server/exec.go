@@ -204,14 +204,15 @@ func (s *Server) endRegistration(c *client.Client) {
 	s.unknownLock.Unlock()
 
 	// send RPL_WELCOME and friends in acceptance
-	s.numericReply(c, RPL_WELCOME, s.Network, c)
-	s.numericReply(c, RPL_YOURHOST, s.Name)
-	s.numericReply(c, RPL_CREATED, s.created)
+	bigMsg := s.constructReply(c.Id(), RPL_WELCOME, s.Network, c)
+	bigMsg += s.constructReply(c.Id(), RPL_YOURHOST, s.Name)
+	bigMsg += s.constructReply(c.Id(), RPL_CREATED, s.created)
 	// serverName, version, userModes, chanModes
-	s.numericReply(c, RPL_MYINFO, s.Name, "0", "ioOrw", "beliIkmstn")
+	bigMsg += s.constructReply(c.Id(), RPL_MYINFO, s.Name, "0", "ioOrw", "beliIkmstn")
 	for _, support := range constructISUPPORT() {
-		s.numericReply(c, RPL_ISUPPORT, support)
+		bigMsg += s.constructReply(c.Id(), RPL_ISUPPORT, support)
 	}
+	c.Conn.Write([]byte(bigMsg))
 	LUSERS(s, c, nil)
 	MOTD(s, c, nil)
 
@@ -524,13 +525,14 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 
-	s.numericReply(c, RPL_LUSERCLIENT, len(s.clients), invis, 1)
-	s.numericReply(c, RPL_LUSEROP, ops)
+	bigMsg := s.constructReply(c.Id(), RPL_LUSERCLIENT, len(s.clients), invis, 1)
+	bigMsg += s.constructReply(c.Id(), RPL_LUSEROP, ops)
 	s.unknownLock.Lock()
-	s.numericReply(c, RPL_LUSERUNKNOWN, s.unknowns)
+	bigMsg += s.constructReply(c.Id(), RPL_LUSERUNKNOWN, s.unknowns)
 	s.unknownLock.Unlock()
-	s.numericReply(c, RPL_LUSERCHANNELS, len(s.channels))
-	s.numericReply(c, RPL_LUSERME, len(s.clients), 1)
+	bigMsg += s.constructReply(c.Id(), RPL_LUSERCHANNELS, len(s.channels))
+	bigMsg += s.constructReply(c.Id(), RPL_LUSERME, len(s.clients), 1)
+	c.Conn.Write([]byte(bigMsg))
 }
 
 func TIME(s *Server, c *client.Client, m *msg.Message) {

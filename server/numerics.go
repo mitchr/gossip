@@ -79,6 +79,12 @@ const (
 	ERR_USERSDONTMATCH   = ":%s 502 %s :Can't change mode for other users"
 )
 
+func (s *Server) constructReply(clientId string, format string, f ...interface{}) string {
+	args := []interface{}{s.Name, clientId}
+	args = append(args, f...)
+	return fmt.Sprintf(format+"\r\n", args...)
+}
+
 func (s *Server) numericReply(c *client.Client, format string, f ...interface{}) {
 	args := []interface{}{s.Name, c.Id()}
 	args = append(args, f...)
