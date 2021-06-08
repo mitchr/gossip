@@ -513,13 +513,12 @@ func MOTD(s *Server, c *client.Client, m *msg.Message) {
 
 func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 	invis := 0
+	ops := 0
 	for _, v := range s.clients {
 		if v.Is(client.Invisible) {
 			invis++
+			continue
 		}
-	}
-	ops := 0
-	for _, v := range s.clients {
 		if v.Is(client.Op) {
 			ops++
 		}
