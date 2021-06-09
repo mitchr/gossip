@@ -28,7 +28,11 @@ func lexMessage(l *scan.Lexer) scan.State {
 		case '\n':
 			l.Push(lf)
 		case ' ':
-			return lexSpace(l)
+			// consume all space
+			for l.Peek() == ' ' {
+				l.Next()
+			}
+			l.Push(space)
 		case ':':
 			l.Push(colon)
 		case '@':
@@ -48,13 +52,4 @@ func lexMessage(l *scan.Lexer) scan.State {
 		}
 	}
 	return nil
-}
-
-// consume all space ' '
-func lexSpace(l *scan.Lexer) scan.State {
-	for l.Peek() == ' ' {
-		l.Next()
-	}
-	l.Push(space)
-	return lexMessage
 }
