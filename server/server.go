@@ -88,17 +88,25 @@ func (s *Server) Serve() {
 	}
 
 	// grabs messages from the queue and executes them in sequential order
-	go func() {
-		for msg := range s.msgQueue {
+	s.wg.Add(1)
+	for {
+		select {
+		case msg := <-s.msgQueue:
 			freeze.Lock()
 			msg()
 			freeze.Unlock()
-		}
-	}()
+		case <-ctx.Done():
+			s.wg.Done()
 
-	s.wg.Add(1)
-	<-ctx.Done()
-	s.wg.Done()
+			// empty all remaining messages from queue
+			for m := range s.msgQueue {
+				freeze.Lock()
+				m()
+				freeze.Unlock()
+			}
+			return
+		}
+	}
 }
 
 // gracefully shutdown server:
@@ -163,7 +171,9 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			if msg != nil {
 				s.msgQueue <- func() {
 					defer readLock.Unlock()
+					// fmt.Println("gonne execute", msg)
 					s.executeMessage(msg, c)
+					// fmt.Println("executed", msg)
 				}
 			}
 		}
