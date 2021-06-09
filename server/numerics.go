@@ -88,11 +88,11 @@ func (s *Server) constructReply(clientId string, format string, f ...interface{}
 func (s *Server) numericReply(c *client.Client, format string, f ...interface{}) {
 	args := []interface{}{s.Name, c.Id()}
 	args = append(args, f...)
-	fmt.Fprintf(c, format, args...)
+	fmt.Fprintf(c, format+"\r\n", args...)
 }
 
 func (s *Server) ERROR(c *client.Client, msg string) {
-	fmt.Fprintf(c, "ERROR :%s", msg)
+	fmt.Fprintf(c, "ERROR :%s\r\n", msg)
 }
 
 // given a channel, construct a NAMREPLY for all the members. if

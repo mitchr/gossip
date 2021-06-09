@@ -112,11 +112,6 @@ func (c Client) SupportsCapVersion(v int) bool {
 	return c.CapVersion >= v
 }
 
-// Write appends a crlf to the end of each message
-func (c *Client) Write(b []byte) (int, error) {
-	return c.Conn.Write(append(b, []byte{'\r', '\n'}...))
-}
-
 var ErrMsgSizeOverflow = errors.New("message too large")
 
 // Read until encountering a newline
