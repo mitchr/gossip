@@ -171,9 +171,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			if msg != nil {
 				s.msgQueue <- func() {
 					defer readLock.Unlock()
-					// fmt.Println("gonne execute", msg)
 					s.executeMessage(msg, c)
-					// fmt.Println("executed", msg)
 				}
 			}
 		}
