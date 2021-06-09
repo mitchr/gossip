@@ -67,7 +67,7 @@ func New(conn net.Conn) *Client {
 	go func() {
 		time.Sleep(time.Second * 10)
 		if !c.Is(Registered) {
-			c.Write("ERROR :Closing Link: Client failed to register in alloted time")
+			fmt.Fprint(c, "ERROR :Closing Link: Client failed to register in alloted time")
 			c.Cancel()
 			return
 		}
@@ -113,15 +113,8 @@ func (c Client) SupportsCapVersion(v int) bool {
 }
 
 // Write appends a crlf to the end of each message
-func (c *Client) Write(i interface{}) (int, error) {
-	switch b := i.(type) {
-	case []byte:
-		return c.Conn.Write(append(b, []byte{'\r', '\n'}...))
-	case string:
-		return c.Write([]byte(b))
-	default:
-		return 0, errors.New("couldn't write: message parameter type unknown")
-	}
+func (c *Client) Write(b []byte) (int, error) {
+	return c.Conn.Write(append(b, []byte{'\r', '\n'}...))
 }
 
 var ErrMsgSizeOverflow = errors.New("message too large")

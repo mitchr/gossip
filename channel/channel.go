@@ -105,7 +105,7 @@ func (c Channel) Modes() (modestr string, params []string) {
 }
 
 // broadcast message to each client in channel
-func (c *Channel) Write(b interface{}) (int, error) {
+func (c *Channel) Write(b []byte) (int, error) {
 	var n int
 	var errStrings []string
 
@@ -113,7 +113,7 @@ func (c *Channel) Write(b interface{}) (int, error) {
 		written, err := v.Write(b)
 		if err != nil {
 			errStrings = append(errStrings, err.Error())
-			log.Println(b.(string), err)
+			log.Println(b, err)
 		}
 		n += written
 	}
