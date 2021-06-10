@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
@@ -177,6 +176,7 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	s.ERROR(c, fmt.Sprintf("%s quit", c.Nick))
+	c.Flush()
 	c.Close()
 	s.DeleteClient(c.Nick)
 }
@@ -205,16 +205,15 @@ func (s *Server) endRegistration(c *client.Client) {
 	s.unknownLock.Unlock()
 
 	// send RPL_WELCOME and friends in acceptance
-	var bigMsg bytes.Buffer
-	s.writeReply(&bigMsg, c.Id(), RPL_WELCOME, s.Network, c)
-	s.writeReply(&bigMsg, c.Id(), RPL_YOURHOST, s.Name)
-	s.writeReply(&bigMsg, c.Id(), RPL_CREATED, s.created)
+	s.writeReply(c, c.Id(), RPL_WELCOME, s.Network, c)
+	s.writeReply(c, c.Id(), RPL_YOURHOST, s.Name)
+	s.writeReply(c, c.Id(), RPL_CREATED, s.created)
 	// serverName, version, userModes, chanModes
-	s.writeReply(&bigMsg, c.Id(), RPL_MYINFO, s.Name, "0", "ioOrw", "beliIkmstn")
+	s.writeReply(c, c.Id(), RPL_MYINFO, s.Name, "0", "ioOrw", "beliIkmstn")
 	for _, support := range constructISUPPORT() {
-		s.writeReply(&bigMsg, c.Id(), RPL_ISUPPORT, support)
+		s.writeReply(c, c.Id(), RPL_ISUPPORT, support)
 	}
-	c.Conn.Write(bigMsg.Bytes())
+
 	LUSERS(s, c, nil)
 	MOTD(s, c, nil)
 
@@ -225,9 +224,11 @@ func (s *Server) endRegistration(c *client.Client) {
 			time.Sleep(time.Minute * 5)
 			c.ExpectingPONG = true
 			fmt.Fprintf(c, ":%s PING %s\r\n", s.Name, c.Nick)
+			c.Flush()
 			time.Sleep(time.Second * 10)
 			if c.ExpectingPONG {
 				s.ERROR(c, "Closing Link: PING/PONG timeout")
+				c.Flush()
 				c.Cancel()
 				return
 			}
@@ -527,15 +528,13 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 
-	var bigMsg bytes.Buffer
-	s.writeReply(&bigMsg, c.Id(), RPL_LUSERCLIENT, len(s.clients), invis, 1)
-	s.writeReply(&bigMsg, c.Id(), RPL_LUSEROP, ops)
+	s.writeReply(c, c.Id(), RPL_LUSERCLIENT, len(s.clients), invis, 1)
+	s.writeReply(c, c.Id(), RPL_LUSEROP, ops)
 	s.unknownLock.Lock()
-	s.writeReply(&bigMsg, c.Id(), RPL_LUSERUNKNOWN, s.unknowns)
+	s.writeReply(c, c.Id(), RPL_LUSERUNKNOWN, s.unknowns)
 	s.unknownLock.Unlock()
-	s.writeReply(&bigMsg, c.Id(), RPL_LUSERCHANNELS, len(s.channels))
-	s.writeReply(&bigMsg, c.Id(), RPL_LUSERME, len(s.clients), 1)
-	c.Conn.Write(bigMsg.Bytes())
+	s.writeReply(c, c.Id(), RPL_LUSERCHANNELS, len(s.channels))
+	s.writeReply(c, c.Id(), RPL_LUSERME, len(s.clients), 1)
 }
 
 func TIME(s *Server, c *client.Client, m *msg.Message) {
@@ -824,6 +823,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				} else {
 					fmt.Fprint(member, msg.String()+"\r\n")
 				}
+				member.Flush()
 			}
 		} else { // client->client
 			target, ok := s.GetClient(v)
@@ -846,6 +846,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			} else {
 				fmt.Fprint(target, msg.String()+"\r\n")
 			}
+			target.Flush()
 		}
 	}
 }
@@ -912,6 +913,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	} else {
 		s.writeReply(c, c.Id(), ERR_UNKNOWNCOMMAND, m.Command)
 	}
+	c.Flush()
 }
 
 // determine if the given string is a channel

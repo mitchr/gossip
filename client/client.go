@@ -26,7 +26,8 @@ type Client struct {
 	// last time that client sent a succcessful message
 	Idle time.Time
 
-	reader     *bufio.Reader
+	rw *bufio.ReadWriter
+	// reader     *bufio.Reader
 	maxMsgSize int
 
 	Mode              Mode
@@ -51,7 +52,7 @@ func New(conn net.Conn) *Client {
 		JoinTime: now.Unix(),
 		Idle:     now,
 
-		reader:     bufio.NewReader(conn),
+		rw:         bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
 		maxMsgSize: 512,
 
 		Caps: make(map[cap.Capability]bool),
@@ -114,11 +115,14 @@ func (c Client) SupportsCapVersion(v int) bool {
 
 var ErrMsgSizeOverflow = errors.New("message too large")
 
+func (c *Client) Write(b []byte) (int, error) { return c.rw.Write(b) }
+func (c *Client) Flush() error                { return c.rw.Flush() }
+
 // Read until encountering a newline
 func (c *Client) ReadMsg() ([]byte, error) {
 	read := make([]byte, c.maxMsgSize)
 	for n := 0; n < c.maxMsgSize; n++ {
-		b, err := c.reader.ReadByte()
+		b, err := c.rw.ReadByte()
 		if err != nil {
 			return nil, err
 		}

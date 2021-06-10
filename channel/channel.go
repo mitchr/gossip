@@ -115,6 +115,10 @@ func (c *Channel) Write(b []byte) (int, error) {
 			errStrings = append(errStrings, err.Error())
 			log.Println(b, err)
 		}
+		err = v.Flush()
+		if err != nil {
+			log.Println("flushErr:", err)
+		}
 		n += written
 	}
 
