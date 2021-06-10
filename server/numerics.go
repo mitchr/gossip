@@ -80,14 +80,18 @@ const (
 )
 
 func (s *Server) constructReply(clientId string, format string, f ...interface{}) string {
-	args := []interface{}{s.Name, clientId}
-	args = append(args, f...)
+	args := make([]interface{}, 2+len(f))
+	args[0] = s.Name
+	args[1] = clientId
+	copy(args[2:], f)
 	return fmt.Sprintf(format+"\r\n", args...)
 }
 
 func (s *Server) numericReply(c *client.Client, format string, f ...interface{}) {
-	args := []interface{}{s.Name, c.Id()}
-	args = append(args, f...)
+	args := make([]interface{}, 2+len(f))
+	args[0] = s.Name
+	args[1] = c.Id()
+	copy(args[2:], f)
 	fmt.Fprintf(c, format+"\r\n", args...)
 }
 
