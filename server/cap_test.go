@@ -7,6 +7,23 @@ import (
 	"github.com/mitchr/gossip/cap"
 )
 
+func TestCap(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("a", "A")
+	c.Write([]byte("CAP\r\nCAP fakesubcom\r\n"))
+	invalid, _ := r.ReadBytes('\n')
+	invalidSub, _ := r.ReadBytes('\n')
+	assertResponse(invalid, ":gossip 410 a CAP :Invalid CAP command\r\n", t)
+	assertResponse(invalidSub, ":gossip 410 a CAP fakesubcom :Invalid CAP command\r\n", t)
+	defer c.Close()
+}
+
 func TestREQ(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
