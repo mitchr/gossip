@@ -69,15 +69,15 @@ func REQ(s *Server, c *client.Client, params ...string) {
 	// "The capability identifier set must be accepted as a whole, or
 	// rejected entirely."
 	// todo queues up the acceptance of the cap idents
-	todo := []func(){}
-	for _, v := range params {
+	todo := make([]func(), len(params))
+	for i, v := range params {
 		remove := false
 		if v[0] == '-' {
 			v = v[1:]
 			remove = true
 		}
 		if cap, ok := cap.Caps[v]; ok {
-			todo = append(todo, func() { c.ApplyCap(cap, remove) })
+			todo[i] = func() { c.ApplyCap(cap, remove) }
 		} else { // capability not recognized
 			fmt.Fprintf(c, ":%s CAP %s NAK :%s\r\n", s.Name, c.Id(), strings.Join(params, " "))
 			return
