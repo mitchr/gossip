@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
@@ -79,20 +80,12 @@ const (
 	ERR_USERSDONTMATCH   = ":%s 502 %s :Can't change mode for other users"
 )
 
-func (s *Server) constructReply(clientId string, format string, f ...interface{}) string {
+func (s *Server) writeReply(buf io.Writer, clientId string, format string, f ...interface{}) {
 	args := make([]interface{}, 2+len(f))
 	args[0] = s.Name
 	args[1] = clientId
 	copy(args[2:], f)
-	return fmt.Sprintf(format+"\r\n", args...)
-}
-
-func (s *Server) numericReply(c *client.Client, format string, f ...interface{}) {
-	args := make([]interface{}, 2+len(f))
-	args[0] = s.Name
-	args[1] = c.Id()
-	copy(args[2:], f)
-	fmt.Fprintf(c, format+"\r\n", args...)
+	fmt.Fprintf(buf, format+"\r\n", args...)
 }
 
 func (s *Server) ERROR(c *client.Client, msg string) {

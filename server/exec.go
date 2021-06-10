@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
@@ -63,10 +64,10 @@ var commandMap = map[string]executor{
 
 func PASS(s *Server, c *client.Client, m *msg.Message) {
 	if c.Is(client.Registered) {
-		s.numericReply(c, ERR_ALREADYREGISTRED)
+		s.writeReply(c, c.Id(), ERR_ALREADYREGISTRED)
 		return
 	} else if len(m.Params) != 1 {
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "PASS")
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "PASS")
 		return
 	}
 
@@ -75,7 +76,7 @@ func PASS(s *Server, c *client.Client, m *msg.Message) {
 
 func NICK(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) != 1 {
-		s.numericReply(c, ERR_NONICKNAMEGIVEN)
+		s.writeReply(c, c.Id(), ERR_NONICKNAMEGIVEN)
 		return
 	}
 
@@ -83,7 +84,7 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 
 	// if nickname is already in use, send back error
 	if _, ok := s.GetClient(nick); ok {
-		s.numericReply(c, ERR_NICKNAMEINUSE, nick)
+		s.writeReply(c, c.Id(), ERR_NICKNAMEINUSE, nick)
 		return
 	}
 
@@ -115,10 +116,10 @@ func USER(s *Server, c *client.Client, m *msg.Message) {
 	// TODO: Ident Protocol
 
 	if c.Is(client.Registered) {
-		s.numericReply(c, ERR_ALREADYREGISTRED)
+		s.writeReply(c, c.Id(), ERR_ALREADYREGISTRED)
 		return
 	} else if len(m.Params) != 4 {
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "USER")
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "USER")
 		return
 	}
 
@@ -135,7 +136,7 @@ func USER(s *Server, c *client.Client, m *msg.Message) {
 
 func OPER(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) != 2 {
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "OPER")
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "OPER")
 		return
 	}
 
@@ -144,12 +145,12 @@ func OPER(s *Server, c *client.Client, m *msg.Message) {
 
 	// will fail if username doesn't exist or if pass is incorrect
 	if bcrypt.CompareHashAndPassword(s.Ops[name], []byte(pass)) != nil {
-		s.numericReply(c, ERR_PASSWDMISMATCH)
+		s.writeReply(c, c.Id(), ERR_PASSWDMISMATCH)
 		return
 	}
 
 	c.Mode |= client.Op
-	s.numericReply(c, RPL_YOUREOPER)
+	s.writeReply(c, c.Id(), RPL_YOUREOPER)
 	fmt.Fprintf(c, ":%s MODE %s +o\r\n", s.Name, c.Nick)
 }
 
@@ -190,7 +191,7 @@ func (s *Server) endRegistration(c *client.Client) {
 
 	if s.Password != nil {
 		if bcrypt.CompareHashAndPassword(s.Password, c.ServerPassAttempt) != nil {
-			s.numericReply(c, ERR_PASSWDMISMATCH)
+			s.writeReply(c, c.Id(), ERR_PASSWDMISMATCH)
 			s.ERROR(c, "Closing Link: "+s.Name+" (Bad Password)")
 			c.Cancel()
 			return
@@ -204,15 +205,16 @@ func (s *Server) endRegistration(c *client.Client) {
 	s.unknownLock.Unlock()
 
 	// send RPL_WELCOME and friends in acceptance
-	bigMsg := s.constructReply(c.Id(), RPL_WELCOME, s.Network, c)
-	bigMsg += s.constructReply(c.Id(), RPL_YOURHOST, s.Name)
-	bigMsg += s.constructReply(c.Id(), RPL_CREATED, s.created)
+	var bigMsg bytes.Buffer
+	s.writeReply(&bigMsg, c.Id(), RPL_WELCOME, s.Network, c)
+	s.writeReply(&bigMsg, c.Id(), RPL_YOURHOST, s.Name)
+	s.writeReply(&bigMsg, c.Id(), RPL_CREATED, s.created)
 	// serverName, version, userModes, chanModes
-	bigMsg += s.constructReply(c.Id(), RPL_MYINFO, s.Name, "0", "ioOrw", "beliIkmstn")
+	s.writeReply(&bigMsg, c.Id(), RPL_MYINFO, s.Name, "0", "ioOrw", "beliIkmstn")
 	for _, support := range constructISUPPORT() {
-		bigMsg += s.constructReply(c.Id(), RPL_ISUPPORT, support)
+		s.writeReply(&bigMsg, c.Id(), RPL_ISUPPORT, support)
 	}
-	c.Conn.Write([]byte(bigMsg))
+	c.Conn.Write(bigMsg.Bytes())
 	LUSERS(s, c, nil)
 	MOTD(s, c, nil)
 
@@ -235,7 +237,7 @@ func (s *Server) endRegistration(c *client.Client) {
 
 func JOIN(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) < 1 {
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "JOIN")
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "JOIN")
 		return
 	}
 
@@ -262,13 +264,13 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			err := ch.Admit(c, keys[i])
 			if err != nil {
 				if err == channel.KeyErr {
-					s.numericReply(c, ERR_BADCHANNELKEY, ch)
+					s.writeReply(c, c.Id(), ERR_BADCHANNELKEY, ch)
 				} else if err == channel.LimitErr { // not aceepting new clients
-					s.numericReply(c, ERR_CHANNELISFULL, ch)
+					s.writeReply(c, c.Id(), ERR_CHANNELISFULL, ch)
 				} else if err == channel.InviteErr {
-					s.numericReply(c, ERR_INVITEONLYCHAN, ch)
+					s.writeReply(c, c.Id(), ERR_INVITEONLYCHAN, ch)
 				} else if err == channel.BanErr { // client is banned
-					s.numericReply(c, ERR_BANNEDFROMCHAN, ch)
+					s.writeReply(c, c.Id(), ERR_BANNEDFROMCHAN, ch)
 				}
 				return
 			}
@@ -285,7 +287,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			chanName := chans[i][1:]
 
 			if chanChar != channel.Remote && chanChar != channel.Local {
-				s.numericReply(c, ERR_NOSUCHCHANNEL, chans[i])
+				s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, chans[i])
 				return
 			}
 
@@ -325,7 +327,7 @@ func PART(s *Server, c *client.Client, m *msg.Message) {
 
 func TOPIC(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) < 1 {
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "TOPIC")
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "TOPIC")
 		return
 	}
 
@@ -338,19 +340,19 @@ func TOPIC(s *Server, c *client.Client, m *msg.Message) {
 		// TODO: don't allow modifying topic if client doesn't have
 		// proper privileges 'ERR_CHANOPRIVSNEEDED'
 		ch.Topic = m.Params[1]
-		s.numericReply(c, RPL_TOPIC, ch, ch.Topic)
+		s.writeReply(c, c.Id(), RPL_TOPIC, ch, ch.Topic)
 	} else {
 		if ch.Topic == "" {
-			s.numericReply(c, RPL_NOTOPIC, ch)
+			s.writeReply(c, c.Id(), RPL_NOTOPIC, ch)
 		} else { // give back existing topic
-			s.numericReply(c, RPL_TOPIC, ch, ch.Topic)
+			s.writeReply(c, c.Id(), RPL_TOPIC, ch, ch.Topic)
 		}
 	}
 }
 
 func INVITE(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) != 2 {
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "INVITE")
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "INVITE")
 		return
 	}
 
@@ -363,22 +365,22 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 	sender, _ := ch.GetMember(c.Nick)
 	recipient, _ := s.GetClient(nick)
 	if sender == nil { // only members can invite
-		s.numericReply(c, ERR_NOTONCHANNEL, ch)
+		s.writeReply(c, c.Id(), ERR_NOTONCHANNEL, ch)
 		return
 	} else if ch.Invite && sender.Is(channel.Operator) { // if invite mode set, only ops can send an invite
-		s.numericReply(c, ERR_CHANOPRIVSNEEDED, ch)
+		s.writeReply(c, c.Id(), ERR_CHANOPRIVSNEEDED, ch)
 		return
 	} else if recipient == nil { // nick not on server
-		s.numericReply(c, ERR_NOSUCHNICK, nick)
+		s.writeReply(c, c.Id(), ERR_NOSUCHNICK, nick)
 		return
 	} else if _, ok := ch.GetMember(nick); ok { // can't invite a member who is already on channel
-		s.numericReply(c, ERR_USERONCHANNEL, c, nick, ch)
+		s.writeReply(c, c.Id(), ERR_USERONCHANNEL, c, nick, ch)
 		return
 	}
 
 	ch.Invited = append(ch.Invited, nick)
 	fmt.Fprintf(recipient, ":%s INVITE %s %s\r\n", sender, nick, ch)
-	s.numericReply(c, RPL_INVITING, ch, nick)
+	s.writeReply(c, c.Id(), RPL_INVITING, ch, nick)
 }
 
 // if c belongs to the channel associated with chanName, return that
@@ -387,10 +389,10 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel.Channel {
 	ch, ok := s.GetChannel(chanName)
 	if !ok { // channel not found
-		s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
+		s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, ch)
 	} else {
 		if _, ok := ch.GetMember(c.Nick); !ok { // client does not belong to channel
-			s.numericReply(c, ERR_NOTONCHANNEL, ch)
+			s.writeReply(c, c.Id(), ERR_NOTONCHANNEL, ch)
 		}
 	}
 	return ch
@@ -398,7 +400,7 @@ func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel
 
 func KICK(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) < 2 {
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "KICK")
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "KICK")
 		return
 	}
 
@@ -410,22 +412,22 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 	chans := strings.Split(m.Params[0], ",")
 	users := strings.Split(m.Params[1], ",")
 	if len(chans) != 1 || len(chans) != len(users) {
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "KICK")
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "KICK")
 		return
 	}
 
 	for i, v := range chans {
 		ch, _ := s.GetChannel(v)
 		if ch == nil {
-			s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
+			s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, ch)
 			return
 		}
 		self, _ := ch.GetMember(c.Nick)
 		if self == nil {
-			s.numericReply(c, ERR_NOTONCHANNEL, ch)
+			s.writeReply(c, c.Id(), ERR_NOTONCHANNEL, ch)
 			return
 		} else if !self.Is(channel.Operator) {
-			s.numericReply(c, ERR_CHANOPRIVSNEEDED, ch)
+			s.writeReply(c, c.Id(), ERR_CHANOPRIVSNEEDED, ch)
 			return
 		}
 
@@ -447,7 +449,7 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick string, comment string) {
 	u, _ := ch.GetMember(memberNick)
 	if u == nil {
-		s.numericReply(c, ERR_USERNOTINCHANNEL, u, ch)
+		s.writeReply(c, c.Id(), ERR_USERNOTINCHANNEL, u, ch)
 		return
 	}
 
@@ -457,7 +459,7 @@ func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick st
 
 func NAMES(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) == 0 {
-		s.numericReply(c, RPL_ENDOFNAMES, "*")
+		s.writeReply(c, c.Id(), RPL_ENDOFNAMES, "*")
 		return
 	}
 
@@ -465,15 +467,15 @@ func NAMES(s *Server, c *client.Client, m *msg.Message) {
 	for _, v := range chans {
 		ch, _ := s.GetChannel(v)
 		if ch == nil {
-			s.numericReply(c, RPL_ENDOFNAMES, v)
+			s.writeReply(c, c.Id(), RPL_ENDOFNAMES, v)
 		} else {
 			_, ok := ch.GetMember(c.Nick)
 			if ch.Secret && !ok { // chan is secret and client does not belong
-				s.numericReply(c, RPL_ENDOFNAMES, v)
+				s.writeReply(c, c.Id(), RPL_ENDOFNAMES, v)
 			} else {
 				sym, members := constructNAMREPLY(ch, ok)
-				s.numericReply(c, RPL_NAMREPLY, sym, ch, members)
-				s.numericReply(c, RPL_ENDOFNAMES, v)
+				s.writeReply(c, c.Id(), RPL_NAMREPLY, sym, ch, members)
+				s.writeReply(c, c.Id(), RPL_ENDOFNAMES, v)
 			}
 		}
 	}
@@ -485,31 +487,31 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 		// reply with all channels that aren't secret
 		for _, v := range s.channels {
 			if !v.Secret {
-				s.numericReply(c, RPL_LIST, v, len(v.Members), v.Topic)
+				s.writeReply(c, c.Id(), RPL_LIST, v, len(v.Members), v.Topic)
 			}
 		}
 	} else {
 		for _, v := range strings.Split(m.Params[0], ",") {
 			if ch, ok := s.GetChannel(v); ok {
-				s.numericReply(c, RPL_LIST, ch, len(ch.Members), ch.Topic)
+				s.writeReply(c, c.Id(), RPL_LIST, ch, len(ch.Members), ch.Topic)
 			}
 		}
 	}
-	s.numericReply(c, RPL_LISTEND)
+	s.writeReply(c, c.Id(), RPL_LISTEND)
 }
 
 func MOTD(s *Server, c *client.Client, m *msg.Message) {
 	if len(s.motd) == 0 {
-		s.numericReply(c, ERR_NOMOTD)
+		s.writeReply(c, c.Id(), ERR_NOMOTD)
 		return
 	}
 
 	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
-	s.numericReply(c, RPL_MOTDSTART, s.Name)
+	s.writeReply(c, c.Id(), RPL_MOTDSTART, s.Name)
 	for _, v := range s.motd {
-		s.numericReply(c, RPL_MOTD, v)
+		s.writeReply(c, c.Id(), RPL_MOTD, v)
 	}
-	s.numericReply(c, RPL_ENDOFMOTD)
+	s.writeReply(c, c.Id(), RPL_ENDOFMOTD)
 }
 
 func LUSERS(s *Server, c *client.Client, m *msg.Message) {
@@ -525,24 +527,25 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 
-	bigMsg := s.constructReply(c.Id(), RPL_LUSERCLIENT, len(s.clients), invis, 1)
-	bigMsg += s.constructReply(c.Id(), RPL_LUSEROP, ops)
+	var bigMsg bytes.Buffer
+	s.writeReply(&bigMsg, c.Id(), RPL_LUSERCLIENT, len(s.clients), invis, 1)
+	s.writeReply(&bigMsg, c.Id(), RPL_LUSEROP, ops)
 	s.unknownLock.Lock()
-	bigMsg += s.constructReply(c.Id(), RPL_LUSERUNKNOWN, s.unknowns)
+	s.writeReply(&bigMsg, c.Id(), RPL_LUSERUNKNOWN, s.unknowns)
 	s.unknownLock.Unlock()
-	bigMsg += s.constructReply(c.Id(), RPL_LUSERCHANNELS, len(s.channels))
-	bigMsg += s.constructReply(c.Id(), RPL_LUSERME, len(s.clients), 1)
-	c.Conn.Write([]byte(bigMsg))
+	s.writeReply(&bigMsg, c.Id(), RPL_LUSERCHANNELS, len(s.channels))
+	s.writeReply(&bigMsg, c.Id(), RPL_LUSERME, len(s.clients), 1)
+	c.Conn.Write(bigMsg.Bytes())
 }
 
 func TIME(s *Server, c *client.Client, m *msg.Message) {
-	s.numericReply(c, RPL_TIME, s.Name, time.Now().Local())
+	s.writeReply(c, c.Id(), RPL_TIME, s.Name, time.Now().Local())
 }
 
 // TODO: support commands like this that intersperse the modechar and modem.Params MODE &oulu +b *!*@*.edu +e *!*@*.bu.edu
 func MODE(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) < 1 {
-		s.numericReply(c, RPL_UMODEIS, c.Mode)
+		s.writeReply(c, c.Id(), RPL_UMODEIS, c.Mode)
 		return
 	}
 
@@ -550,27 +553,27 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 	if !isChannel(target) {
 		client, ok := s.GetClient(target)
 		if !ok {
-			s.numericReply(c, ERR_NOSUCHNICK, target)
+			s.writeReply(c, c.Id(), ERR_NOSUCHNICK, target)
 			return
 		}
 		if client.Nick != c.Nick { // can't modify another user
-			s.numericReply(c, ERR_USERSDONTMATCH)
+			s.writeReply(c, c.Id(), ERR_USERSDONTMATCH)
 			return
 		}
 
 		if len(m.Params) == 2 { // modify own mode
 			found := c.ApplyMode([]byte(m.Params[1]))
 			if !found {
-				s.numericReply(c, ERR_UMODEUNKNOWNFLAG)
+				s.writeReply(c, c.Id(), ERR_UMODEUNKNOWNFLAG)
 			}
 			fmt.Fprintf(c, ":%s MODE %s %s\r\n", s.Name, c.Nick, m.Params[1])
 		} else { // give back own mode
-			s.numericReply(c, RPL_UMODEIS, c.Mode)
+			s.writeReply(c, c.Id(), RPL_UMODEIS, c.Mode)
 		}
 	} else {
 		ch, ok := s.GetChannel(target)
 		if !ok {
-			s.numericReply(c, ERR_NOSUCHCHANNEL, ch)
+			s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, ch)
 			return
 		}
 
@@ -580,7 +583,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 				modeStr += " "
 			}
 
-			s.numericReply(c, RPL_CHANNELMODEIS, ch, modeStr, strings.Join(params, " "))
+			s.writeReply(c, c.Id(), RPL_CHANNELMODEIS, ch, modeStr, strings.Join(params, " "))
 		} else { // modeStr given
 			modes := mode.Parse([]byte(m.Params[1]))
 			channel.PopulateModeParams(modes, m.Params[2:])
@@ -590,32 +593,32 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 					switch m.ModeChar {
 					case 'b':
 						for _, v := range ch.Ban {
-							s.numericReply(c, RPL_BANLIST, ch, v)
+							s.writeReply(c, c.Id(), RPL_BANLIST, ch, v)
 						}
-						s.numericReply(c, RPL_ENDOFBANLIST, ch)
+						s.writeReply(c, c.Id(), RPL_ENDOFBANLIST, ch)
 						continue
 					case 'e':
 						for _, v := range ch.BanExcept {
-							s.numericReply(c, RPL_EXCEPTLIST, ch, v)
+							s.writeReply(c, c.Id(), RPL_EXCEPTLIST, ch, v)
 						}
-						s.numericReply(c, RPL_ENDOFEXCEPTLIST, ch)
+						s.writeReply(c, c.Id(), RPL_ENDOFEXCEPTLIST, ch)
 						continue
 					case 'I':
 						for _, v := range ch.InviteExcept {
-							s.numericReply(c, RPL_INVITELIST, ch, v)
+							s.writeReply(c, c.Id(), RPL_INVITELIST, ch, v)
 						}
-						s.numericReply(c, RPL_ENDOFINVITELIST, ch)
+						s.writeReply(c, c.Id(), RPL_ENDOFINVITELIST, ch)
 						continue
 					}
 				}
 				a, err := ch.ApplyMode(m)
 				applied += a
 				if errors.Is(err, channel.NeedMoreParamsErr) {
-					s.numericReply(c, ERR_NEEDMOREPARAMS, err)
+					s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, err)
 				} else if errors.Is(err, channel.UnknownModeErr) {
-					s.numericReply(c, ERR_UNKNOWNMODE, err, ch)
+					s.writeReply(c, c.Id(), ERR_UNKNOWNMODE, err, ch)
 				} else if errors.Is(err, channel.NotInChanErr) {
-					s.numericReply(c, ERR_USERNOTINCHANNEL, err, ch)
+					s.writeReply(c, c.Id(), ERR_USERNOTINCHANNEL, err, ch)
 				}
 			}
 			// only write final MODE to channel if any mode was actually altered
@@ -647,10 +650,10 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 				if v.Is(client.Op) {
 					flags += "*"
 				}
-				s.numericReply(c, RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
+				s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
 			}
 		}
-		s.numericReply(c, RPL_ENDOFWHO, mask)
+		s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
 		return
 	}
 
@@ -680,9 +683,9 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 				if member.Is(channel.Voice) {
 					flags += "+"
 				}
-				s.numericReply(c, RPL_WHOREPLY, v, member.User, member.Host, s.Name, member.Nick, flags, member.Realname)
+				s.writeReply(c, c.Id(), RPL_WHOREPLY, v, member.User, member.Host, s.Name, member.Nick, flags, member.Realname)
 			}
-			s.numericReply(c, RPL_ENDOFWHO, mask)
+			s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
 			return
 		}
 	}
@@ -701,10 +704,10 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 			if v.Is(client.Op) {
 				flags += "*"
 			}
-			s.numericReply(c, RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
+			s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
 		}
 	}
-	s.numericReply(c, RPL_ENDOFWHO, mask)
+	s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
 }
 
 // we only support the <mask> *( "," <mask> ) parameter, target seems
@@ -719,12 +722,12 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 	for _, m := range masks {
 		for _, v := range s.clients {
 			if wild.Match(m, v.Nick) {
-				s.numericReply(c, RPL_WHOISUSER, v.Nick, v.User, v.Host, v.Realname)
-				s.numericReply(c, RPL_WHOISSERVER, v.Nick, s.Name, "wip irc server")
+				s.writeReply(c, c.Id(), RPL_WHOISUSER, v.Nick, v.User, v.Host, v.Realname)
+				s.writeReply(c, c.Id(), RPL_WHOISSERVER, v.Nick, s.Name, "wip irc server")
 				if v.Is(client.Op) {
-					s.numericReply(c, RPL_WHOISOPERATOR, v.Nick)
+					s.writeReply(c, c.Id(), RPL_WHOISOPERATOR, v.Nick)
 				}
-				s.numericReply(c, RPL_WHOISIDLE, v.Nick, time.Since(v.Idle).Round(time.Second).Seconds(), v.JoinTime)
+				s.writeReply(c, c.Id(), RPL_WHOISIDLE, v.Nick, time.Since(v.Idle).Round(time.Second).Seconds(), v.JoinTime)
 
 				chans := []string{}
 				for _, k := range s.channels {
@@ -744,11 +747,11 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 				if len(chans) > 0 {
 					chanParam = " :" + strings.Join(chans, " ")
 				}
-				s.numericReply(c, RPL_WHOISCHANNELS, v.Nick, chanParam)
+				s.writeReply(c, c.Id(), RPL_WHOISCHANNELS, v.Nick, chanParam)
 			}
 		}
 	}
-	s.numericReply(c, RPL_ENDOFWHOIS)
+	s.writeReply(c, c.Id(), RPL_ENDOFWHOIS)
 }
 
 func PRIVMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }
@@ -772,7 +775,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 
 	if len(m.Params) < 2 && m.Command != "TAGMSG" {
 		if !skipReplies {
-			s.numericReply(c, ERR_NOTEXTTOSEND)
+			s.writeReply(c, c.Id(), ERR_NOTEXTTOSEND)
 		}
 		return
 	}
@@ -786,7 +789,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			ch, _ := s.GetChannel(v)
 			if ch == nil { // channel doesn't exist
 				if !skipReplies {
-					s.numericReply(c, ERR_NOSUCHCHANNEL, v)
+					s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, v)
 				}
 				continue
 			}
@@ -796,14 +799,14 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				if ch.NoExternal {
 					// chan does not allow external messages; client needs to join
 					if !skipReplies {
-						s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
+						s.writeReply(c, c.Id(), ERR_CANNOTSENDTOCHAN, ch)
 					}
 					continue
 				}
 			} else if ch.Moderated && self.Prefix == "" {
 				// member has no mode, so they cannot speak in a moderated chan
 				if !skipReplies {
-					s.numericReply(c, ERR_CANNOTSENDTOCHAN, ch)
+					s.writeReply(c, c.Id(), ERR_CANNOTSENDTOCHAN, ch)
 				}
 				continue
 			}
@@ -826,13 +829,13 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			target, ok := s.GetClient(v)
 			if !ok {
 				if !skipReplies {
-					s.numericReply(c, ERR_NOSUCHNICK, v)
+					s.writeReply(c, c.Id(), ERR_NOSUCHNICK, v)
 				}
 				continue
 			}
 
 			if target.Is(client.Away) {
-				s.numericReply(c, RPL_AWAY, target.Nick, target.AwayMsg)
+				s.writeReply(c, c.Id(), RPL_AWAY, target.Nick, target.AwayMsg)
 				continue
 			}
 			if msg.Command == "TAGMSG" && !target.Caps[cap.MessageTags] {
@@ -864,29 +867,29 @@ func AWAY(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) == 0 {
 		c.AwayMsg = ""
 		c.Mode &^= client.Away
-		s.numericReply(c, RPL_UNAWAY)
+		s.writeReply(c, c.Id(), RPL_UNAWAY)
 		return
 	}
 
 	c.AwayMsg = m.Params[0]
 	c.Mode |= client.Away
-	s.numericReply(c, RPL_NOWAWAY)
+	s.writeReply(c, c.Id(), RPL_NOWAWAY)
 }
 
 func REHASH(s *Server, c *client.Client, m *msg.Message) {
 	if !c.Is(client.Op) {
-		s.numericReply(c, ERR_NOPRIVILEGES)
+		s.writeReply(c, c.Id(), ERR_NOPRIVILEGES)
 		return
 	}
 
 	conf, _ := NewConfig(s.path)
 	s.Config = conf
-	s.numericReply(c, RPL_REHASHING, s.path)
+	s.writeReply(c, c.Id(), RPL_REHASHING, s.path)
 }
 
 func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) != 1 {
-		s.numericReply(c, ERR_NEEDMOREPARAMS, "WALLOPS")
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "WALLOPS")
 		return
 	}
 
@@ -907,7 +910,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		c.Idle = time.Now()
 		e(s, c, m)
 	} else {
-		s.numericReply(c, ERR_UNKNOWNCOMMAND, m.Command)
+		s.writeReply(c, c.Id(), ERR_UNKNOWNCOMMAND, m.Command)
 	}
 }
 

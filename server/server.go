@@ -154,7 +154,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			if err == client.ErrMsgSizeOverflow {
 				// TODO: discourage client from multiple buffer overflows in a
 				// row to try to prevent against denial of service attacks
-				s.numericReply(c, ERR_INPUTTOOLONG)
+				s.writeReply(c, c.Id(), ERR_INPUTTOOLONG)
 				continue
 			} else if err != nil {
 				// either client closed its own connection, or they disconnected without quit

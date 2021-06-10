@@ -105,13 +105,13 @@ func END(s *Server, c *client.Client, params ...string) {
 func CAP(s *Server, c *client.Client, m *msg.Message) {
 	// no subcommand given
 	if len(m.Params) < 1 {
-		s.numericReply(c, ERR_INVALIDCAPCMD, c.Id(), "CAP")
+		s.writeReply(c, c.Id(), ERR_INVALIDCAPCMD, "CAP")
 		return
 	}
 
 	subcom, ok := subs[strings.ToUpper(m.Params[0])]
 	if !ok {
-		s.numericReply(c, ERR_INVALIDCAPCMD, c.Id(), "CAP "+m.Params[0])
+		s.writeReply(c, c.Id(), ERR_INVALIDCAPCMD, "CAP "+m.Params[0])
 		return
 	}
 	subcom(s, c, m.Params[1:]...)
