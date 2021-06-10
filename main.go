@@ -50,7 +50,6 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer s.Close()
 
 	// capture OS interrupt signal so that we can gracefully shutdown server
 	interrupt := make(chan os.Signal)
