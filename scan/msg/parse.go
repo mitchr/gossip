@@ -235,11 +235,11 @@ func trailing(p *scan.Parser) string {
 	m := ""
 	for {
 		t := p.Peek()
-		if t.TokenType == colon || t.TokenType == space {
+		if t == nil {
+			break
+		} else if t.TokenType == colon || t.TokenType == space {
 			m += string(t.Value)
 			p.Next()
-		} else if t.TokenType == scan.EOF {
-			break
 		} else if isNospcrlfcl(t.Value) {
 			m += nospcrlfcl(p)
 		} else {
@@ -254,7 +254,7 @@ func nospcrlfcl(p *scan.Parser) string {
 	var tok strings.Builder
 	for {
 		s := p.Peek()
-		if s.TokenType != scan.EOF && isNospcrlfcl(s.Value) {
+		if s != nil && isNospcrlfcl(s.Value) {
 			tok.WriteRune(s.Value)
 			p.Next()
 		} else {

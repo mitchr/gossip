@@ -6,8 +6,6 @@ type Parser struct {
 	peeked *Token
 }
 
-var nilToken *Token = &Token{TokenType: EOF, Value: -1}
-
 func (p *Parser) Next() *Token {
 	if p.peeked != nil {
 		temp := p.peeked
@@ -15,11 +13,7 @@ func (p *Parser) Next() *Token {
 		return temp
 	}
 
-	t := <-p.Tokens
-	if t == nil {
-		return nilToken
-	}
-	return t
+	return <-p.Tokens
 }
 
 // Multiple calls to Peek will continue to return the same value until
@@ -30,9 +24,6 @@ func (p *Parser) Peek() *Token {
 	}
 
 	p.peeked = <-p.Tokens
-	if p.peeked == nil {
-		return nilToken
-	}
 	return p.peeked
 }
 

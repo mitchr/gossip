@@ -44,13 +44,14 @@ func Parse(b []byte) []Mode {
 		m = append(m, Mode{ModeChar: v, Add: op == plus})
 	}
 	for {
-		if r := p.Peek().TokenType; r == plus || r == minus {
+		r := p.Peek()
+		if r == nil || (r.TokenType != plus && r.TokenType != minus) {
+			return m
+		} else {
 			chars, op := modeset(p)
 			for _, v := range chars {
 				m = append(m, Mode{ModeChar: v, Add: op == plus})
 			}
-		} else {
-			return m
 		}
 	}
 }
@@ -60,11 +61,12 @@ func modeset(p *scan.Parser) ([]rune, scan.TokenType) {
 	set := []rune{}
 	operator := p.Next().TokenType
 	for {
-		if p.Peek().TokenType == modechar {
+		t := p.Peek()
+		if t == nil || t.TokenType != modechar {
+			break
+		} else {
 			r := p.Next()
 			set = append(set, r.Value)
-		} else {
-			break
 		}
 	}
 	return set, operator

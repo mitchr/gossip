@@ -34,13 +34,16 @@ func Match(regex, m string) bool {
 	pos := 0
 
 	for {
-		switch r := p.Next(); r.TokenType {
-		case nowildesc:
+		switch r := p.Next(); {
+		case r == nil:
+			// if we were able to reach the end of the string without error, then it's a match
+			return true
+		case r.TokenType == nowildesc:
 			if r.Value != getRune(m, pos) {
 				return false
 			}
 			pos++
-		case esc:
+		case r.TokenType == esc:
 			// if the next character is a '*' or '?', then disregard this '\'
 			// and compare m against the appropriate wildcard
 			if n := p.Peek(); n.TokenType == wildone || n.TokenType == wildmany {
@@ -53,22 +56,19 @@ func Match(regex, m string) bool {
 				}
 				pos++ // advance pointer
 			}
-		case wildone:
+		case r.TokenType == wildone:
 			pos++
 			// n := p.Next()
 			// if n.Value != string(getRune(m, pos)) {
 			// 	return false
 			// }
-		case wildmany:
+		case r.TokenType == wildmany:
 			stop := p.Peek()
 			n := getRune(m, pos)
-			for n != scan.EOF && n != stop.Value {
+			for stop != nil && n != scan.EOF && n != stop.Value {
 				pos++
 				n = getRune(m, pos)
 			}
-		case scan.EOF:
-			// if we were able to reach the end of the string without error, then it's a match
-			return true
 		}
 	}
 }
