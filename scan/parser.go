@@ -1,25 +1,39 @@
 package scan
 
 type Parser struct {
-	Tokens *queue
+	Tokens <-chan *Token
+
+	peeked *Token
 }
 
 var nilToken *Token = &Token{TokenType: EOF, Value: -1}
 
 func (p *Parser) Next() *Token {
-	t := p.Tokens.poll()
+	if p.peeked != nil {
+		temp := p.peeked
+		p.peeked = nil
+		return temp
+	}
+
+	t := <-p.Tokens
 	if t == nil {
 		return nilToken
 	}
 	return t
 }
 
+// Multiple calls to Peek will continue to return the same value until
+// Next is called.
 func (p *Parser) Peek() *Token {
-	t := p.Tokens.peek()
-	if t == nil {
+	if p.peeked != nil {
+		return p.peeked
+	}
+
+	p.peeked = <-p.Tokens
+	if p.peeked == nil {
 		return nilToken
 	}
-	return t
+	return p.peeked
 }
 
 func (p *Parser) Expect(t TokenType) bool {

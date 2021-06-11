@@ -18,8 +18,6 @@ const (
 type Token struct {
 	TokenType TokenType
 	Value     rune
-
-	next *Token
 }
 
 func (t Token) String() string { return string(t.Value) }
@@ -27,7 +25,7 @@ func (t Token) String() string { return string(t.Value) }
 type State func(*Lexer) State
 
 type Lexer struct {
-	tokens   *queue
+	tokens   chan *Token
 	input    []byte
 	start    int
 	position int
@@ -59,20 +57,23 @@ func (l *Lexer) Peek() rune {
 
 func (l *Lexer) Push(t TokenType) {
 	r, _ := utf8.DecodeRune(l.input[l.start:])
-	l.tokens.offer(&Token{TokenType: t, Value: r})
+	l.tokens <- &Token{TokenType: t, Value: r}
 	l.start = l.position
 }
 
-func Lex(b []byte, initState State) *queue {
+func Lex(b []byte, initState State) <-chan *Token {
 	l := &Lexer{
 		state:  initState,
 		input:  b,
-		tokens: &queue{},
+		tokens: make(chan *Token),
 	}
 
-	for l.state != nil {
-		l.state = l.state(l)
-	}
+	go func() {
+		for l.state != nil {
+			l.state = l.state(l)
+		}
+		close(l.tokens)
+	}()
 
 	return l.tokens
 }
