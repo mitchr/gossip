@@ -69,6 +69,7 @@ func New(conn net.Conn) *Client {
 		time.Sleep(time.Second * 10)
 		if !c.Is(Registered) {
 			fmt.Fprint(c, "ERROR :Closing Link: Client failed to register in alloted time")
+			c.Flush()
 			c.Cancel()
 			return
 		}
