@@ -138,15 +138,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	// server's message queue. This goroutine is implicitly closed when
 	// clientCtx is canceled.
 	go func() {
-		// we lock here to insure that we do not race ahead and get stuck
-		// reading before the last message this client sent has executed
-		// fully. This was problem for things like negotiating message-tags,
-		// where the default message size changes after execution. This has
-		// the downside that clients now cannot queue multiple messages in
-		// quick succession.
-		var readLock sync.Mutex
 		for {
-			readLock.Lock()
 			// read until encountering a newline; the parser checks that \r exists
 			msgBuf, err := c.ReadMsg()
 
@@ -170,10 +162,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 
 			// implicitly ignore all nil messages
 			if msg != nil {
-				s.msgQueue <- func() {
-					defer readLock.Unlock()
-					s.executeMessage(msg, c)
-				}
+				s.msgQueue <- func() { s.executeMessage(msg, c) }
 			}
 		}
 	}()

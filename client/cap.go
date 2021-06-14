@@ -32,6 +32,9 @@ var capHandlers = map[cap.Capability]capHandler{
 func doNothing(c *Client, r bool) {}
 
 func messageTags(c *Client, remove bool) {
+	c.capLock.Lock()
+	defer c.capLock.Unlock()
+
 	if !remove {
 		// space for tags and message
 		c.maxMsgSize = 8191 + 512

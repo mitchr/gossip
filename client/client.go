@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mitchr/gossip/cap"
@@ -43,6 +44,12 @@ type Client struct {
 
 	ExpectingPONG bool
 	Cancel        context.CancelFunc // need to store for QUIT
+
+	// this lock is used when negotiating capabilities that modify the
+	// client state in some way. most notably, when requesting
+	// message-tags the client message size increases, so we need to do
+	// this with mutual exclusion.
+	capLock sync.Mutex
 }
 
 func New(conn net.Conn) *Client {
@@ -77,7 +84,7 @@ func New(conn net.Conn) *Client {
 	return c
 }
 
-func (c Client) String() string {
+func (c *Client) String() string {
 	if c.User != "" {
 		return fmt.Sprintf("%s!%s@%s", c.Nick, c.User, c.Host)
 	} else if c.Host != "" {
@@ -93,7 +100,7 @@ func (c Client) String() string {
 // An Id is used anywhere where a nick is requested in a reply. If
 // Client.Nick is not set yet, then Id returns "*" as a generic
 // placeholder.
-func (c Client) Id() string {
+func (c *Client) Id() string {
 	if c.Nick != "" {
 		return c.Nick
 	}
@@ -109,7 +116,7 @@ func (c *Client) CapsSet() string {
 	return strings.Join(caps, " ")
 }
 
-func (c Client) SupportsCapVersion(v int) bool {
+func (c *Client) SupportsCapVersion(v int) bool {
 	return c.CapVersion >= v
 }
 
@@ -120,8 +127,11 @@ func (c *Client) Flush() error                { return c.rw.Flush() }
 
 // Read until encountering a newline
 func (c *Client) ReadMsg() ([]byte, error) {
+	c.capLock.Lock()
 	read := make([]byte, c.maxMsgSize)
-	for n := 0; n < c.maxMsgSize; n++ {
+	c.capLock.Unlock()
+
+	for n := 0; n < len(read); n++ {
 		b, err := c.rw.ReadByte()
 		if err != nil {
 			return nil, err

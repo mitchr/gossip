@@ -37,7 +37,7 @@ func (m Mode) String() string {
 	return s
 }
 
-func (c Client) Is(m Mode) bool { return c.Mode&m == m }
+func (c *Client) Is(m Mode) bool { return c.Mode&m == m }
 
 // given a modeStr, apply the modes to c. If one of the runes does not
 // correspond to a user mode, return it
