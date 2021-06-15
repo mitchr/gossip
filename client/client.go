@@ -75,27 +75,6 @@ func New(ctx context.Context, conn net.Conn) *Client {
 		c.Host = names[0]
 	}
 
-	// give a small window for client to register before kicking them off
-	go func() {
-		time.Sleep(time.Second * 10)
-		if !c.Is(Registered) {
-			fmt.Fprint(c, "ERROR :Closing Link: Client failed to register in alloted time (10 seconds)\r\n")
-			c.Flush()
-			c.Cancel()
-		}
-
-		// every 2 seconds, give this client a grant
-		for {
-			select {
-			case <-ctx.Done():
-				close(c.grants)
-				return
-			case <-time.After(time.Second * 2):
-				c.AddGrant()
-			}
-		}
-	}()
-
 	return c
 }
 

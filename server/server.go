@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -133,6 +134,46 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	s.unknownLock.Lock()
 	s.unknowns++
 	s.unknownLock.Unlock()
+
+	// give a small window for client to register before kicking them off
+	go func() {
+		time.Sleep(time.Second * 10)
+		if !c.Is(client.Registered) {
+			s.ERROR(c, "Closing Link: Client failed to register in alloted time (10 seconds)\r\n")
+			c.Flush()
+			c.Cancel()
+		}
+	}()
+
+	// every 5 minutes, send PING
+	// if client doesn't respond with a PONG in 10 seconds, kick them
+	go func() {
+		for {
+			time.Sleep(time.Minute * 5)
+			c.ExpectingPONG = true
+			fmt.Fprintf(c, ":%s PING %s\r\n", s.Name, c.Nick)
+			c.Flush()
+			time.Sleep(time.Second * 10)
+			if c.ExpectingPONG {
+				s.ERROR(c, "Closing Link: PING/PONG timeout")
+				c.Flush()
+				c.Cancel()
+				return
+			}
+		}
+	}()
+
+	// every 2 seconds, give this client a grant
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Second * 2):
+				c.AddGrant()
+			}
+		}
+	}()
 
 	// fetch a message from the client, parse it, then send it to the
 	// server's message queue. This goroutine is implicitly closed when

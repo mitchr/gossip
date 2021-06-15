@@ -219,24 +219,6 @@ func (s *Server) endRegistration(c *client.Client) {
 
 	// after registration burst, give clients max grants
 	c.FillGrants()
-
-	// every 5 minutes, send PING
-	// if client doesn't respond with a PONG in 10 seconds, kick them
-	go func() {
-		for {
-			time.Sleep(time.Minute * 5)
-			c.ExpectingPONG = true
-			fmt.Fprintf(c, ":%s PING %s\r\n", s.Name, c.Nick)
-			c.Flush()
-			time.Sleep(time.Second * 10)
-			if c.ExpectingPONG {
-				s.ERROR(c, "Closing Link: PING/PONG timeout")
-				c.Flush()
-				c.Cancel()
-				return
-			}
-		}
-	}()
 }
 
 func JOIN(s *Server, c *client.Client, m *msg.Message) {
