@@ -217,6 +217,9 @@ func (s *Server) endRegistration(c *client.Client) {
 	LUSERS(s, c, nil)
 	MOTD(s, c, nil)
 
+	// after registration burst, give clients max grants
+	c.FillGrants()
+
 	// every 5 minutes, send PING
 	// if client doesn't respond with a PONG in 10 seconds, kick them
 	go func() {

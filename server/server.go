@@ -48,7 +48,7 @@ func New(c *Config) (*Server, error) {
 		created:  time.Now(),
 		clients:  make(map[string]*client.Client),
 		channels: make(map[string]*channel.Channel),
-		msgQueue: make(chan func(), 2),
+		msgQueue: make(chan func(), 10),
 	}
 
 	var err error
@@ -126,8 +126,8 @@ func (s *Server) Close() {
 }
 
 func (s *Server) handleConn(u net.Conn, ctx context.Context) {
-	c := client.New(u)
 	clientCtx, cancel := context.WithCancel(ctx)
+	c := client.New(clientCtx, u)
 	c.Cancel = cancel
 
 	s.unknownLock.Lock()
@@ -139,6 +139,19 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	// clientCtx is canceled.
 	go func() {
 		for {
+			// as a form of flood control, ask for a grant before reading
+			// each request
+			err := c.RequestGrant()
+			if err != nil {
+				// TODO: instead of kicking the client right away, maybe a
+				// timeout would be more appropriate (atleast for the first 2
+				// or 3 offenses)
+				s.ERROR(c, "Flooding\r\n")
+				c.Flush()
+				c.Cancel()
+				return
+			}
+
 			// read until encountering a newline; the parser checks that \r exists
 			msgBuf, err := c.ReadMsg()
 

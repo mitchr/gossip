@@ -595,6 +595,8 @@ func TestMODE(t *testing.T) {
 	})
 
 	t.Run("TestRPLBANLIST", func(t *testing.T) {
+		s.clients["alice"].FillGrants()
+
 		c1.Write([]byte("MODE #local +b abc\r\nMODE #local +b def\r\nMODE #local +b ghi\r\n"))
 		r1.ReadBytes('\n')
 		r1.ReadBytes('\n')
@@ -612,6 +614,8 @@ func TestMODE(t *testing.T) {
 	})
 
 	t.Run("TestRPLEXCEPTLIST", func(t *testing.T) {
+		s.clients["alice"].FillGrants()
+
 		c1.Write([]byte("MODE #local +e abc\r\nMODE #local +e def\r\nMODE #local +e ghi\r\n"))
 		r1.ReadBytes('\n')
 		r1.ReadBytes('\n')
@@ -629,6 +633,8 @@ func TestMODE(t *testing.T) {
 	})
 
 	t.Run("TestRPLINVITELIST", func(t *testing.T) {
+		s.clients["alice"].FillGrants()
+
 		c1.Write([]byte("MODE #local +I abc\r\nMODE #local +I def\r\nMODE #local +I ghi\r\n"))
 		r1.ReadBytes('\n')
 		r1.ReadBytes('\n')

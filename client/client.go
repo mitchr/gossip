@@ -27,8 +27,7 @@ type Client struct {
 	// last time that client sent a succcessful message
 	Idle time.Time
 
-	rw *bufio.ReadWriter
-	// reader     *bufio.Reader
+	rw         *bufio.ReadWriter
 	maxMsgSize int
 
 	Mode              Mode
@@ -50,9 +49,11 @@ type Client struct {
 	// message-tags the client message size increases, so we need to do
 	// this with mutual exclusion.
 	capLock sync.Mutex
+
+	grants chan bool
 }
 
-func New(conn net.Conn) *Client {
+func New(ctx context.Context, conn net.Conn) *Client {
 	now := time.Now()
 	c := &Client{
 		Conn:     conn,
@@ -62,8 +63,11 @@ func New(conn net.Conn) *Client {
 		rw:         bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
 		maxMsgSize: 512,
 
-		Caps: make(map[cap.Capability]bool),
+		Caps:   make(map[cap.Capability]bool),
+		grants: make(chan bool, 10),
 	}
+
+	c.FillGrants()
 
 	c.Host, _, _ = net.SplitHostPort(c.RemoteAddr().String())
 	names, err := net.LookupAddr(c.Host)
@@ -78,6 +82,18 @@ func New(conn net.Conn) *Client {
 			fmt.Fprint(c, "ERROR :Closing Link: Client failed to register in alloted time (10 seconds)\r\n")
 			c.Flush()
 			c.Cancel()
+		}
+
+		// every 2 seconds, give this client a grant
+		for {
+			select {
+			case <-ctx.Done():
+				close(c.grants)
+				return
+			default:
+				time.Sleep(time.Second * 2)
+				c.grants <- true
+			}
 		}
 	}()
 
@@ -120,10 +136,13 @@ func (c *Client) SupportsCapVersion(v int) bool {
 	return c.CapVersion >= v
 }
 
-var ErrMsgSizeOverflow = errors.New("message too large")
-
 func (c *Client) Write(b []byte) (int, error) { return c.rw.Write(b) }
 func (c *Client) Flush() error                { return c.rw.Flush() }
+
+var (
+	ErrMsgSizeOverflow = errors.New("message too large")
+	ErrFlood           = errors.New("flooding the server")
+)
 
 // Read until encountering a newline
 func (c *Client) ReadMsg() ([]byte, error) {
@@ -145,4 +164,26 @@ func (c *Client) ReadMsg() ([]byte, error) {
 	}
 
 	return nil, ErrMsgSizeOverflow
+}
+
+// RequestGrant allows the client to process one message. If the client
+// has no grants, this returns an error.
+func (c *Client) RequestGrant() error {
+	select {
+	case <-c.grants:
+		return nil
+	default:
+		return ErrFlood
+	}
+}
+
+// FillGrants fills the clients grant queue to the max.
+func (c *Client) FillGrants() {
+	for {
+		select {
+		case c.grants <- true:
+		default:
+			return
+		}
+	}
 }
