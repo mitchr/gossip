@@ -90,9 +90,8 @@ func New(ctx context.Context, conn net.Conn) *Client {
 			case <-ctx.Done():
 				close(c.grants)
 				return
-			default:
-				time.Sleep(time.Second * 2)
-				c.grants <- true
+			case <-time.After(time.Second * 2):
+				c.AddGrant()
 			}
 		}
 	}()
@@ -185,5 +184,15 @@ func (c *Client) FillGrants() {
 		default:
 			return
 		}
+	}
+}
+
+// Increment the grant counter by 1. If the client already has max
+// grants, this does nothing.
+func (c *Client) AddGrant() {
+	select {
+	case c.grants <- true:
+	default:
+		return
 	}
 }
