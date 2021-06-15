@@ -2,7 +2,6 @@ package client
 
 import (
 	"bufio"
-	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -42,7 +41,6 @@ type Client struct {
 	CapVersion int
 
 	ExpectingPONG bool
-	Cancel        context.CancelFunc // need to store for QUIT
 
 	// this lock is used when negotiating capabilities that modify the
 	// client state in some way. most notably, when requesting
@@ -53,7 +51,7 @@ type Client struct {
 	grants chan bool
 }
 
-func New(ctx context.Context, conn net.Conn) *Client {
+func New(conn net.Conn) *Client {
 	now := time.Now()
 	c := &Client{
 		Conn:     conn,

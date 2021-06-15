@@ -128,8 +128,7 @@ func (s *Server) Close() {
 
 func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	clientCtx, cancel := context.WithCancel(ctx)
-	c := client.New(clientCtx, u)
-	c.Cancel = cancel
+	c := client.New(u)
 
 	s.unknownLock.Lock()
 	s.unknowns++
@@ -141,7 +140,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		if !c.Is(client.Registered) {
 			s.ERROR(c, "Closing Link: Client failed to register in alloted time (10 seconds)\r\n")
 			c.Flush()
-			c.Cancel()
+			cancel()
 		}
 	}()
 
@@ -157,7 +156,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			if c.ExpectingPONG {
 				s.ERROR(c, "Closing Link: PING/PONG timeout")
 				c.Flush()
-				c.Cancel()
+				cancel()
 				return
 			}
 		}
@@ -189,7 +188,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				// or 3 offenses)
 				s.ERROR(c, "Flooding\r\n")
 				c.Flush()
-				c.Cancel()
+				cancel()
 				return
 			}
 
@@ -205,7 +204,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				continue
 			} else if err != nil {
 				// either client closed its own connection, or they disconnected without quit
-				c.Cancel()
+				cancel()
 				return
 			}
 
