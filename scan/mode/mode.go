@@ -56,6 +56,9 @@ func Parse(b []byte) []Mode {
 	}
 }
 
+// TODO: some clients ask for mode listings with 'mode #chan b', so
+// really the abnf here should be something like
+// modeset = plus / minus / modechar *(modechar)
 // modeset = plusminus *( modechar )
 func modeset(p *scan.Parser) ([]rune, scan.TokenType) {
 	set := []rune{}
