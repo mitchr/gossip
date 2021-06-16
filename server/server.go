@@ -138,7 +138,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	go func() {
 		time.Sleep(time.Second * 10)
 		if !c.Is(client.Registered) {
-			s.ERROR(c, "Closing Link: Client failed to register in alloted time (10 seconds)\r\n")
+			s.ERROR(c, "Closing Link: Client failed to register in alloted time (10 seconds)")
 			c.Flush()
 			cancel()
 		}
@@ -160,7 +160,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				select {
 				case <-c.PONG:
 				case <-time.After(time.Second * 10):
-					s.ERROR(c, "Closing Link: PING/PONG timeout")
+					s.ERROR(c, "Closing Link: PING timeout (300 seconds)")
 					c.Flush()
 					cancel()
 					return
@@ -193,7 +193,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				// TODO: instead of kicking the client right away, maybe a
 				// timeout would be more appropriate (atleast for the first 2
 				// or 3 offenses)
-				s.ERROR(c, "Flooding\r\n")
+				s.ERROR(c, "Flooding")
 				c.Flush()
 				cancel()
 				return
