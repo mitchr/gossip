@@ -173,7 +173,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-clientCtx.Done():
 				return
 			case <-time.After(time.Second * 2):
 				c.AddGrant()
