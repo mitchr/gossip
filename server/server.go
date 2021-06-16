@@ -147,17 +147,24 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	// every 5 minutes, send PING
 	// if client doesn't respond with a PONG in 10 seconds, kick them
 	go func() {
+		ticker := time.NewTicker(time.Minute * 5)
 		for {
-			time.Sleep(time.Minute * 5)
-			c.ExpectingPONG = true
-			fmt.Fprintf(c, ":%s PING %s\r\n", s.Name, c.Nick)
-			c.Flush()
-			time.Sleep(time.Second * 10)
-			if c.ExpectingPONG {
-				s.ERROR(c, "Closing Link: PING/PONG timeout")
-				c.Flush()
-				cancel()
+			select {
+			case <-clientCtx.Done():
+				ticker.Stop()
 				return
+			case <-ticker.C:
+				fmt.Fprintf(c, ":%s PING %s\r\n", s.Name, c.Nick)
+				c.Flush()
+
+				select {
+				case <-c.PONG:
+				case <-time.After(time.Second * 10):
+					s.ERROR(c, "Closing Link: PING/PONG timeout")
+					c.Flush()
+					cancel()
+					return
+				}
 			}
 		}
 	}()

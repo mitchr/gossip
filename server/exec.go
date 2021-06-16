@@ -842,7 +842,7 @@ func PING(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func PONG(s *Server, c *client.Client, m *msg.Message) {
-	c.ExpectingPONG = false
+	c.PONG <- struct{}{}
 }
 
 // this is currently a noop, as a server should only accept ERROR

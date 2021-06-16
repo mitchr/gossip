@@ -40,7 +40,8 @@ type Client struct {
 	// explicity requested, this will be 0.
 	CapVersion int
 
-	ExpectingPONG bool
+	// used to signal when client has successfully responded to server PING
+	PONG chan struct{}
 
 	// this lock is used when negotiating capabilities that modify the
 	// client state in some way. most notably, when requesting
@@ -61,6 +62,7 @@ func New(conn net.Conn) *Client {
 		rw:         bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
 		maxMsgSize: 512,
 
+		PONG:   make(chan struct{}, 1),
 		Caps:   make(map[cap.Capability]bool),
 		grants: make(chan bool, 10),
 	}
