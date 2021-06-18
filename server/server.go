@@ -182,10 +182,14 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		}
 	}()
 
+	pingTick := time.NewTicker(time.Minute * 5)  // every 5 minutes, send PING
+	grantTick := time.NewTicker(time.Second * 2) // every 2 seconds, give this client a grant
 	for {
 		select {
 		case <-clientCtx.Done():
 			s.msgQueue <- func() {
+				pingTick.Stop()
+				grantTick.Stop()
 				defer s.wg.Done()
 
 				if !c.Is(client.Registered) {
@@ -201,18 +205,19 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				}
 			}
 			return
-		case <-time.After(time.Minute * 5): // every 5 minutes, send PING
+		case <-pingTick.C:
 			fmt.Fprintf(c, ":%s PING %s\r\n", s.Name, c.Nick)
 			c.Flush()
 
 			select {
+			case <-clientCtx.Done():
 			case <-c.PONG:
 			case <-time.After(time.Second * 10):
 				s.ERROR(c, "Closing Link: PING timeout (300 seconds)")
 				c.Flush()
 				cancel()
 			}
-		case <-time.After(time.Second * 2): // every 2 seconds, give this client a grant
+		case <-grantTick.C:
 			c.AddGrant()
 		}
 	}
