@@ -157,12 +157,8 @@ func (c *Client) RequestGrant() error {
 
 // FillGrants fills the clients grant queue to the max.
 func (c *Client) FillGrants() {
-	for {
-		select {
-		case c.grants <- true:
-		default:
-			return
-		}
+	for i := 0; i < 10; i++ {
+		c.AddGrant()
 	}
 }
 
