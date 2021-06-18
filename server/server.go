@@ -144,43 +144,6 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		}
 	}()
 
-	// every 5 minutes, send PING
-	// if client doesn't respond with a PONG in 10 seconds, kick them
-	go func() {
-		ticker := time.NewTicker(time.Minute * 5)
-		for {
-			select {
-			case <-clientCtx.Done():
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				fmt.Fprintf(c, ":%s PING %s\r\n", s.Name, c.Nick)
-				c.Flush()
-
-				select {
-				case <-c.PONG:
-				case <-time.After(time.Second * 10):
-					s.ERROR(c, "Closing Link: PING timeout (300 seconds)")
-					c.Flush()
-					cancel()
-					return
-				}
-			}
-		}
-	}()
-
-	// every 2 seconds, give this client a grant
-	go func() {
-		for {
-			select {
-			case <-clientCtx.Done():
-				return
-			case <-time.After(time.Second * 2):
-				c.AddGrant()
-			}
-		}
-	}()
-
 	// fetch a message from the client, parse it, then send it to the
 	// server's message queue. This goroutine is implicitly closed when
 	// clientCtx is canceled.
@@ -227,22 +190,41 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		}
 	}()
 
-	<-clientCtx.Done()
-	s.msgQueue <- func() {
-		defer s.wg.Done()
+	for {
+		select {
+		case <-clientCtx.Done():
+			s.msgQueue <- func() {
+				defer s.wg.Done()
 
-		if !c.Is(client.Registered) {
-			s.unknownLock.Lock()
-			s.unknowns--
-			s.unknownLock.Unlock()
-			c.Close()
-		} else {
-			// client was kicked off without first sending a QUIT
-			// command, so we need to remove them from all the channels they
-			// are still connected to
-			QUIT(s, c, &msg.Message{Command: "PART", Params: []string{"Client left without saying goodbye :("}})
+				if !c.Is(client.Registered) {
+					s.unknownLock.Lock()
+					s.unknowns--
+					s.unknownLock.Unlock()
+					c.Close()
+				} else {
+					// client was kicked off without first sending a QUIT
+					// command, so we need to remove them from all the channels they
+					// are still connected to
+					QUIT(s, c, &msg.Message{Command: "PART", Params: []string{"Client left without saying goodbye :("}})
+				}
+			}
+			return
+		case <-time.After(time.Minute * 5): // every 5 minutes, send PING
+			fmt.Fprintf(c, ":%s PING %s\r\n", s.Name, c.Nick)
+			c.Flush()
+
+			select {
+			case <-c.PONG:
+			case <-time.After(time.Second * 10):
+				s.ERROR(c, "Closing Link: PING timeout (300 seconds)")
+				c.Flush()
+				cancel()
+			}
+		case <-time.After(time.Second * 2): // every 2 seconds, give this client a grant
+			c.AddGrant()
 		}
 	}
+
 }
 
 func (s *Server) GetClient(c string) (*client.Client, bool) {
