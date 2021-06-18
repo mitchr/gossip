@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mitchr/gossip/cap"
+	"github.com/mitchr/gossip/scan/msg"
 )
 
 type Client struct {
@@ -123,7 +124,14 @@ var (
 )
 
 // Read until encountering a newline
-func (c *Client) ReadMsg() ([]byte, error) {
+func (c *Client) ReadMsg() (*msg.Message, error) {
+	// as a form of flood control, ask for a grant before reading
+	// each request
+	err := c.requestGrant()
+	if err != nil {
+		return nil, err
+	}
+
 	c.capLock.Lock()
 	read := make([]byte, c.maxMsgSize)
 	c.capLock.Unlock()
@@ -137,16 +145,16 @@ func (c *Client) ReadMsg() ([]byte, error) {
 
 		// accepted if we find a newline
 		if b == '\n' {
-			return read[:n+1], nil
+			return msg.Parse(read[:n+1]), nil
 		}
 	}
 
 	return nil, ErrMsgSizeOverflow
 }
 
-// RequestGrant allows the client to process one message. If the client
+// requestGrant allows the client to process one message. If the client
 // has no grants, this returns an error.
-func (c *Client) RequestGrant() error {
+func (c *Client) requestGrant() error {
 	select {
 	case <-c.grants:
 		return nil

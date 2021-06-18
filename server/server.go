@@ -149,10 +149,12 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	// clientCtx is canceled.
 	go func() {
 		for {
-			// as a form of flood control, ask for a grant before reading
-			// each request
-			err := c.RequestGrant()
-			if err != nil {
+			msg, err := c.ReadMsg()
+			if s.Debug {
+				log.Println(msg)
+			}
+
+			if err == client.ErrFlood {
 				// TODO: instead of kicking the client right away, maybe a
 				// timeout would be more appropriate (atleast for the first 2
 				// or 3 offenses)
@@ -160,13 +162,8 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				c.Flush()
 				cancel()
 				return
-			}
-
-			// read until encountering a newline; the parser checks that \r exists
-			msgBuf, err := c.ReadMsg()
-
-			// client went past the 512 message length requirement
-			if err == client.ErrMsgSizeOverflow {
+			} else if err == client.ErrMsgSizeOverflow {
+				// client went past the 512 message length requirement
 				// TODO: discourage client from multiple buffer overflows in a
 				// row to try to prevent against denial of service attacks
 				s.writeReply(c, c.Id(), ERR_INPUTTOOLONG)
@@ -176,11 +173,6 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				// either client closed its own connection, or they disconnected without quit
 				cancel()
 				return
-			}
-
-			msg := msg.Parse(msgBuf)
-			if s.Debug {
-				log.Println(msg)
 			}
 
 			// implicitly ignore all nil messages
