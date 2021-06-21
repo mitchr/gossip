@@ -26,9 +26,17 @@ func lexMode(l *scan.Lexer) scan.State {
 	return nil
 }
 
+type Type int
+
+const (
+	Add Type = iota
+	Remove
+	List
+)
+
 type Mode struct {
 	ModeChar rune
-	Add      bool
+	Type     Type
 	// accepts a param if nonempty (used for channel modes)
 	Param string
 }
@@ -41,7 +49,7 @@ func Parse(b []byte) []Mode {
 	// must have atleast one modeset
 	chars, op := modeset(p)
 	for _, v := range chars {
-		m = append(m, Mode{ModeChar: v, Add: op == plus})
+		m = append(m, Mode{ModeChar: v, Type: op})
 	}
 	for {
 		r := p.Peek()
@@ -50,19 +58,22 @@ func Parse(b []byte) []Mode {
 		} else {
 			chars, op := modeset(p)
 			for _, v := range chars {
-				m = append(m, Mode{ModeChar: v, Add: op == plus})
+				m = append(m, Mode{ModeChar: v, Type: op})
 			}
 		}
 	}
 }
 
-// TODO: some clients ask for mode listings with 'mode #chan b', so
-// really the abnf here should be something like
+// some clients ask for mode listings with 'mode #chan b', so the abnf
+// here is different than the spec
 // modeset = plus / minus / modechar *(modechar)
-// modeset = plusminus *( modechar )
-func modeset(p *scan.Parser) ([]rune, scan.TokenType) {
+func modeset(p *scan.Parser) ([]rune, Type) {
 	set := []rune{}
-	operator := p.Next().TokenType
+	verb := p.Next()
+	if verb.TokenType == modechar {
+		set = append(set, verb.Value)
+	}
+
 	for {
 		t := p.Peek()
 		if t == nil || t.TokenType != modechar {
@@ -72,5 +83,17 @@ func modeset(p *scan.Parser) ([]rune, scan.TokenType) {
 			set = append(set, r.Value)
 		}
 	}
-	return set, operator
+	return set, toType(verb.TokenType)
+}
+
+// maps a lexeme to the appropriate mode verb
+func toType(s scan.TokenType) Type {
+	if s == plus {
+		return Add
+	} else if s == minus {
+		return Remove
+	} else if s == modechar {
+		return List
+	}
+	return -1
 }

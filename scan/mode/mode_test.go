@@ -10,11 +10,23 @@ func TestParseMode(t *testing.T) {
 		i string
 		m []Mode
 	}{
-		{"+m", []Mode{{'m', true, ""}}},
-		{"+mb", []Mode{{'m', true, ""}, {'b', true, ""}}},
-		{"-i", []Mode{{'i', false, ""}}},
-		{"+a-i", []Mode{{'a', true, ""}, {'i', false, ""}}},
-		// {"+a+b+c-de+f-g", []rune{'a', 'b', 'c', 'f'}, []rune{'d', 'e', 'g'}},
+		{"+m", []Mode{{'m', Add, ""}}},
+		{"+mb", []Mode{{'m', Add, ""}, {'b', Add, ""}}},
+		{"-i", []Mode{{'i', Remove, ""}}},
+		{"+a-i", []Mode{{'a', Add, ""}, {'i', Remove, ""}}},
+		{"i", []Mode{{'i', List, ""}}},
+		{"beI", []Mode{{'b', List, ""}, {'e', List, ""}, {'I', List, ""}}},
+		{"+a+b+c-de+f-g",
+			[]Mode{
+				{'a', Add, ""},
+				{'b', Add, ""},
+				{'c', Add, ""},
+				{'d', Remove, ""},
+				{'e', Remove, ""},
+				{'f', Add, ""},
+				{'g', Remove, ""},
+			},
+		},
 	}
 
 	for _, v := range tests {

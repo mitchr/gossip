@@ -191,22 +191,24 @@ var (
 // verify that the sending client has the proper permissions to make
 // those changes. It returns a modeStr if the mode was successfully applied.
 func (c *Channel) ApplyMode(m mode.Mode) (string, error) {
-	applied := "+"
-	if !m.Add {
+	var applied string
+	if m.Type == mode.Add {
+		applied = "+"
+	} else if m.Type == mode.Remove {
 		applied = "-"
 	}
 
 	if p, ok := channelLetter[m.ModeChar]; ok {
 		applied += string(m.ModeChar)
 
-		if (p.addConsumes && m.Add) || (p.remConsumes && !m.Add) {
+		if (p.addConsumes && m.Type == mode.Add) || (p.remConsumes && m.Type == mode.Remove) {
 			if m.Param == "" { // mode should have a param but doesn't
 				return "", fmt.Errorf(":%w%s", NeedMoreParamsErr, applied)
 			} else {
 				applied += " " + m.Param
 			}
 		}
-		p.apply(c, m.Param, m.Add)
+		p.apply(c, m.Param, m.Type == mode.Add)
 	} else if _, ok := memberLetter[m.ModeChar]; ok { // should apply this prefix to a member, not the channel
 		// all user MODE changes should have a param
 		if m.Param == "" {
@@ -243,7 +245,7 @@ func PopulateModeParams(modes []mode.Mode, params []string) {
 			return
 		}
 		if p, ok := channelLetter[m.ModeChar]; ok { // is channel mode
-			if (m.Add && p.addConsumes) || (!m.Add && p.remConsumes) {
+			if (m.Type == mode.Add && p.addConsumes) || (m.Type == mode.Remove && p.remConsumes) {
 				modes[i].Param = params[pos]
 				pos++
 			}

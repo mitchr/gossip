@@ -35,13 +35,13 @@ func (m Member) HighestPrefix() prefix {
 	return -1
 }
 
-func (m *Member) ApplyMode(mode mode.Mode) bool {
-	r, ok := memberLetter[mode.ModeChar]
+func (c *Member) ApplyMode(m mode.Mode) bool {
+	r, ok := memberLetter[m.ModeChar]
 	if ok {
-		if mode.Add {
-			m.Prefix += string(r)
+		if m.Type == mode.Add {
+			c.Prefix += string(r)
 		} else {
-			m.Prefix = strings.Replace(m.Prefix, string(r), "", -1)
+			c.Prefix = strings.Replace(c.Prefix, string(r), "", -1)
 		}
 	}
 	return ok
