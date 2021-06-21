@@ -611,6 +611,17 @@ func TestMODE(t *testing.T) {
 		assertResponse(def, fmt.Sprintf(":%s 367 alice #local def\r\n", s.Name), t)
 		assertResponse(ghi, fmt.Sprintf(":%s 367 alice #local ghi\r\n", s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 368 alice #local :End of channel ban list\r\n", s.Name), t)
+
+		// test that 'MODE #local b' works
+		c1.Write([]byte("MODE #local b\r\n"))
+		abc, _ = r1.ReadBytes('\n')
+		def, _ = r1.ReadBytes('\n')
+		ghi, _ = r1.ReadBytes('\n')
+		end, _ = r1.ReadBytes('\n')
+		assertResponse(abc, fmt.Sprintf(":%s 367 alice #local abc\r\n", s.Name), t)
+		assertResponse(def, fmt.Sprintf(":%s 367 alice #local def\r\n", s.Name), t)
+		assertResponse(ghi, fmt.Sprintf(":%s 367 alice #local ghi\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 368 alice #local :End of channel ban list\r\n", s.Name), t)
 	})
 
 	t.Run("TestRPLEXCEPTLIST", func(t *testing.T) {
