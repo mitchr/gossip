@@ -41,21 +41,19 @@ func (c *Client) Is(m Mode) bool { return c.Mode&m == m }
 
 // given a modeStr, apply the modes to c. If one of the runes does not
 // correspond to a user mode, return it
-func (c *Client) ApplyMode(b []byte) bool {
-	for _, v := range mode.Parse(b) {
-		if m, ok := letter[v.ModeChar]; ok {
-			if v.Type == mode.Add {
-				// a user cannot give themselves op this way; they must use OPER
-				if m == Op || m == LocalOp {
-					continue
-				}
-				c.Mode |= m
-			} else {
-				c.Mode &^= m // this is hilarious
+func (c *Client) ApplyMode(m mode.Mode) bool {
+	if mask, ok := letter[m.ModeChar]; ok {
+		if m.Type == mode.Add {
+			// a user cannot give themselves op this way; they must use OPER
+			if mask == Op || mask == LocalOp {
+				return false
 			}
+			c.Mode |= mask
 		} else {
-			return false
+			c.Mode &^= mask // this is hilarious
 		}
+	} else {
+		return false
 	}
 	return true
 }

@@ -2,25 +2,29 @@ package client
 
 import (
 	"testing"
+
+	"github.com/mitchr/gossip/scan/mode"
 )
 
 func TestModeApplication(t *testing.T) {
 	tests := []struct {
-		in   string
-		mode Mode
+		in   mode.Mode
+		out  bool
+		mask Mode
 	}{
-		{"+i", Invisible},
-		{"+ir", Invisible | Registered},
-		{"+i-i", None},
-		{"+abcdefg", None}, //nonexistant modes
-		{"-abcdefg", None}, //nonexistant modes
+		{mode.Mode{'i', mode.Add, ""}, true, Invisible},
+		{mode.Mode{'r', mode.Add, ""}, true, Registered},
+		{mode.Mode{'a', mode.Add, ""}, false, None}, //nonexistant modes
 	}
 
 	for _, v := range tests {
 		c := &Client{}
-		c.ApplyMode([]byte(v.in))
-		if c.Mode != v.mode {
-			t.Error(uint(c.Mode), uint(v.mode))
+		result := c.ApplyMode(v.in)
+		if result != v.out {
+			t.Error(result, v.out)
+		}
+		if c.Mode != v.mask {
+			t.Error(uint(c.Mode), uint(v.mask))
 		}
 	}
 }
