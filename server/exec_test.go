@@ -28,8 +28,7 @@ func TestRegistration(t *testing.T) {
 
 		// check to see if server is in correct state
 		freeze.Lock()
-		c := *s.clients["alice"]
-		freeze.Unlock()
+		c := s.clients["alice"]
 		if c.Nick != "alice" {
 			t.Errorf("Nick registered incorrectly. Got %s\n", c.Nick)
 		}
@@ -42,6 +41,7 @@ func TestRegistration(t *testing.T) {
 		if !c.Is(client.Registered) {
 			t.Error("Client not registered")
 		}
+		freeze.Unlock()
 	})
 
 	t.Run("NICKChange", func(t *testing.T) {
@@ -73,12 +73,12 @@ func TestRegistration(t *testing.T) {
 			bufio.NewReader(conn).ReadBytes('\n') // reading the response guarantees that registration finishes
 
 			freeze.Lock()
-			c := *s.clients[v.name]
-			freeze.Unlock()
+			c := s.clients[v.name]
 			c.Mode &^= client.Registered // mask off the registered bit
 			if c.Mode != v.mode {
 				t.Error("Mode set incorrectly", c.Mode, v.modeArg, v.mode)
 			}
+			freeze.Unlock()
 			conn.Close()
 		}
 	})
@@ -705,7 +705,7 @@ func TestWHOIS(t *testing.T) {
 	defer c1.Close()
 	c2, _ := connectAndRegister("bob", "Bob Smith")
 	defer c2.Close()
-	bob := *s.clients["bob"]
+	bob := s.clients["bob"]
 
 	c1.Write([]byte("WHOIS bob\r\n"))
 	whois, _ := r1.ReadBytes('\n')
