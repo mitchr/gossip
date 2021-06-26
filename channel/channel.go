@@ -126,10 +126,10 @@ func (c *Channel) Write(b []byte) (int, error) {
 }
 
 var (
-	KeyErr    = errors.New("ERR_BADCHANNELKEY")
-	LimitErr  = errors.New("ERR_CHANNELISFULL")
-	InviteErr = errors.New("ERR_INVITEONLYCHAN")
-	BanErr    = errors.New("ERR_BANNEDFROMCHAN")
+	ErrKeyMissing   = errors.New("ERR_BADCHANNELKEY")
+	ErrLimitReached = errors.New("ERR_CHANNELISFULL")
+	ErrNotInvited   = errors.New("ERR_INVITEONLYCHAN")
+	ErrBanned       = errors.New("ERR_BANNEDFROMCHAN")
 )
 
 // Admit adds a client to this channel. A client c is admitted to enter
@@ -142,10 +142,10 @@ var (
 //  6. if they are in the banlist, they are in the except list
 func (ch *Channel) Admit(c *client.Client, key string) error {
 	if ch.Key != key {
-		return KeyErr
+		return ErrKeyMissing
 	}
 	if len(ch.Members) >= ch.Limit {
-		return LimitErr
+		return ErrLimitReached
 	}
 
 	if ch.Invite {
@@ -163,7 +163,7 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 				return nil
 			}
 		}
-		return InviteErr
+		return ErrNotInvited
 	}
 
 	for _, v := range ch.Ban {
@@ -174,7 +174,7 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 					return nil
 				}
 			}
-			return BanErr
+			return ErrBanned
 		}
 	}
 	ch.SetMember(c.Nick, &Member{Client: c})
@@ -182,9 +182,9 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 }
 
 var (
-	NeedMoreParamsErr = errors.New("")
-	NotInChanErr      = errors.New("")
-	UnknownModeErr    = errors.New("")
+	ErrNeedMoreParams = errors.New("")
+	ErrNotInChan      = errors.New("")
+	ErrUnknownMode    = errors.New("")
 )
 
 // ApplyMode applies the given mode to the channel. It does not
@@ -203,7 +203,7 @@ func (c *Channel) ApplyMode(m mode.Mode) (string, error) {
 
 		if (p.addConsumes && m.Type == mode.Add) || (p.remConsumes && m.Type == mode.Remove) {
 			if m.Param == "" { // mode should have a param but doesn't
-				return "", fmt.Errorf(":%w%s", NeedMoreParamsErr, applied)
+				return "", fmt.Errorf(":%w%s", ErrNeedMoreParams, applied)
 			} else {
 				applied += " " + m.Param
 			}
@@ -212,20 +212,20 @@ func (c *Channel) ApplyMode(m mode.Mode) (string, error) {
 	} else if _, ok := memberLetter[m.ModeChar]; ok { // should apply this prefix to a member, not the channel
 		// all user MODE changes should have a param
 		if m.Param == "" {
-			return "", fmt.Errorf(":%w%s", NeedMoreParamsErr, applied+string(m.ModeChar))
+			return "", fmt.Errorf(":%w%s", ErrNeedMoreParams, applied+string(m.ModeChar))
 		}
 
 		member, belongs := c.GetMember(m.Param)
 		if !belongs {
 			// give back given nick
-			return "", fmt.Errorf("%w%s", NotInChanErr, m.Param)
+			return "", fmt.Errorf("%w%s", ErrNotInChan, m.Param)
 		}
 
 		member.ApplyMode(m)
 		applied += string(m.ModeChar) + " " + m.Param
 	} else {
 		// give back error with the unknown mode char
-		return "", fmt.Errorf("%w%s", UnknownModeErr, string(m.ModeChar))
+		return "", fmt.Errorf("%w%s", ErrUnknownMode, string(m.ModeChar))
 	}
 
 	return applied, nil

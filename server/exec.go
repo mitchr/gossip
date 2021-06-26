@@ -250,13 +250,13 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 		if ch, ok := s.GetChannel(chans[i]); ok { // channel already exists
 			err := ch.Admit(c, keys[i])
 			if err != nil {
-				if err == channel.KeyErr {
+				if err == channel.ErrKeyMissing {
 					s.writeReply(c, c.Id(), ERR_BADCHANNELKEY, ch)
-				} else if err == channel.LimitErr { // not aceepting new clients
+				} else if err == channel.ErrLimitReached { // not aceepting new clients
 					s.writeReply(c, c.Id(), ERR_CHANNELISFULL, ch)
-				} else if err == channel.InviteErr {
+				} else if err == channel.ErrNotInvited {
 					s.writeReply(c, c.Id(), ERR_INVITEONLYCHAN, ch)
-				} else if err == channel.BanErr { // client is banned
+				} else if err == channel.ErrBanned { // client is banned
 					s.writeReply(c, c.Id(), ERR_BANNEDFROMCHAN, ch)
 				}
 				return
@@ -610,11 +610,11 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 				}
 				a, err := ch.ApplyMode(m)
 				applied += a
-				if errors.Is(err, channel.NeedMoreParamsErr) {
+				if errors.Is(err, channel.ErrNeedMoreParams) {
 					s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, err)
-				} else if errors.Is(err, channel.UnknownModeErr) {
+				} else if errors.Is(err, channel.ErrUnknownMode) {
 					s.writeReply(c, c.Id(), ERR_UNKNOWNMODE, err, ch)
-				} else if errors.Is(err, channel.NotInChanErr) {
+				} else if errors.Is(err, channel.ErrNotInChan) {
 					s.writeReply(c, c.Id(), ERR_USERNOTINCHANNEL, err, ch)
 				}
 			}
