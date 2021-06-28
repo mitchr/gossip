@@ -434,6 +434,16 @@ func TestTOPIC(t *testing.T) {
 	r.ReadBytes('\n')
 	clear, _ := r.ReadBytes('\n')
 	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Name), t)
+
+	t.Run("TestNoPrivileges", func(t *testing.T) {
+		c2, r2 := connectAndRegister("b", "B")
+		defer c2.Close()
+		c2.Write([]byte("JOIN &test\r\nTOPIC &test :I have no privileges\r\n"))
+		r2.ReadBytes('\n')
+		r2.ReadBytes('\n')
+		resp, _ := r2.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 482 b &test :You're not a channel operator\r\n", s.Name), t)
+	})
 }
 
 func TestKICK(t *testing.T) {

@@ -324,8 +324,10 @@ func TOPIC(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	if len(m.Params) >= 2 { // modify topic
-		// TODO: don't allow modifying topic if client doesn't have
-		// proper privileges 'ERR_CHANOPRIVSNEEDED'
+		if m, _ := ch.GetMember(c.Nick); !m.Is(channel.Operator) {
+			s.writeReply(c, c.Id(), ERR_CHANOPRIVSNEEDED, ch)
+			return
+		}
 		ch.Topic = m.Params[1]
 		s.writeReply(c, c.Id(), RPL_TOPIC, ch, ch.Topic)
 	} else {
