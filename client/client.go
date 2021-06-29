@@ -16,6 +16,8 @@ import (
 
 type Client struct {
 	net.Conn
+	// true when the underlying connection is closed
+	IsClosed bool
 
 	Nick     string
 	User     string
@@ -117,6 +119,10 @@ func (c *Client) SupportsCapVersion(v int) bool {
 
 func (c *Client) Write(b []byte) (int, error) { return c.rw.Write(b) }
 func (c *Client) Flush() error                { return c.rw.Flush() }
+func (c *Client) Close() error {
+	c.IsClosed = true
+	return c.Conn.Close()
+}
 
 var (
 	ErrMsgSizeOverflow = errors.New("message too large")

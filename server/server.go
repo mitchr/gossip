@@ -192,7 +192,8 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				grantTick.Stop()
 				defer s.wg.Done()
 
-				if !c.Is(client.Registered) {
+				if c.IsClosed {
+				} else if !c.Is(client.Registered) {
 					s.unknownLock.Lock()
 					s.unknowns--
 					s.unknownLock.Unlock()
