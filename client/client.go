@@ -29,7 +29,7 @@ type Client struct {
 	// last time that client sent a succcessful message
 	Idle time.Time
 
-	rw         *bufio.ReadWriter
+	*bufio.ReadWriter
 	maxMsgSize int
 
 	Mode              Mode
@@ -62,7 +62,7 @@ func New(conn net.Conn) *Client {
 		JoinTime: now.Unix(),
 		Idle:     now,
 
-		rw:         bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
+		ReadWriter: bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
 		maxMsgSize: 512,
 
 		PONG:   make(chan struct{}, 1),
@@ -117,8 +117,6 @@ func (c *Client) SupportsCapVersion(v int) bool {
 	return c.CapVersion >= v
 }
 
-func (c *Client) Write(b []byte) (int, error) { return c.rw.Write(b) }
-func (c *Client) Flush() error                { return c.rw.Flush() }
 func (c *Client) Close() error {
 	c.IsClosed = true
 	return c.Conn.Close()
@@ -143,7 +141,7 @@ func (c *Client) ReadMsg() (*msg.Message, error) {
 	c.capLock.Unlock()
 
 	for n := 0; n < len(read); n++ {
-		b, err := c.rw.ReadByte()
+		b, err := c.ReadByte()
 		if err != nil {
 			return nil, err
 		}
