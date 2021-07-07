@@ -71,14 +71,32 @@ func New(conn net.Conn) *Client {
 	}
 
 	c.FillGrants()
-
-	c.Host, _, _ = net.SplitHostPort(c.RemoteAddr().String())
-	names, err := net.LookupAddr(c.Host)
-	if err == nil {
-		c.Host = names[0]
-	}
+	c.populateHostname()
 
 	return c
+}
+
+// populateHostname does an rDNS lookup on the client's ip address. If
+// there is an error, or the lookup takes too long, the client's ip
+// address will be used as the default hostname.
+func (c *Client) populateHostname() {
+	host, _, _ := net.SplitHostPort(c.RemoteAddr().String())
+
+	ch := make(chan string)
+	go func() {
+		names, err := net.LookupAddr(host)
+		if err != nil {
+			log.Println("unable to resolve hostname", host)
+		}
+		ch <- names[0]
+	}()
+
+	select {
+	case <-time.After(time.Second * 5):
+		c.Host = host
+	case h := <-ch:
+		c.Host = h
+	}
 }
 
 func (c *Client) String() string {
