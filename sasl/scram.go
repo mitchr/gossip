@@ -8,40 +8,7 @@ import (
 	"fmt"
 	"hash"
 	"strings"
-
-	"golang.org/x/crypto/pbkdf2"
 )
-
-type Credential struct {
-	Username string
-
-	ServerKey []byte // HMAC(SaltedPassword, "Server Key")
-	StoredKey []byte // H(ClientKey)
-	Salt      []byte
-	Iteration int
-}
-
-func StoreCredential(hash func() hash.Hash, pass, salt string, iter int) *Credential {
-	c := new(Credential)
-	c.Salt = []byte(salt)
-	c.Iteration = iter
-
-	saltedPass := pbkdf2.Key([]byte(pass), []byte(salt), iter, hash().Size(), hash)
-
-	mac := hmac.New(hash, saltedPass)
-	mac.Write([]byte("Server Key"))
-	c.ServerKey = mac.Sum(nil)
-
-	mac.Reset()
-	mac.Write([]byte("Client Key"))
-	clientKey := mac.Sum(nil)
-
-	h := hash()
-	h.Write(clientKey)
-	c.StoredKey = h.Sum(nil)
-
-	return c
-}
 
 // Implementation of SCRAM (RFC 5802)
 type Scram struct {
