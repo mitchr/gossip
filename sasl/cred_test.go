@@ -6,7 +6,7 @@ import (
 )
 
 func TestCredential(t *testing.T) {
-	c := StoreCredential(sha1.New, "username", "pass", "salt", 100)
+	c := NewCredential(sha1.New, "username", "pass", "salt", 100)
 
 	if !c.Check("username", "pass") {
 		t.Error("check failed")

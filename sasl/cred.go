@@ -30,7 +30,7 @@ func (c *Credential) Check(username, pass string) bool {
 	return c.Username == username && bytes.Equal(h.Sum(nil), c.StoredKey)
 }
 
-func StoreCredential(hash func() hash.Hash, uname, pass, salt string, iter int) *Credential {
+func NewCredential(hash func() hash.Hash, uname, pass, salt string, iter int) *Credential {
 	c := &Credential{hash: hash, Username: uname, Salt: []byte(salt), Iteration: iter}
 
 	saltedPass := pbkdf2.Key([]byte(pass), []byte(salt), iter, hash().Size(), hash)

@@ -42,7 +42,7 @@ func TestSCRAM(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		cred := StoreCredential(v.hash, "", v.pass, v.salt, v.iter)
+		cred := NewCredential(v.hash, "", v.pass, v.salt, v.iter)
 
 		s := SCRAM(cred, v.hash)
 		s.ParseClientFirst(v.clientFirst)
