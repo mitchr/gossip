@@ -3,10 +3,23 @@ package sasl
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"hash"
+	"os"
+	"reflect"
 	"testing"
+
+	_ "modernc.org/sqlite"
 )
+
+func TestCredential(t *testing.T) {
+	c := NewCredential(sha1.New, "username", "pass", "salt", 100)
+
+	if !c.Check("username", "pass") {
+		t.Error("check failed")
+	}
+}
 
 func TestSCRAM(t *testing.T) {
 	tests := []struct {
@@ -41,10 +54,17 @@ func TestSCRAM(t *testing.T) {
 		},
 	}
 
-	for _, v := range tests {
-		cred := NewCredential(v.hash, "", v.pass, v.salt, v.iter)
+	DB, err := initTable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("auth.db")
 
-		s := SCRAM(cred, v.hash)
+	for _, v := range tests {
+		cred := NewCredential(v.hash, "user", v.pass, v.salt, v.iter)
+		DB.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", cred.Username, cred.ServerKey, cred.StoredKey, cred.Salt, cred.Iteration)
+
+		s := SCRAM(DB, v.hash)
 		s.ParseClientFirst(v.clientFirst)
 		s.nonce = v.sNonce
 
@@ -58,7 +78,47 @@ func TestSCRAM(t *testing.T) {
 		if v.serverFinal != serverFinal {
 			t.Error("something went wrong")
 		}
+
+		DB.Exec("DELETE FROM sasl_scram")
 	}
+}
+
+func TestSCRAMLookup(t *testing.T) {
+	DB, err := initTable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("auth.db")
+
+	c := NewCredential(sha1.New, "username", "pass", "salt", 100)
+	DB.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", c.Username, c.ServerKey, c.StoredKey, c.Salt, c.Iteration)
+
+	stored, err := SCRAM(DB, nil).Lookup("username")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if reflect.DeepEqual(c, stored) {
+		t.Error("retrieved incorrect record")
+	}
+}
+
+func initTable() (*sql.DB, error) {
+	DB, err := sql.Open("sqlite", "auth.db")
+	if err != nil {
+		return nil, err
+	}
+
+	DB.Exec(`CREATE TABLE IF NOT EXISTS sasl_scram(
+			username TEXT,
+			serverKey BLOB,
+			storedKey BLOB,
+			salt BLOB,
+			iterations INTEGER,
+			PRIMARY KEY(username)
+		);`)
+
+	return DB, nil
 }
 
 func decodeBase64(s string) string {

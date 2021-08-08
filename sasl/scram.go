@@ -3,6 +3,7 @@ package sasl
 import (
 	"crypto/hmac"
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -12,10 +13,11 @@ import (
 
 // Implementation of SCRAM (RFC 5802)
 type Scram struct {
+	db *sql.DB
+
 	// gs2Header string
-	username string
-	nonce    string
-	proof    []byte // sent from client
+	nonce string
+	proof []byte // sent from client
 
 	// used for computing serverSignature
 	clientFirstBare, serverFirst, clientFinalWithoutProof string
@@ -27,6 +29,14 @@ type Scram struct {
 	Hash func() hash.Hash
 }
 
+func (s *Scram) Lookup(username string) (*Credential, error) {
+	row := s.db.QueryRow("SELECT * FROM sasl_scram WHERE username = ?", username)
+
+	c := &Credential{}
+	err := row.Scan(&c.Username, &c.ServerKey, &c.StoredKey, &c.Salt, &c.Iteration)
+	return c, err
+}
+
 func (s *Scram) ParseClientFirst(m string) error {
 	attrs := strings.Split(m, ",")
 	if len(attrs) < 4 {
@@ -35,7 +45,13 @@ func (s *Scram) ParseClientFirst(m string) error {
 
 	// attrs[1] is unused as we do not take advantage of authzid
 
-	s.username = attrs[2][2:]
+	// grab username from db
+	cred, err := s.Lookup(attrs[2][2:])
+	if err != nil {
+		// TODO: use correct error string here
+		return errors.New("e=other-error")
+	}
+	s.Cred = cred
 
 	// add arbitrary length nonce
 	nonce := make([]byte, 20)
@@ -113,6 +129,4 @@ func bytewiseXOR(b1, b2 []byte) []byte {
 	return x
 }
 
-func SCRAM(c *Credential, h func() hash.Hash) *Scram {
-	return &Scram{Cred: c, Hash: h}
-}
+func SCRAM(db *sql.DB, h func() hash.Hash) *Scram { return &Scram{db: db, Hash: h} }
