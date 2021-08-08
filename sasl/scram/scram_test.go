@@ -1,4 +1,4 @@
-package sasl
+package scram
 
 import (
 	"crypto/sha1"
