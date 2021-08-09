@@ -1,13 +1,13 @@
 package scram
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"hash"
 	"os"
-	"reflect"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -98,7 +98,7 @@ func TestSCRAMLookup(t *testing.T) {
 		t.Error(err)
 	}
 
-	if reflect.DeepEqual(c, stored) {
+	if !bytes.Equal(c.StoredKey, stored.StoredKey) {
 		t.Error("retrieved incorrect record")
 	}
 }
