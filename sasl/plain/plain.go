@@ -2,8 +2,38 @@ package sasl
 
 import (
 	"bytes"
+	"database/sql"
 	"errors"
+
+	"golang.org/x/crypto/bcrypt"
 )
+
+type Credential struct {
+	username string
+	pass     []byte
+}
+
+// A plain credential stores the bcrypt of the password
+func NewCredential(username string, pass string) *Credential {
+	b, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+	return &Credential{username, b}
+}
+
+func (c *Credential) Check(username string, pass []byte) bool {
+	success := bcrypt.CompareHashAndPassword(c.pass, pass)
+	return c.username == username && success == nil
+}
+
+type plain struct {
+	db *sql.DB
+}
+
+func (p *plain) Lookup(username string) (*Credential, error) {
+	c := &Credential{}
+	row := p.db.QueryRow("SELECT * FROM sasl_plain WHERE username = ?", username)
+	err := row.Scan(&c.username, &c.pass)
+	return c, err
+}
 
 // Implementation of SASL PLAIN (RFC 4616)
 func PLAIN(b []byte) (authzid, authcid, pass []byte, err error) {

@@ -2,7 +2,12 @@ package sasl
 
 import (
 	"bytes"
+	"database/sql"
+	"os"
+	"reflect"
 	"testing"
+
+	_ "modernc.org/sqlite"
 )
 
 func TestPLAIN(t *testing.T) {
@@ -24,4 +29,36 @@ func TestPLAIN(t *testing.T) {
 			t.Error("parsed incorrectly")
 		}
 	}
+}
+
+func TestLookup(t *testing.T) {
+	db, err := initTable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("auth.db")
+
+	c := NewCredential("username", "pass")
+	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", c.username, c.pass)
+
+	p := &plain{db}
+	stored, _ := p.Lookup("username")
+	if !reflect.DeepEqual(c, stored) {
+		t.Fail()
+	}
+}
+
+func initTable() (*sql.DB, error) {
+	DB, err := sql.Open("sqlite", "auth.db")
+	if err != nil {
+		return nil, err
+	}
+
+	DB.Exec(`CREATE TABLE IF NOT EXISTS sasl_plain(
+		username TEXT,
+		pass BLOB,
+		PRIMARY KEY(username)
+	);`)
+
+	return DB, nil
 }
