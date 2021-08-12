@@ -3,7 +3,6 @@ package sasl
 import (
 	"bytes"
 	"database/sql"
-	"os"
 	"reflect"
 	"testing"
 
@@ -36,7 +35,6 @@ func TestLookup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove("auth.db")
 
 	c := NewCredential("username", "pass")
 	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", c.username, c.pass)
@@ -49,7 +47,7 @@ func TestLookup(t *testing.T) {
 }
 
 func initTable() (*sql.DB, error) {
-	DB, err := sql.Open("sqlite", "auth.db")
+	DB, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		return nil, err
 	}

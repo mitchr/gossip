@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"hash"
-	"os"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -58,7 +57,6 @@ func TestSCRAM(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove("auth.db")
 
 	for _, v := range tests {
 		cred := NewCredential(v.hash, "user", v.pass, v.salt, v.iter)
@@ -88,7 +86,6 @@ func TestSCRAMLookup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove("auth.db")
 
 	c := NewCredential(sha1.New, "username", "pass", "salt", 100)
 	DB.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", c.Username, c.ServerKey, c.StoredKey, c.Salt, c.Iteration)
@@ -104,7 +101,7 @@ func TestSCRAMLookup(t *testing.T) {
 }
 
 func initTable() (*sql.DB, error) {
-	DB, err := sql.Open("sqlite", "auth.db")
+	DB, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		return nil, err
 	}
