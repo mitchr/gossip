@@ -1,3 +1,4 @@
+// Implementation of SCRAM (RFC 5802)
 package scram
 
 import (
@@ -11,7 +12,6 @@ import (
 	"strings"
 )
 
-// Implementation of SCRAM (RFC 5802)
 type Scram struct {
 	db *sql.DB
 

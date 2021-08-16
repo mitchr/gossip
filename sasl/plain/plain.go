@@ -1,3 +1,4 @@
+// Implementation of SASL PLAIN (RFC 4616)
 package sasl
 
 import (
@@ -24,18 +25,13 @@ func (c *Credential) Check(username string, pass []byte) bool {
 	return c.username == username && success == nil
 }
 
-type plain struct {
-	db *sql.DB
-}
-
-func (p *plain) Lookup(username string) (*Credential, error) {
+func Lookup(db *sql.DB, username string) (*Credential, error) {
 	c := &Credential{}
-	row := p.db.QueryRow("SELECT * FROM sasl_plain WHERE username = ?", username)
+	row := db.QueryRow("SELECT * FROM sasl_plain WHERE username = ?", username)
 	err := row.Scan(&c.username, &c.pass)
 	return c, err
 }
 
-// Implementation of SASL PLAIN (RFC 4616)
 func PLAIN(b []byte) (authzid, authcid, pass []byte, err error) {
 	out := bytes.Split(b, []byte{0})
 	if len(out) == 2 {

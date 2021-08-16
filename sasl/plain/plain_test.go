@@ -39,8 +39,7 @@ func TestLookup(t *testing.T) {
 	c := NewCredential("username", "pass")
 	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", c.username, c.pass)
 
-	p := &plain{db}
-	stored, _ := p.Lookup("username")
+	stored, _ := Lookup(db, "username")
 	if !reflect.DeepEqual(c, stored) {
 		t.Fail()
 	}
