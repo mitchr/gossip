@@ -2,17 +2,16 @@ package server
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"net"
-	"os"
 	"testing"
 	"time"
 )
@@ -22,31 +21,24 @@ func init() {
 }
 
 func TestTLS(t *testing.T) {
-	err := generateX509()
-	if err != nil {
-		t.Fatal(err)
-	}
-	configJSON := `{"network": "cafeteria",
-	"name": "gossip",
-	"port": ":6667",
-	"tls": {
-		"enabled": true,
-		"port": ":6697",
-		"pubkey": "public.cert",
-		"privkey": "private.key"
-	},
-	"motd": ""}`
-	ioutil.WriteFile("config.json", []byte(configJSON), 0664)
-	defer func() { // cleanup files
-		os.Remove("public.cert")
-		os.Remove("private.key")
-		os.Remove("config.json")
-	}()
+	cert := generateCert()
 
-	conf, err := NewConfig("config.json")
-	if err != nil {
-		t.Fatal(err)
+	conf := &Config{
+		Name: "gossip",
+		Port: ":6667",
+		TLS: struct {
+			*tls.Config `json:"-"`
+			Enabled     bool   `json:"enabled"`
+			Port        string `json:"port"`
+			Pubkey      string `json:"pubkey"`
+			Privkey     string `json:"privkey"`
+		}{
+			Config:  &tls.Config{Certificates: []tls.Certificate{cert}},
+			Enabled: true,
+			Port:    ":6697",
+		},
 	}
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -220,10 +212,8 @@ func assertResponse(resp []byte, eq string, t *testing.T) {
 	}
 }
 
-// Creates a PEM-encoded public/private certificate files called "public.cert" and "private.key"
-func generateX509() error {
-	// generate simple cert
-	// mostly taken from src/crypto/tls/generate_cert.go
+// Creates a PEM-encoded public/private certificate
+func generateCert() tls.Certificate {
 	sNum, _ := rand.Int(rand.Reader, big.NewInt(128))
 	template := x509.Certificate{
 		SerialNumber: sNum,
@@ -233,31 +223,15 @@ func generateX509() error {
 		NotAfter:  time.Now().Add(time.Minute * 1),
 	}
 
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		return err
-	}
+	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
+	certBytes, _ := x509.CreateCertificate(rand.Reader, &template, &template, pub, priv)
+	privBytes, _ := x509.MarshalPKCS8PrivateKey(priv)
 
-	certBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, pub, priv)
-	if err != nil {
-		return err
-	}
-	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
-	if err != nil {
-		return err
-	}
+	certPem := new(bytes.Buffer)
+	keyPem := new(bytes.Buffer)
+	pem.Encode(certPem, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+	pem.Encode(keyPem, &pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
 
-	certFile, err := os.Create("public.cert")
-	if err != nil {
-		return err
-	}
-	keyFile, err := os.Create("private.key")
-	if err != nil {
-		return err
-	}
-
-	pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
-	pem.Encode(keyFile, &pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
-
-	return nil
+	cert, _ := tls.X509KeyPair(certPem.Bytes(), keyPem.Bytes())
+	return cert
 }
