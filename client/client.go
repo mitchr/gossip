@@ -2,6 +2,9 @@ package client
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"crypto/tls"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -120,6 +123,30 @@ func (c *Client) Id() string {
 		return c.Nick
 	}
 	return "*"
+}
+
+// returns true if the client is connected over tls
+func (c *Client) IsSecure() bool {
+	_, ok := c.Conn.(*tls.Conn)
+	return ok
+}
+
+// return the sha256 hash of the client's tls certificate. if the
+// client is not connected via tls, or they have not provided a cert,
+// return nil.
+func (c *Client) CertificateFingerprint() (string, error) {
+	if !c.IsSecure() {
+		return "", errors.New("client is not connected over tls")
+	}
+
+	certs := c.Conn.(*tls.Conn).ConnectionState().PeerCertificates
+	if len(certs) < 1 {
+		return "", errors.New("client has not provided a certificate")
+	}
+
+	sha := sha256.New()
+	sha.Write(certs[0].Raw)
+	return hex.EncodeToString(sha.Sum(nil)), nil
 }
 
 func (c *Client) CapsSet() string {

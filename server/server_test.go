@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"log"
@@ -33,7 +35,7 @@ func TestTLS(t *testing.T) {
 			Pubkey      string `json:"pubkey"`
 			Privkey     string `json:"privkey"`
 		}{
-			Config:  &tls.Config{Certificates: []tls.Certificate{cert}},
+			Config:  &tls.Config{ClientAuth: tls.RequestClientCert, Certificates: []tls.Certificate{cert}},
 			Enabled: true,
 			Port:    ":6697",
 		},
@@ -46,16 +48,39 @@ func TestTLS(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, err := tls.Dial("tcp", ":6697", &tls.Config{InsecureSkipVerify: true})
+	clientCert := generateCert()
+	c, err := tls.Dial("tcp", ":6697", &tls.Config{InsecureSkipVerify: true, Certificates: []tls.Certificate{clientCert}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer c.Close()
+	r := bufio.NewReader(c)
 
 	t.Run("TestRegisterFromTLSClient", func(t *testing.T) {
 		c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice Smith\r\n"))
-		welcome, _ := bufio.NewReader(c).ReadBytes('\n')
+		welcome, _ := r.ReadBytes('\n')
 		assertResponse(welcome, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network alice!alice@localhost\r\n", s.Name, s.Network), t)
+	})
+
+	t.Run("TestWHOISCERTFP", func(t *testing.T) {
+		c.Write([]byte("WHOIS alice\r\n"))
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+		resp, _ := r.ReadBytes('\n')
+
+		sha := sha256.New()
+		sha.Write(clientCert.Certificate[0])
+		assertResponse(resp, fmt.Sprintf(":%s 276 alice alice :has client certificate fingerprint %s\r\n", s.Name, hex.EncodeToString(sha.Sum(nil))), t)
 	})
 
 	t.Run("TestPRIVMSGFromInsecureToSecure", func(t *testing.T) {
@@ -66,6 +91,7 @@ func TestTLS(t *testing.T) {
 		msg, _ := r2.ReadBytes('\n')
 		assertResponse(msg, ":alice!alice@localhost PRIVMSG bob :hey\r\n", t)
 	})
+
 }
 
 func TestMessageSize(t *testing.T) {

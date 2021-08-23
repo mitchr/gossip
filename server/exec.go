@@ -726,6 +726,14 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 				if v.Is(client.Op) {
 					s.writeReply(c, c.Id(), RPL_WHOISOPERATOR, v.Nick)
 				}
+				if v == c || c.Is(client.Op) { // querying whois on self or self is an op
+					if v.IsSecure() {
+						certPrint, err := v.CertificateFingerprint()
+						if err == nil {
+							s.writeReply(c, c.Id(), RPL_WHOISCERTFP, v.Nick, certPrint)
+						}
+					}
+				}
 				s.writeReply(c, c.Id(), RPL_WHOISIDLE, v.Nick, time.Since(v.Idle).Round(time.Second).Seconds(), v.JoinTime)
 
 				chans := []string{}
@@ -734,7 +742,7 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 					member, clientBelongs := k.GetMember(v.Nick)
 
 					// if client is invisible or this channel is secret, only send
-					//  a response if the sender shares a channel with this client
+					// a response if the sender shares a channel with this client
 					if k.Secret || v.Is(client.Invisible) {
 						if !(senderBelongs && clientBelongs) {
 							continue
