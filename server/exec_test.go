@@ -74,8 +74,7 @@ func TestRegistration(t *testing.T) {
 
 			freeze.Lock()
 			c := s.clients[v.name]
-			c.Mode &^= client.Registered // mask off the registered bit
-			if c.Mode != v.mode {
+			if c.Mode&^client.Registered != v.mode {
 				t.Error("Mode set incorrectly", c.Mode, v.modeArg, v.mode)
 			}
 			freeze.Unlock()

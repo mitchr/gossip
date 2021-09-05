@@ -187,21 +187,21 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	for {
 		select {
 		case <-clientCtx.Done():
-			s.msgQueue <- func() {
-				pingTick.Stop()
-				grantTick.Stop()
-				defer s.wg.Done()
+			pingTick.Stop()
+			grantTick.Stop()
+			defer s.wg.Done()
 
-				if c.IsClosed {
-				} else if !c.Is(client.Registered) {
-					s.unknownLock.Lock()
-					s.unknowns--
-					s.unknownLock.Unlock()
-					c.Close()
-				} else {
-					// client was kicked off without first sending a QUIT
-					// command, so we need to remove them from all the channels they
-					// are still connected to
+			if c.IsClosed {
+			} else if !c.Is(client.Registered) {
+				s.unknownLock.Lock()
+				s.unknowns--
+				s.unknownLock.Unlock()
+				c.Close()
+			} else {
+				// client was kicked off without first sending a QUIT
+				// command, so we need to remove them from all the channels they
+				// are still connected to
+				s.msgQueue <- func() {
 					QUIT(s, c, &msg.Message{Command: "PART", Params: []string{"Client left without saying goodbye :("}})
 				}
 			}
