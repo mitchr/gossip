@@ -20,6 +20,12 @@ import (
 // allowing a test to read the state of the server exclusively
 var freeze sync.Mutex
 
+// A msgBundle encapsulates a single message execution context
+type msgBundle struct {
+	m *msg.Message
+	c *client.Client
+}
+
 type Server struct {
 	*Config
 
@@ -39,7 +45,7 @@ type Server struct {
 
 	// calling this cancel also cancels all the child client's contexts
 	cancel   context.CancelFunc
-	msgQueue chan func()
+	msgQueue chan *msgBundle
 	wg       sync.WaitGroup
 }
 
@@ -49,7 +55,7 @@ func New(c *Config) (*Server, error) {
 		created:  time.Now(),
 		clients:  make(map[string]*client.Client),
 		channels: make(map[string]*channel.Channel),
-		msgQueue: make(chan func(), 10),
+		msgQueue: make(chan *msgBundle, 10),
 	}
 
 	var err error
@@ -94,15 +100,15 @@ func (s *Server) Serve() {
 		select {
 		case msg := <-s.msgQueue:
 			freeze.Lock()
-			msg()
+			s.executeMessage(msg.m, msg.c)
 			freeze.Unlock()
 		case <-ctx.Done():
 			s.wg.Done()
 
 			// empty all remaining messages from queue
-			for m := range s.msgQueue {
+			for msg := range s.msgQueue {
 				freeze.Lock()
-				m()
+				s.executeMessage(msg.m, msg.c)
 				freeze.Unlock()
 			}
 			return
@@ -177,7 +183,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 
 			// implicitly ignore all nil messages
 			if msg != nil {
-				s.msgQueue <- func() { s.executeMessage(msg, c) }
+				s.msgQueue <- &msgBundle{msg, c}
 			}
 		}
 	}()
@@ -201,9 +207,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				// client was kicked off without first sending a QUIT
 				// command, so we need to remove them from all the channels they
 				// are still connected to
-				s.msgQueue <- func() {
-					QUIT(s, c, &msg.Message{Command: "PART", Params: []string{"Client left without saying goodbye :("}})
-				}
+				s.msgQueue <- &msgBundle{&msg.Message{Command: "QUIT", Params: []string{"Client left without saying goodbye :("}}, c}
 			}
 			return
 		case <-pingTick.C:
