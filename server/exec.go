@@ -905,6 +905,7 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 	for _, v := range s.clients {
 		if v.Is(client.Wallops) {
 			fmt.Fprintf(v, "%s WALLOPS %s", s.Name, m.Params[1])
+			v.Flush()
 		}
 	}
 }
