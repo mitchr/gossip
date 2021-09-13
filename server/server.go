@@ -16,10 +16,6 @@ import (
 	"github.com/mitchr/gossip/scan/msg"
 )
 
-// freeze is used for testing. when locked, message execution is paused
-// allowing a test to read the state of the server exclusively
-var freeze sync.Mutex
-
 // A msgBundle encapsulates a single message execution context
 type msgBundle struct {
 	m *msg.Message
@@ -34,9 +30,12 @@ type Server struct {
 	created     time.Time
 
 	// nick to underlying client
-	clients map[string]*client.Client
+	clients    map[string]*client.Client
+	clientLock sync.RWMutex
+
 	// ChanType + name to channel
 	channels map[string]*channel.Channel
+	chanLock sync.RWMutex
 
 	// a running count of connected users who are unregistered
 	// (used for LUSER replies)
@@ -99,17 +98,13 @@ func (s *Server) Serve() {
 	for {
 		select {
 		case msg := <-s.msgQueue:
-			freeze.Lock()
 			s.executeMessage(msg.m, msg.c)
-			freeze.Unlock()
 		case <-ctx.Done():
 			s.wg.Done()
 
 			// empty all remaining messages from queue
 			for msg := range s.msgQueue {
-				freeze.Lock()
 				s.executeMessage(msg.m, msg.c)
-				freeze.Unlock()
 			}
 			return
 		}
@@ -230,22 +225,62 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 }
 
 func (s *Server) GetClient(c string) (*client.Client, bool) {
+	s.clientLock.RLock()
+	defer s.clientLock.RUnlock()
+
 	client, ok := s.clients[strings.ToLower(c)]
 	return client, ok
 }
-func (s *Server) SetClient(k string, v *client.Client) { s.clients[strings.ToLower(k)] = v }
-func (s *Server) DeleteClient(k string)                { delete(s.clients, strings.ToLower(k)) }
+func (s *Server) SetClient(k string, v *client.Client) {
+	s.clientLock.Lock()
+	defer s.clientLock.Unlock()
+
+	s.clients[strings.ToLower(k)] = v
+}
+func (s *Server) DeleteClient(k string) {
+	s.clientLock.Lock()
+	defer s.clientLock.Unlock()
+
+	delete(s.clients, strings.ToLower(k))
+}
+func (s *Server) ClientLen() int {
+	s.clientLock.RLock()
+	defer s.clientLock.RUnlock()
+
+	return len(s.clients)
+}
 
 func (s *Server) GetChannel(c string) (*channel.Channel, bool) {
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
+
 	ch, ok := s.channels[strings.ToLower(c)]
 	return ch, ok
 }
-func (s *Server) SetChannel(k string, v *channel.Channel) { s.channels[strings.ToLower(k)] = v }
-func (s *Server) DeleteChannel(k string)                  { delete(s.channels, strings.ToLower(k)) }
+func (s *Server) SetChannel(k string, v *channel.Channel) {
+	s.chanLock.Lock()
+	defer s.chanLock.Unlock()
+
+	s.channels[strings.ToLower(k)] = v
+}
+func (s *Server) DeleteChannel(k string) {
+	s.chanLock.Lock()
+	defer s.chanLock.Unlock()
+
+	delete(s.channels, strings.ToLower(k))
+}
+func (s *Server) ChannelLen() int {
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
+
+	return len(s.channels)
+}
 
 func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
-	l := []*channel.Channel{}
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
 
+	l := []*channel.Channel{}
 	for _, v := range s.channels {
 		if _, ok := v.GetMember(c.Nick); ok {
 			l = append(l, v)
@@ -255,6 +290,9 @@ func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 }
 
 func (s *Server) haveChanInCommon(c1, c2 *client.Client) bool {
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
+
 	for _, ch := range s.channels {
 		_, c1Belongs := ch.GetMember(c1.Nick)
 		_, c2Belongs := ch.GetMember(c2.Nick)

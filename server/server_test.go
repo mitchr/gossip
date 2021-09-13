@@ -155,6 +155,7 @@ func TestCaseInsensitivity(t *testing.T) {
 		c1.Write([]byte("NICK BOB\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 433 alice BOB :Nickname is already in use\r\n", s.Name), t)
+
 		c1.Write([]byte("NICK boB\r\n"))
 		resp, _ = r1.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 433 alice boB :Nickname is already in use\r\n", s.Name), t)
@@ -205,7 +206,7 @@ func BenchmarkRegistrationSurge(b *testing.B) {
 	name := []byte{'a'}
 	for i := 0; i < b.N; i++ {
 		c, _ := connectAndRegister(string(name), string(name))
-		go c.Close()
+		defer c.Close()
 		if name[len(name)-1] == 'z' {
 			name[len(name)-1] = 'a'
 			name = append(name, 'a')

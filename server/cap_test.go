@@ -47,11 +47,10 @@ func TestREQ(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s CAP bob ACK :message-tags\r\n", s.Name), t)
 
-		freeze.Lock()
-		if !s.clients["bob"].Caps[cap.MessageTags] {
+		bob, _ := s.GetClient("bob")
+		if !bob.Caps[cap.MessageTags] {
 			t.Error("Capability not added")
 		}
-		freeze.Unlock()
 	})
 
 	t.Run("REQRemove", func(t *testing.T) {
@@ -60,11 +59,10 @@ func TestREQ(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s CAP bob ACK :-message-tags\r\n", s.Name), t)
 
-		freeze.Lock()
-		if len(s.clients["bob"].Caps) != 0 {
+		bob, _ := s.GetClient("bob")
+		if len(bob.Caps) != 0 {
 			t.Error("Capability not added")
 		}
-		freeze.Unlock()
 	})
 
 	t.Run("UnknownCapability", func(t *testing.T) {
@@ -80,11 +78,10 @@ func TestREQ(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s CAP bob NAK :message-tags not-real\r\n", s.Name), t)
 
-		freeze.Lock()
-		if len(s.clients["bob"].Caps) != 0 {
+		bob, _ := s.GetClient("bob")
+		if len(bob.Caps) != 0 {
 			t.Error("Capability not added")
 		}
-		freeze.Unlock()
 	})
 }
 
@@ -101,11 +98,11 @@ func TestCAP302(t *testing.T) {
 
 	c.Write([]byte("CAP LS 302\r\n"))
 	r.ReadBytes('\n')
-	freeze.Lock()
-	if s.clients["bob"].CapVersion != 302 {
+
+	bob, _ := s.GetClient("bob")
+	if bob.CapVersion != 302 {
 		t.Error("did not recognize CAP LS 302")
 	}
-	freeze.Unlock()
 
 	// hacky way to test this because we don't have to worry about map
 	// values being out of order
@@ -124,22 +121,21 @@ func TestCAP302(t *testing.T) {
 		c.Write([]byte("CAP LS\r\n"))
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, ":gossip CAP bob LS :sasl\r\n", t)
-		freeze.Lock()
-		if s.clients["bob"].CapVersion != 302 {
+
+		bob, _ := s.GetClient("bob")
+		if bob.CapVersion != 302 {
 			t.Error("downgraded CAP version for some reason")
 		}
-		freeze.Unlock()
 	})
 	cap.Caps = capBackup
 
 	t.Run("TestCAPUpgrade", func(t *testing.T) {
 		c.Write([]byte("CAP LS 306\r\n"))
 		r.ReadBytes('\n')
-		freeze.Lock()
-		if s.clients["bob"].CapVersion != 306 {
+		bob, _ := s.GetClient("bob")
+		if bob.CapVersion != 306 {
 			t.Error("could not upgrade CAP version")
 		}
-		freeze.Unlock()
 	})
 }
 
