@@ -176,7 +176,7 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 		// quitting clients channels receive their quit message, not the
 		// client themselves. isntead, they receive an error message from
 		// the server signifying their depature.
-		if len(v.Members) == 1 {
+		if v.Len() == 1 {
 			s.DeleteChannel(v.String())
 		} else {
 			// message entire channel that client left
@@ -185,6 +185,7 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 
+	s.DeleteClient(c.Nick)
 	s.ERROR(c, fmt.Sprintf("%s quit", c.Nick))
 	s.DeleteClient(c.Nick)
 }
@@ -282,7 +283,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			}
 
 			newChan := channel.New(chanName, chanChar)
-			s.SetChannel(chans[i], newChan)
+			s.SetChannel(newChan.String(), newChan)
 			newChan.SetMember(c.Nick, &channel.Member{Client: c, Prefix: string(channel.Founder)})
 			fmt.Fprintf(c, ":%s JOIN %s", c, newChan)
 
@@ -306,7 +307,7 @@ func PART(s *Server, c *client.Client, m *msg.Message) {
 		}
 
 		fmt.Fprintf(ch, ":%s PART %s%s", c, ch, reason)
-		if len(ch.Members) == 1 {
+		if ch.Len() == 1 {
 			s.DeleteChannel(ch.String())
 		} else {
 			ch.DeleteMember(c.Nick)
@@ -487,15 +488,17 @@ func NAMES(s *Server, c *client.Client, m *msg.Message) {
 func LIST(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) == 0 {
 		// reply with all channels that aren't secret
+		s.chanLock.RLock()
 		for _, v := range s.channels {
 			if !v.Secret {
-				s.writeReply(c, c.Id(), RPL_LIST, v, len(v.Members), v.Topic)
+				s.writeReply(c, c.Id(), RPL_LIST, v, v.Len(), v.Topic)
 			}
 		}
+		s.chanLock.RUnlock()
 	} else {
 		for _, v := range strings.Split(m.Params[0], ",") {
 			if ch, ok := s.GetChannel(v); ok {
-				s.writeReply(c, c.Id(), RPL_LIST, ch, len(ch.Members), ch.Topic)
+				s.writeReply(c, c.Id(), RPL_LIST, ch, ch.Len(), ch.Topic)
 			}
 		}
 	}
@@ -519,6 +522,8 @@ func MOTD(s *Server, c *client.Client, m *msg.Message) {
 func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 	invis := 0
 	ops := 0
+
+	s.clientLock.RLock()
 	for _, v := range s.clients {
 		if v.Is(client.Invisible) {
 			invis++
@@ -534,8 +539,10 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 	s.unknownLock.Lock()
 	s.writeReply(c, c.Id(), RPL_LUSERUNKNOWN, s.unknowns)
 	s.unknownLock.Unlock()
-	s.writeReply(c, c.Id(), RPL_LUSERCHANNELS, len(s.channels))
+	s.writeReply(c, c.Id(), RPL_LUSERCHANNELS, s.ChannelLen())
 	s.writeReply(c, c.Id(), RPL_LUSERME, len(s.clients), 1)
+
+	s.clientLock.RUnlock()
 }
 
 func TIME(s *Server, c *client.Client, m *msg.Message) {
@@ -650,6 +657,7 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 	// send WHOREPLY to every noninvisible client who does not share a
 	// channel with the sender
 	if mask == "*" || mask == "0" {
+		s.clientLock.RLock()
 		for _, v := range s.clients {
 			if v.Is(client.Invisible) {
 				continue
@@ -665,6 +673,7 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 				s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
 			}
 		}
+		s.clientLock.RUnlock()
 		s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
 		return
 	}
@@ -676,8 +685,11 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 
 	// given a mask, match against all channels. if no channels match,
 	// treat the mask as a client prefix and match against all clients.
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
 	for _, v := range s.channels {
 		if wild.Match(mask, strings.ToLower(v.String())) {
+			v.MembersLock.RLock()
 			for _, member := range v.Members {
 				if onlyOps && !member.Client.Is(client.Op) { // skip nonops
 					continue
@@ -697,12 +709,14 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 				}
 				s.writeReply(c, c.Id(), RPL_WHOREPLY, v, member.User, member.Host, s.Name, member.Nick, flags, member.Realname)
 			}
+			v.MembersLock.RUnlock()
 			s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
 			return
 		}
 	}
 
 	// no channel results found
+	s.clientLock.RLock()
 	for _, v := range s.clients {
 		if wild.Match(mask, strings.ToLower(v.String())) {
 			if onlyOps && !v.Is(client.Op) { // skip nonops
@@ -719,6 +733,7 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 			s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
 		}
 	}
+	s.clientLock.RUnlock()
 	s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
 }
 
@@ -731,6 +746,7 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	masks := strings.Split(strings.ToLower(m.Params[0]), ",")
+	s.clientLock.RLock()
 	for _, m := range masks {
 		for _, v := range s.clients {
 			if wild.Match(m, v.Nick) {
@@ -750,6 +766,7 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 				s.writeReply(c, c.Id(), RPL_WHOISIDLE, v.Nick, time.Since(v.Idle).Round(time.Second).Seconds(), v.JoinTime)
 
 				chans := []string{}
+				s.chanLock.RLock()
 				for _, k := range s.channels {
 					_, senderBelongs := k.GetMember(c.Nick)
 					member, clientBelongs := k.GetMember(v.Nick)
@@ -763,6 +780,8 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 					}
 					chans = append(chans, string(member.HighestPrefix())+k.Name)
 				}
+				s.chanLock.RUnlock()
+
 				chanParam := ""
 				if len(chans) > 0 {
 					chanParam = " :" + strings.Join(chans, " ")
@@ -771,6 +790,7 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 			}
 		}
 	}
+	s.clientLock.RUnlock()
 	s.writeReply(c, c.Id(), RPL_ENDOFWHOIS)
 }
 
@@ -828,6 +848,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			}
 
 			// write to everybody else in the chan besides self
+			ch.MembersLock.RLock()
 			for _, member := range ch.Members {
 				if member.Client == c {
 					continue
@@ -842,6 +863,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				}
 				member.Flush()
 			}
+			ch.MembersLock.RUnlock()
 		} else { // client->client
 			target, ok := s.GetClient(v)
 			if !ok {
@@ -915,6 +937,7 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
+	s.clientLock.RLock()
 	for _, v := range s.clients {
 		if v.Is(client.Wallops) {
 			// TODO: enforce source if it is not given
@@ -922,6 +945,7 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 			v.Flush()
 		}
 	}
+	s.clientLock.RUnlock()
 }
 
 func (s *Server) executeMessage(m *msg.Message, c *client.Client) {

@@ -115,6 +115,8 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, memb
 		symbol = "@"
 	}
 
+	c.MembersLock.RLock()
+	defer c.MembersLock.RUnlock()
 	for k, v := range c.Members {
 		// if not inluding invisible clients, and this client is invisible
 		if !invisibles && v.Client.Is(client.Invisible) {

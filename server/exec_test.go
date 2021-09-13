@@ -85,7 +85,7 @@ func TestOPER(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 464 a :Password Incorrect\r\n", s.Name), t)
 	})
-	t.Run("TestCorrectpassword", func(t *testing.T) {
+	t.Run("TestCorrectPassword", func(t *testing.T) {
 		c.Write([]byte("OPER admin adminpass\r\n"))
 		operResp, _ := r.ReadBytes('\n')
 		modeResp, _ := r.ReadBytes('\n')
@@ -191,7 +191,8 @@ func TestQUIT(t *testing.T) {
 		s.channels["#l"].Members["bob"] = &channel.Member{Client: s.clients["bob"], Prefix: string(channel.Operator)}
 		s.channels["#l"].Members["dan"] = &channel.Member{Client: s.clients["dan"]}
 
-		bobPrefix := s.clients["bob"].String()
+		bob, _ := s.GetClient("bob")
+		bobPrefix := bob.String()
 
 		c1.Write([]byte("QUIT :Done for the day\r\n"))
 
@@ -264,25 +265,26 @@ func TestChannelCreation(t *testing.T) {
 	})
 
 	t.Run("TestJOIN0", func(t *testing.T) {
-		c1.Write([]byte("JOIN #chan1\r\nJOIN #chan2\r\nJOIN #chan3\r\n"))
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
+		c3, r3 := connectAndRegister("c", "c")
+		c3.Write([]byte("JOIN #chan1\r\nJOIN #chan2\r\nJOIN #chan3\r\n"))
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
 
-		c1.Write([]byte("JOIN 0\r\n"))
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
+		c3.Write([]byte("JOIN 0\r\n"))
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
 
-		c1.Write([]byte("LIST\r\n"))
-		response, _ := r1.ReadBytes('\n')
-		assertResponse(response, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.Name), t)
+		c3.Write([]byte("LIST\r\n"))
+		response, _ := r3.ReadBytes('\n')
+		assertResponse(response, fmt.Sprintf(":%s 323 c :End of /LIST\r\n", s.Name), t)
 	})
 }
 
@@ -540,7 +542,9 @@ func TestMODEChannel(t *testing.T) {
 	assertResponse(opApplied, fmt.Sprintf(":%s MODE +o bob\r\n", s.Name), t)
 	assertResponse(getModeResp, fmt.Sprintf(":%s 324 alice #local k\r\n", s.Name), t)
 
-	if s.channels["#local"].Members["bob"].Prefix != "@" {
+	local, _ := s.GetChannel("#local")
+	bob, _ := local.GetMember("bob")
+	if bob.Prefix != "@" {
 		t.Error("Failed to set member mode")
 	}
 
@@ -897,7 +901,7 @@ func TestPRIVMSG(t *testing.T) {
 		c3, _ := connectAndRegister("c", "c")
 		defer c3.Close()
 
-		local.Members["c"] = &channel.Member{Client: s.clients["c"]}
+		local.SetMember("c", &channel.Member{Client: s.clients["c"]})
 
 		c3.Write([]byte("PRIVMSG #local,bob :From c\r\n"))
 		chanResp1, _ := r1.ReadBytes('\n')

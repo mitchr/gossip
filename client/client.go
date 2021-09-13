@@ -32,6 +32,7 @@ type Client struct {
 	Idle time.Time
 
 	*bufio.ReadWriter
+	writeLock  sync.Mutex
 	maxMsgSize int
 
 	Mode              Mode
@@ -205,6 +206,9 @@ func (c *Client) ReadMsg() ([]byte, error) {
 }
 
 func (c *Client) Write(b []byte) (int, error) {
+	c.writeLock.Lock()
+	defer c.writeLock.Unlock()
+
 	prepared := c.PrepareMessage(b)
 	return c.ReadWriter.Write(prepared)
 }
@@ -218,6 +222,13 @@ func (c *Client) PrepareMessage(b []byte) []byte {
 	temp = append(temp, '\r', '\n')
 
 	return temp
+}
+
+func (c *Client) Flush() error {
+	c.writeLock.Lock()
+	defer c.writeLock.Unlock()
+
+	return c.ReadWriter.Flush()
 }
 
 // requestGrant allows the client to process one message. If the client

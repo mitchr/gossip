@@ -17,12 +17,6 @@ import (
 	"github.com/mitchr/gossip/scan/msg"
 )
 
-// A msgBundle encapsulates a single message execution context
-type msgBundle struct {
-	m *msg.Message
-	c *client.Client
-}
-
 type Server struct {
 	*Config
 
@@ -31,9 +25,12 @@ type Server struct {
 	created     time.Time
 
 	// nick to underlying client
-	clients map[string]*client.Client
+	clients    map[string]*client.Client
+	clientLock sync.RWMutex
+
 	// ChanType + name to channel
 	channels map[string]*channel.Channel
+	chanLock sync.RWMutex
 
 	// a running count of connected users who are unregistered
 	// (used for LUSER replies)
@@ -43,9 +40,8 @@ type Server struct {
 	supportedCaps []cap.Capability
 
 	// calling this cancel also cancels all the child client's contexts
-	cancel   context.CancelFunc
-	msgQueue chan *msgBundle
-	wg       sync.WaitGroup
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 func New(c *Config) (*Server, error) {
@@ -55,7 +51,6 @@ func New(c *Config) (*Server, error) {
 		clients:       make(map[string]*client.Client),
 		channels:      make(map[string]*channel.Channel),
 		supportedCaps: []cap.Capability{cap.CapNotify, cap.EchoMessage, cap.MessageTags, cap.SASL, cap.ServerTime},
-		msgQueue:      make(chan *msgBundle, 10),
 	}
 
 	var err error
@@ -97,17 +92,8 @@ func (s *Server) Serve() {
 		go s.startAccept(ctx, s.tlsListener)
 	}
 
-	// grabs messages from the queue and executes them in sequential order
-	for {
-		select {
-		case msg := <-s.msgQueue:
-			s.executeMessage(msg.m, msg.c)
-		case <-ctx.Done():
-			s.wg.Wait()
-			close(s.msgQueue)
-			return
-		}
-	}
+	<-ctx.Done()
+	s.wg.Wait()
 }
 
 // gracefully shutdown server:
@@ -153,8 +139,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		}
 	}()
 
-	// fetch a message from the client, parse it, then send it to the
-	// server's message queue
+	// fetch a message from the client, parse it, then execute it
 	go func() {
 		for {
 			buff, err := c.ReadMsg()
@@ -191,7 +176,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				msg := msg.Parse(tokens)
 				// ignore all nil messages
 				if msg != nil {
-					s.msgQueue <- &msgBundle{msg, c}
+					s.executeMessage(msg, c)
 				}
 			}
 		}
@@ -207,7 +192,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		case <-clientCtx.Done():
 			// client left/was kicked without first sending a QUIT command,
 			// so send one for them
-			s.msgQueue <- &msgBundle{&msg.Message{Command: "QUIT", Params: []string{"Client left without saying goodbye :("}}, c}
+			QUIT(s, c, &msg.Message{Params: []string{"Client left without saying goodbye :("}})
 			return
 		case <-pingTick.C:
 			fmt.Fprintf(c, ":%s PING %s", s.Name, c.Nick)
@@ -228,21 +213,62 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 }
 
 func (s *Server) GetClient(c string) (*client.Client, bool) {
+	s.clientLock.RLock()
+	defer s.clientLock.RUnlock()
+
 	client, ok := s.clients[strings.ToLower(c)]
 	return client, ok
 }
-func (s *Server) SetClient(k string, v *client.Client) { s.clients[strings.ToLower(k)] = v }
-func (s *Server) DeleteClient(k string)                { delete(s.clients, strings.ToLower(k)) }
+func (s *Server) SetClient(k string, v *client.Client) {
+	s.clientLock.Lock()
+	defer s.clientLock.Unlock()
+
+	s.clients[strings.ToLower(k)] = v
+}
+func (s *Server) DeleteClient(k string) {
+	s.clientLock.Lock()
+	defer s.clientLock.Unlock()
+
+	delete(s.clients, strings.ToLower(k))
+}
+func (s *Server) ClientLen() int {
+	s.clientLock.RLock()
+	defer s.clientLock.RUnlock()
+
+	return len(s.clients)
+}
 
 func (s *Server) GetChannel(c string) (*channel.Channel, bool) {
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
+
 	ch, ok := s.channels[strings.ToLower(c)]
 	return ch, ok
 }
-func (s *Server) SetChannel(k string, v *channel.Channel) { s.channels[strings.ToLower(k)] = v }
-func (s *Server) DeleteChannel(k string)                  { delete(s.channels, strings.ToLower(k)) }
+func (s *Server) SetChannel(k string, v *channel.Channel) {
+	s.chanLock.Lock()
+	defer s.chanLock.Unlock()
+
+	s.channels[strings.ToLower(k)] = v
+}
+func (s *Server) DeleteChannel(k string) {
+	s.chanLock.Lock()
+	defer s.chanLock.Unlock()
+
+	delete(s.channels, strings.ToLower(k))
+}
+func (s *Server) ChannelLen() int {
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
+
+	return len(s.channels)
+}
 
 func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 	l := []*channel.Channel{}
+
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
 
 	for _, v := range s.channels {
 		if _, ok := v.GetMember(c.Nick); ok {
@@ -253,6 +279,9 @@ func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 }
 
 func (s *Server) haveChanInCommon(c1, c2 *client.Client) bool {
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
+
 	for _, ch := range s.channels {
 		_, c1Belongs := ch.GetMember(c1.Nick)
 		_, c2Belongs := ch.GetMember(c2.Nick)

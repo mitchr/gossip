@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/mode"
@@ -43,15 +44,17 @@ type Channel struct {
 	Invited []string
 
 	// map of Nick to undelying client
-	Members map[string]*Member
+	Members     map[string]*Member
+	MembersLock *sync.RWMutex
 }
 
 func New(name string, t ChanType) *Channel {
 	return &Channel{
-		Name:     name,
-		ChanType: t,
-		Limit:    math.MaxUint32,
-		Members:  make(map[string]*Member),
+		Name:        name,
+		ChanType:    t,
+		Limit:       math.MaxUint32,
+		Members:     make(map[string]*Member),
+		MembersLock: new(sync.RWMutex),
 	}
 }
 
@@ -59,12 +62,33 @@ func (c Channel) String() string {
 	return string(c.ChanType) + c.Name
 }
 
+func (c *Channel) Len() int {
+	c.MembersLock.RLock()
+	defer c.MembersLock.RUnlock()
+
+	return len(c.Members)
+}
+
 func (c *Channel) GetMember(m string) (*Member, bool) {
+	c.MembersLock.RLock()
+	defer c.MembersLock.RUnlock()
+
 	mem, ok := c.Members[strings.ToLower(m)]
 	return mem, ok
 }
-func (c *Channel) SetMember(k string, v *Member) { c.Members[strings.ToLower(k)] = v }
-func (c *Channel) DeleteMember(m string)         { delete(c.Members, strings.ToLower(m)) }
+func (c *Channel) SetMember(k string, v *Member) {
+	c.MembersLock.Lock()
+	defer c.MembersLock.Unlock()
+
+	c.Members[strings.ToLower(k)] = v
+}
+
+func (c *Channel) DeleteMember(m string) {
+	c.MembersLock.Lock()
+	defer c.MembersLock.Unlock()
+
+	delete(c.Members, strings.ToLower(m))
+}
 
 func (c Channel) Modes() (modestr string, params []string) {
 	if len(c.Ban) != 0 {
@@ -109,11 +133,13 @@ func (c *Channel) Write(b []byte) (int, error) {
 	var n int
 	var errStrings []string
 
+	c.MembersLock.RLock()
+	defer c.MembersLock.RUnlock()
 	for _, v := range c.Members {
 		written, err := v.Conn.Write(v.PrepareMessage(b))
 		if err != nil {
 			errStrings = append(errStrings, err.Error())
-			log.Println(b, err)
+			log.Println(string(b), err)
 		}
 		n += written
 	}
@@ -140,7 +166,7 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 	if ch.Key != key {
 		return ErrKeyMissing
 	}
-	if len(ch.Members) >= ch.Limit {
+	if ch.Len() >= ch.Limit {
 		return ErrLimitReached
 	}
 
