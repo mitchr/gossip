@@ -16,10 +16,6 @@ import (
 	"github.com/mitchr/gossip/scan/msg"
 )
 
-// freeze is used for testing. when locked, message execution is paused
-// allowing a test to read the state of the server exclusively
-var freeze sync.Mutex
-
 // A msgBundle encapsulates a single message execution context
 type msgBundle struct {
 	m *msg.Message
@@ -99,17 +95,13 @@ func (s *Server) Serve() {
 	for {
 		select {
 		case msg := <-s.msgQueue:
-			freeze.Lock()
 			s.executeMessage(msg.m, msg.c)
-			freeze.Unlock()
 		case <-ctx.Done():
 			s.wg.Done()
 
 			// empty all remaining messages from queue
 			for msg := range s.msgQueue {
-				freeze.Lock()
 				s.executeMessage(msg.m, msg.c)
-				freeze.Unlock()
 			}
 			return
 		}
@@ -226,7 +218,6 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			c.AddGrant()
 		}
 	}
-
 }
 
 func (s *Server) GetClient(c string) (*client.Client, bool) {

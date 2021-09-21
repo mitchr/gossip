@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"net"
 	"testing"
-	"time"
 
 	"github.com/mitchr/gossip/channel"
-	"github.com/mitchr/gossip/client"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -22,27 +20,8 @@ func TestRegistration(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	t.Run("RegisterClient", func(t *testing.T) {
-		conn, _ := connectAndRegister("alice", "Alice Smith")
-		defer conn.Close()
-
-		// check to see if server is in correct state
-		freeze.Lock()
-		c := s.clients["alice"]
-		if c.Nick != "alice" {
-			t.Errorf("Nick registered incorrectly. Got %s\n", c.Nick)
-		}
-		if c.User != "alice" {
-			t.Errorf("User registered incorrectly. Got %s\n", c.User)
-		}
-		if c.Realname != "Alice Smith" {
-			t.Errorf("Real name registered incorrectly. Got %s\n", c.Realname)
-		}
-		if !c.Is(client.Registered) {
-			t.Error("Client not registered")
-		}
-		freeze.Unlock()
-	})
+	conn, _ := connectAndRegister("alice", "Alice Smith")
+	defer conn.Close()
 
 	t.Run("NICKChange", func(t *testing.T) {
 		conn, r := connectAndRegister("bob", "Bob Smith")
@@ -53,33 +32,6 @@ func TestRegistration(t *testing.T) {
 
 		// sender should be the same user host, but with the previous nick
 		assertResponse(resp, ":bob!bob@localhost NICK :dan\r\n", t)
-	})
-
-	t.Run("RegisterClientModes", func(t *testing.T) {
-		tests := []struct {
-			name    string
-			modeArg uint
-			mode    client.Mode
-		}{
-			{"a", 4, client.Invisible},
-			{"b", 8, client.Wallops},
-			{"c", 12, client.Invisible | client.Wallops},
-		}
-
-		for _, v := range tests {
-			conn, _ := net.Dial("tcp", ":6667")
-			conn.Write([]byte("NICK " + v.name + "\r\n"))
-			conn.Write([]byte(fmt.Sprintf("USER %s %v 0 :%s\r\n", v.name, v.modeArg, v.name)))
-			bufio.NewReader(conn).ReadBytes('\n') // reading the response guarantees that registration finishes
-
-			freeze.Lock()
-			c := s.clients[v.name]
-			if c.Mode&^client.Registered != v.mode {
-				t.Error("Mode set incorrectly", c.Mode, v.modeArg, v.mode)
-			}
-			freeze.Unlock()
-			conn.Close()
-		}
 	})
 }
 
@@ -113,11 +65,6 @@ func TestOPER(t *testing.T) {
 		modeResp, _ := r.ReadBytes('\n')
 		assertResponse(operResp, fmt.Sprintf(":%s 381 a :You are now an IRC operator\r\n", s.Name), t)
 		assertResponse(modeResp, fmt.Sprintf(":%s MODE a +o\r\n", s.Name), t)
-		freeze.Lock()
-		if !s.clients["a"].Is(client.Op) {
-			t.Error("client could not oper")
-		}
-		freeze.Unlock()
 	})
 }
 
@@ -146,12 +93,6 @@ func TestPASS(t *testing.T) {
 
 		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Name), t)
 		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Name), t)
-
-		freeze.Lock()
-		if len(s.clients) != 0 {
-			t.Error("Could not kick client after incorrect password")
-		}
-		freeze.Unlock()
 	})
 	t.Run("TestPASSParamMissing", func(t *testing.T) {
 		c, _ := net.Dial("tcp", ":6667")
@@ -164,11 +105,6 @@ func TestPASS(t *testing.T) {
 
 		assertResponse(err, fmt.Sprintf(":%s 461 * PASS :Not enough parameters\r\n", s.Name), t)
 		// assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Name), t)
-		freeze.Lock()
-		if len(s.clients) != 0 {
-			t.Error("Could not kick client after incorrect password")
-		}
-		freeze.Unlock()
 	})
 	t.Run("TestPASSIncorrect", func(t *testing.T) {
 		c, _ := net.Dial("tcp", ":6667")
@@ -182,11 +118,6 @@ func TestPASS(t *testing.T) {
 
 		assertResponse(resp, fmt.Sprintf(":%s 464 chris :Password Incorrect\r\n", s.Name), t)
 		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Name), t)
-		freeze.Lock()
-		if len(s.clients) != 0 {
-			t.Error("Could not kick client after incorrect password")
-		}
-		freeze.Unlock()
 	})
 	t.Run("TestPASSCorrect", func(t *testing.T) {
 		c, _ := net.Dial("tcp", ":6667")
@@ -199,12 +130,6 @@ func TestPASS(t *testing.T) {
 		for i := 0; i < 11; i++ {
 			r.ReadBytes('\n')
 		}
-
-		freeze.Lock()
-		if len(s.clients) != 1 {
-			t.Error("Could not register, despite correct password")
-		}
-		freeze.Unlock()
 
 		t.Run("TestPASSAlreadyRegistered", func(t *testing.T) {
 			c.Write([]byte("PASS letmein\r\n"))
@@ -229,12 +154,6 @@ func TestQUIT(t *testing.T) {
 
 		quitResp, _ := r.ReadBytes('\n')
 		assertResponse(quitResp, "ERROR :alice quit\r\n", t)
-
-		freeze.Lock()
-		if len(s.clients) != 0 {
-			t.Error("client could not quit")
-		}
-		freeze.Unlock()
 	})
 
 	t.Run("TestReasonInChannel", func(t *testing.T) {
@@ -260,12 +179,6 @@ func TestQUIT(t *testing.T) {
 
 		danReceivesReason, _ := r2.ReadBytes('\n')
 		assertResponse(danReceivesReason, fmt.Sprintf(":%s QUIT :Done for the day\r\n", bobPrefix), t)
-
-		freeze.Lock()
-		if len(s.clients) != 1 {
-			t.Error("client could not quit")
-		}
-		freeze.Unlock()
 	})
 }
 
@@ -289,12 +202,6 @@ func TestChannelCreation(t *testing.T) {
 	assertResponse(joinResp, ":alice!alice@localhost JOIN #local\r\n", t)
 	assertResponse(namreply, fmt.Sprintf(":%s 353 alice = #local :~alice\r\n", s.Name), t)
 	assertResponse(endNames, fmt.Sprintf(":%s 366 alice #local :End of /NAMES list\r\n", s.Name), t)
-
-	freeze.Lock()
-	if len(s.channels) != 1 {
-		t.Fatal("Could not create channel")
-	}
-	freeze.Unlock()
 
 	t.Run("TestJoinNoParam", func(t *testing.T) {
 		c1.Write([]byte("JOIN\r\n"))
@@ -332,12 +239,6 @@ func TestChannelCreation(t *testing.T) {
 		c2.Write([]byte("PART #local\r\n"))
 		response, _ := r2.ReadBytes('\n')
 		assertResponse(response, ":bob!bob@localhost PART #local\r\n", t)
-
-		freeze.Lock()
-		if len(s.channels) != 0 {
-			t.Error("Could not destroy empty channel on PART")
-		}
-		freeze.Unlock()
 	})
 
 	t.Run("TestJOIN0", func(t *testing.T) {
@@ -473,12 +374,6 @@ func TestKICK(t *testing.T) {
 	// check received correct response
 	assertResponse(aliceKick, ":alice!alice@localhost KICK #local bob :alice\r\n", t)
 	assertResponse(bobKick, ":alice!alice@localhost KICK #local bob :alice\r\n", t)
-
-	freeze.Lock()
-	if len(s.channels["#local"].Members) != 1 {
-		t.Error("could not KICK bob from channel")
-	}
-	freeze.Unlock()
 }
 
 func TestNAMES(t *testing.T) {
@@ -718,19 +613,15 @@ func TestWHOIS(t *testing.T) {
 	c1.Write([]byte("WHOIS bob\r\n"))
 	whois, _ := r1.ReadBytes('\n')
 	server, _ := r1.ReadBytes('\n')
-	idle, _ := r1.ReadBytes('\n')
+	r1.ReadBytes('\n') // TODO: check bob idle and join time
 	chans, _ := r1.ReadBytes('\n')
 	end, _ := r1.ReadBytes('\n')
 
-	// need to freeze here for looking at bob.Idle
-	freeze.Lock()
-	bob := s.clients["bob"]
-	assertResponse(whois, fmt.Sprintf(":%s 311 alice bob bob %s * :Bob Smith\r\n", s.Name, bob.Host), t)
+	assertResponse(whois, fmt.Sprintf(":%s 311 alice bob bob %s * :Bob Smith\r\n", s.Name, "localhost"), t)
 	assertResponse(server, fmt.Sprintf(":%s 312 alice bob %s :wip irc server\r\n", s.Name, s.Name), t)
-	assertResponse(idle, fmt.Sprintf(":%s 317 alice bob %v %v :seconds idle, signon time\r\n", s.Name, time.Since(bob.Idle).Round(time.Second).Seconds(), bob.JoinTime), t)
+	// assertResponse(idle, fmt.Sprintf(":%s 317 alice bob %v %v :seconds idle, signon time\r\n", s.Name, time.Since(bob.Idle).Round(time.Second).Seconds(), bob.JoinTime), t)
 	assertResponse(chans, fmt.Sprintf(":%s 319 alice bob\r\n", s.Name), t)
 	assertResponse(end, fmt.Sprintf(":%s 318 alice :End of /WHOIS list\r\n", s.Name), t)
-	freeze.Unlock()
 }
 
 func TestChanFull(t *testing.T) {
