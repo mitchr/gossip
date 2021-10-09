@@ -203,7 +203,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			}
 			return
 		case <-pingTick.C:
-			fmt.Fprintf(c, ":%s PING %s\r\n", s.Name, c.Nick)
+			fmt.Fprintf(c, ":%s PING %s", s.Name, c.Nick)
 			c.Flush()
 
 			select {

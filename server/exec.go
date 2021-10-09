@@ -91,9 +91,9 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 	if c.Nick != "" {
 		// give back NICK to the caller and notify all the channels this
 		// user is part of that their nick changed
-		fmt.Fprintf(c, ":%s NICK :%s\r\n", c, nick)
+		fmt.Fprintf(c, ":%s NICK :%s", c, nick)
 		for _, v := range s.channelsOf(c) {
-			fmt.Fprintf(v, ":%s NICK :%s\r\n", c, nick)
+			fmt.Fprintf(v, ":%s NICK :%s", c, nick)
 
 			// update member map entry
 			m, _ := v.GetMember(c.Nick)
@@ -150,7 +150,7 @@ func OPER(s *Server, c *client.Client, m *msg.Message) {
 
 	c.Mode |= client.Op
 	s.writeReply(c, c.Id(), RPL_YOUREOPER)
-	fmt.Fprintf(c, ":%s MODE %s +o\r\n", s.Name, c.Nick)
+	fmt.Fprintf(c, ":%s MODE %s +o", s.Name, c.Nick)
 }
 
 func QUIT(s *Server, c *client.Client, m *msg.Message) {
@@ -171,7 +171,7 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 		} else {
 			// message entire channel that client left
 			v.DeleteMember(c.Nick)
-			fmt.Fprintf(v, ":%s QUIT :%s\r\n", c, reason)
+			fmt.Fprintf(v, ":%s QUIT :%s", c, reason)
 		}
 	}
 
@@ -262,7 +262,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 				return
 			}
 			// send JOIN to all participants of channel
-			fmt.Fprintf(ch, ":%s JOIN %s\r\n", c, ch)
+			fmt.Fprintf(ch, ":%s JOIN %s", c, ch)
 			if ch.Topic != "" {
 				// only send topic if it exists
 				TOPIC(s, c, &msg.Message{Params: []string{ch.String()}})
@@ -281,7 +281,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			newChan := channel.New(chanName, chanChar)
 			s.SetChannel(chans[i], newChan)
 			newChan.SetMember(c.Nick, &channel.Member{Client: c, Prefix: string(channel.Founder)})
-			fmt.Fprintf(c, ":%s JOIN %s\r\n", c, newChan)
+			fmt.Fprintf(c, ":%s JOIN %s", c, newChan)
 
 			nameMsg.Params = []string{chans[i]}
 			NAMES(s, c, &nameMsg)
@@ -303,7 +303,7 @@ func PART(s *Server, c *client.Client, m *msg.Message) {
 			return
 		}
 
-		fmt.Fprintf(ch, ":%s PART %s%s\r\n", c, ch, reason)
+		fmt.Fprintf(ch, ":%s PART %s%s", c, ch, reason)
 		if len(ch.Members) == 1 {
 			s.DeleteChannel(ch.String())
 		} else {
@@ -368,7 +368,7 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	ch.Invited = append(ch.Invited, nick)
-	fmt.Fprintf(recipient, ":%s INVITE %s %s\r\n", sender, nick, ch)
+	fmt.Fprintf(recipient, ":%s INVITE %s %s", sender, nick, ch)
 	s.writeReply(c, c.Id(), RPL_INVITING, ch, nick)
 }
 
@@ -442,7 +442,7 @@ func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick st
 		return
 	}
 
-	fmt.Fprintf(ch, ":%s KICK %s %s :%s\r\n", c, ch, u.Nick, comment)
+	fmt.Fprintf(ch, ":%s KICK %s %s :%s", c, ch, u.Nick, comment)
 	ch.DeleteMember(u.Nick)
 }
 
@@ -565,7 +565,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 				}
 			}
 
-			fmt.Fprintf(c, ":%s MODE %s %s\r\n", s.Name, c.Nick, applied)
+			fmt.Fprintf(c, ":%s MODE %s %s", s.Name, c.Nick, applied)
 		} else { // give back own mode
 			s.writeReply(c, c.Id(), RPL_UMODEIS, c.Mode)
 		}
@@ -622,7 +622,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 			}
 			// only write final MODE to channel if any mode was actually altered
 			if applied != "" {
-				fmt.Fprintf(ch, ":%s MODE %s\r\n", s.Name, applied)
+				fmt.Fprintf(ch, ":%s MODE %s", s.Name, applied)
 			}
 		}
 	}
@@ -827,9 +827,9 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 					continue
 				}
 				if !member.Caps[cap.MessageTags] {
-					fmt.Fprint(member, msg.RemoveAllTags().String()+"\r\n")
+					fmt.Fprint(member, msg.RemoveAllTags().String())
 				} else {
-					fmt.Fprint(member, msg.String()+"\r\n")
+					fmt.Fprint(member, msg.String())
 				}
 				member.Flush()
 			}
@@ -850,9 +850,9 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				continue
 			}
 			if !target.Caps[cap.MessageTags] {
-				fmt.Fprint(target, msg.RemoveAllTags().String()+"\r\n")
+				fmt.Fprint(target, msg.RemoveAllTags().String())
 			} else {
-				fmt.Fprint(target, msg.String()+"\r\n")
+				fmt.Fprint(target, msg.String())
 			}
 			target.Flush()
 		}
@@ -860,7 +860,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 }
 
 func PING(s *Server, c *client.Client, m *msg.Message) {
-	fmt.Fprintf(c, ":%s PONG\r\n", s.Name)
+	fmt.Fprintf(c, ":%s PONG", s.Name)
 }
 
 func PONG(s *Server, c *client.Client, m *msg.Message) {

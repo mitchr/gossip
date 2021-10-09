@@ -201,6 +201,10 @@ func (c *Client) ReadMsg() (*msg.Message, error) {
 	return nil, ErrMsgSizeOverflow
 }
 
+func (c *Client) Write(b []byte) (int, error) {
+	return c.ReadWriter.Write(append(b, '\r', '\n'))
+}
+
 // requestGrant allows the client to process one message. If the client
 // has no grants, this returns an error.
 func (c *Client) requestGrant() error {

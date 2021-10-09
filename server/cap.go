@@ -52,12 +52,12 @@ func LS(s *Server, c *client.Client, params ...string) {
 		}
 		i++
 	}
-	fmt.Fprintf(c, ":%s CAP %s LS :%s\r\n", s.Name, c.Id(), strings.Join(caps, " "))
+	fmt.Fprintf(c, ":%s CAP %s LS :%s", s.Name, c.Id(), strings.Join(caps, " "))
 }
 
 // see what capabilities this client has active during this connection
 func capLIST(s *Server, c *client.Client, params ...string) {
-	fmt.Fprintf(c, ":%s CAP %s LIST :%s\r\n", s.Name, c.Id(), c.CapsSet())
+	fmt.Fprintf(c, ":%s CAP %s LIST :%s", s.Name, c.Id(), c.CapsSet())
 }
 
 func REQ(s *Server, c *client.Client, params ...string) {
@@ -79,7 +79,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 		if cap, ok := cap.Caps[v]; ok {
 			todo[i] = func() { c.ApplyCap(cap, remove) }
 		} else { // capability not recognized
-			fmt.Fprintf(c, ":%s CAP %s NAK :%s\r\n", s.Name, c.Id(), strings.Join(params, " "))
+			fmt.Fprintf(c, ":%s CAP %s NAK :%s", s.Name, c.Id(), strings.Join(params, " "))
 			return
 		}
 	}
@@ -88,7 +88,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 	for _, v := range todo {
 		v()
 	}
-	fmt.Fprintf(c, ":%s CAP %s ACK :%s\r\n", s.Name, c.Id(), strings.Join(params, " "))
+	fmt.Fprintf(c, ":%s CAP %s ACK :%s", s.Name, c.Id(), strings.Join(params, " "))
 }
 
 func END(s *Server, c *client.Client, params ...string) {
