@@ -34,14 +34,14 @@ func main() {
 	if sPass {
 		err := server.SetPass(c)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 		return
 	}
 	if oPass {
 		err := server.AddOp(c)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 		return
 	}
