@@ -136,7 +136,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	go func() {
 		time.Sleep(time.Second * 10)
 		if !c.Is(client.Registered) {
-			s.ERROR(c, "Closing Link: Client failed to register in alotted time (10 seconds)")
+			s.ERROR(c, "Closing Link: Client failed to register in allotted time (10 seconds)")
 			c.Flush()
 			cancel()
 		}
