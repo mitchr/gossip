@@ -23,25 +23,7 @@ func init() {
 }
 
 func TestTLS(t *testing.T) {
-	cert := generateCert()
-
-	conf := &Config{
-		Name: "gossip",
-		Port: ":6667",
-		TLS: struct {
-			*tls.Config `json:"-"`
-			Enabled     bool   `json:"enabled"`
-			Port        string `json:"port"`
-			Pubkey      string `json:"pubkey"`
-			Privkey     string `json:"privkey"`
-		}{
-			Config:  &tls.Config{ClientAuth: tls.RequestClientCert, Certificates: []tls.Certificate{cert}},
-			Enabled: true,
-			Port:    ":6697",
-		},
-	}
-
-	s, err := New(conf)
+	s, err := New(generateConfig())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -260,4 +242,28 @@ func generateCert() tls.Certificate {
 
 	cert, _ := tls.X509KeyPair(certPem.Bytes(), keyPem.Bytes())
 	return cert
+}
+
+func generateConfig() *Config {
+	cert := generateCert()
+
+	return &Config{
+		Name: "gossip",
+		Port: ":6667",
+		TLS: struct {
+			*tls.Config `json:"-"`
+			Enabled     bool          `json:"enabled"`
+			Port        string        `json:"port"`
+			Pubkey      string        `json:"pubkey"`
+			Privkey     string        `json:"privkey"`
+			STSEnabled  bool          `json:"stsEnabled"`
+			STSPort     string        `json:"stsPort"`
+			STSDuration time.Duration `json:"stsDuration"`
+			STSPreload  bool          `json:"stsPreload"`
+		}{
+			Config:  &tls.Config{ClientAuth: tls.RequestClientCert, Certificates: []tls.Certificate{cert}},
+			Enabled: true,
+			Port:    ":6697",
+		},
+	}
 }

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -33,6 +34,27 @@ type Config struct {
 
 		// A path to the server's private key
 		Privkey string `json:"privkey"`
+
+		// Enables strict transport security, which provides opportunistic
+		// TLS client connection upgrades
+		STSEnabled bool `json:"stsEnabled"`
+
+		// The port that clients should be told to connect to. This defaults
+		// to TLS.Port if not set.
+		STSPort string `json:"stsPort"`
+
+		// The time that is advertised to clients about how long they should
+		// stay connected with TLS. This defaults to the difference between
+		// the current time and the `NotAfter` property of the server's
+		// certificate.
+		STSDuration time.Duration `json:"stsDuration"`
+
+		// https://ircv3.net/specs/extensions/sts#the-preload-key
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preloading_strict_transport_security
+		// Tell clients that this server should be included in STS preload
+		// lists (promise that your server will always offer a secure
+		// connection to clients)
+		STSPreload bool `json:"stsPreload"`
 	} `json:"tls"`
 
 	// A path to a file containg the server's message of the day. A MOTD

@@ -6,15 +6,17 @@ type Capability struct {
 }
 
 var (
-	CapNotify   = Capability{"cap-notify", ""}
-	MessageTags = Capability{"message-tags", ""}
+	CapNotify   = Capability{Name: "cap-notify"}
+	MessageTags = Capability{Name: "message-tags"}
+	STS         = Capability{Name: "sts", Value: "port=%s,duration=%.f"}
 	// MultiPrefix = Capability{"multi-prefix", ""}
 )
 
 func (c Capability) String() string { return c.Name }
 
 var Caps = map[string]Capability{
-	"cap-notify":   CapNotify,
-	"message-tags": MessageTags,
+	CapNotify.Name:   CapNotify,
+	MessageTags.Name: MessageTags,
+	STS.Name:         STS,
 	// "multi-prefix": MultiPrefix,
 }

@@ -1,9 +1,11 @@
 package server
 
 import (
+	"crypto/x509"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mitchr/gossip/cap"
 	"github.com/mitchr/gossip/client"
@@ -38,9 +40,14 @@ func LS(s *Server, c *client.Client, params ...string) {
 	if version > c.CapVersion {
 		c.CapVersion = version
 	}
-	// CAP LS 302 implicitly adds 'cap-notify' to capabilities
+
 	if c.SupportsCapVersion(302) {
+		// CAP LS 302 implicitly adds 'cap-notify' to capabilities
 		c.ApplyCap(cap.CapNotify, false)
+
+		if s.TLS.STSEnabled {
+			s.updateSTSValue()
+		}
 	}
 
 	caps := make([]string, len(cap.Caps))
@@ -118,3 +125,30 @@ func CAP(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func TAGMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }
+
+// calculate TLS certificate expiration duration for sts value
+func (s *Server) updateSTSValue() {
+	var port string
+	if s.TLS.STSPort != "" {
+		port = s.TLS.STSPort
+	} else {
+		// trim ':' from port
+		port = s.TLS.Port[1:]
+	}
+
+	var duration time.Duration
+	if s.TLS.STSDuration != 0 {
+		duration = s.TLS.STSDuration
+	} else {
+		// use time until certificate expires
+		cert, _ := x509.ParseCertificate(s.TLS.Config.Certificates[0].Certificate[0])
+		duration = time.Until(cert.NotAfter)
+	}
+
+	stsCopy := cap.Caps[cap.STS.Name]
+	stsCopy.Value = fmt.Sprintf(cap.STS.Value, port, duration.Seconds())
+	if s.Config.TLS.STSPreload {
+		stsCopy.Value += ",preload"
+	}
+	cap.Caps[cap.STS.Name] = stsCopy
+}

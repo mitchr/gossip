@@ -1,8 +1,12 @@
 package server
 
 import (
+	"bufio"
+	"crypto/tls"
 	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/mitchr/gossip/cap"
 )
@@ -95,6 +99,7 @@ func TestCAP302(t *testing.T) {
 		assertResponse(resp, ":gossip CAP bob LS :sasl=PLAIN,EXTERNAL\r\n", t)
 	})
 
+	// TODO: is this comment even true?
 	// even if the client had initally shown support for >=302, still give
 	// back un-302 values for an LS of lesser value
 	t.Run("TestCAPLSValues", func(t *testing.T) {
@@ -163,4 +168,45 @@ func TestMessageTags(t *testing.T) {
 		resp, _ := r2.ReadBytes('\n')
 		assertResponse(resp, "@+testTag :a!a@localhost PRIVMSG b :hey I attached a tag\r\n", t)
 	})
+}
+
+func TestSTS(t *testing.T) {
+	s, err := New(generateConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	clientCert := generateCert()
+	c, err := tls.Dial("tcp", ":6697", &tls.Config{InsecureSkipVerify: true, Certificates: []tls.Certificate{clientCert}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	r := bufio.NewReader(c)
+
+	c.Write([]byte("NICK test\r\nUSER test 0 0 :realname\r\n"))
+	c.Write([]byte("CAP LS 302\r\n"))
+	for i := 0; i < 11; i++ {
+		r.ReadBytes('\n')
+	}
+
+	resp, _ := r.ReadBytes('\n')
+	// need to use contains here because the caps can be in any order
+	if !strings.Contains(string(resp), "sts="+cap.Caps[cap.STS.Name].Value) {
+		t.Fail()
+	}
+}
+
+func TestSTSConfig(t *testing.T) {
+	var s Server
+	s.Config = generateConfig()
+
+	s.Config.TLS.STSPort = "1010"
+	s.Config.TLS.STSDuration = time.Hour * 744 // 1 month
+	s.updateSTSValue()
+	if cap.Caps[cap.STS.Name].Value != fmt.Sprintf("port=%s,duration=%.f", s.Config.TLS.STSPort, s.Config.TLS.STSDuration.Seconds()) {
+		t.Fail()
+	}
 }
