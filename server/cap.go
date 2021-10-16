@@ -50,9 +50,9 @@ func LS(s *Server, c *client.Client, params ...string) {
 		}
 	}
 
-	caps := make([]string, len(cap.Caps))
+	caps := make([]string, len(cap.SupportedCaps))
 	i := 0
-	for _, v := range cap.Caps {
+	for _, v := range cap.SupportedCaps {
 		caps[i] = v.Name
 		if version >= 302 && len(v.Value) > 0 {
 			caps[i] += "=" + v.Value
@@ -83,7 +83,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 			v = v[1:]
 			remove = true
 		}
-		if cap, ok := cap.Caps[v]; ok {
+		if cap, ok := cap.SupportedCaps[v]; ok {
 			todo[i] = func() { c.ApplyCap(cap, remove) }
 		} else { // capability not recognized
 			fmt.Fprintf(c, ":%s CAP %s NAK :%s", s.Name, c.Id(), strings.Join(params, " "))
@@ -145,10 +145,10 @@ func (s *Server) updateSTSValue() {
 		duration = time.Until(cert.NotAfter)
 	}
 
-	stsCopy := cap.Caps[cap.STS.Name]
+	stsCopy := cap.SupportedCaps[cap.STS.Name]
 	stsCopy.Value = fmt.Sprintf(cap.STS.Value, port, duration.Seconds())
 	if s.Config.TLS.STSPreload {
 		stsCopy.Value += ",preload"
 	}
-	cap.Caps[cap.STS.Name] = stsCopy
+	cap.SupportedCaps[cap.STS.Name] = stsCopy
 }

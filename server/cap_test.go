@@ -90,9 +90,9 @@ func TestCAP302(t *testing.T) {
 
 	// hacky way to test this because we don't have to worry about map
 	// values being out of order
-	capBackup := cap.Caps
-	cap.Caps = make(map[string]cap.Capability)
-	cap.Caps["sasl"] = cap.Capability{"sasl", "PLAIN,EXTERNAL"}
+	capBackup := cap.SupportedCaps
+	cap.SupportedCaps = make(map[string]cap.Capability)
+	cap.SupportedCaps["sasl"] = cap.Capability{"sasl", "PLAIN,EXTERNAL"}
 	t.Run("TestCAPLS302Values", func(t *testing.T) {
 		c.Write([]byte("CAP LS 302\r\n"))
 		resp, _ := r.ReadBytes('\n')
@@ -107,7 +107,7 @@ func TestCAP302(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, ":gossip CAP bob LS :sasl\r\n", t)
 	})
-	cap.Caps = capBackup
+	cap.SupportedCaps = capBackup
 
 	// TODO: test that cap version got updated
 	t.Run("TestCAPUpgrade", func(t *testing.T) {
@@ -194,7 +194,7 @@ func TestSTS(t *testing.T) {
 
 	resp, _ := r.ReadBytes('\n')
 	// need to use contains here because the caps can be in any order
-	if !strings.Contains(string(resp), "sts="+cap.Caps[cap.STS.Name].Value) {
+	if !strings.Contains(string(resp), "sts="+cap.SupportedCaps[cap.STS.Name].Value) {
 		t.Fail()
 	}
 }
@@ -206,7 +206,7 @@ func TestSTSConfig(t *testing.T) {
 	s.Config.TLS.STSPort = "1010"
 	s.Config.TLS.STSDuration = time.Hour * 744 // 1 month
 	s.updateSTSValue()
-	if cap.Caps[cap.STS.Name].Value != fmt.Sprintf("port=%s,duration=%.f", s.Config.TLS.STSPort, s.Config.TLS.STSDuration.Seconds()) {
+	if cap.SupportedCaps[cap.STS.Name].Value != fmt.Sprintf("port=%s,duration=%.f", s.Config.TLS.STSPort, s.Config.TLS.STSDuration.Seconds()) {
 		t.Fail()
 	}
 }
