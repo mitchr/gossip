@@ -36,37 +36,36 @@ type Lexer struct {
 }
 
 func (l *Lexer) Next() rune {
+	// check peek cache
 	if l.peeked != -1 {
 		l.current = l.peeked
-		l.peeked = -1
-		l.position += l.width
-		return l.current
+	} else {
+		l.current = l.Peek()
 	}
+	l.peeked = -1
 
-	if l.position == len(l.input) {
-		return rune(EOF)
-	}
-
-	r, width := utf8.DecodeRune(l.input[l.position:])
-	// if r == utf8.RuneError {
-	// TODO: should probably throw the entire tokenstream out since the
-	// input is garbled
-	// }
-	l.current = r
-	l.position += width
+	l.position += l.width
 	return l.current
 }
 
 func (l *Lexer) Peek() rune {
+	if l.position >= len(l.input) {
+		return EOF
+	}
+
+	// check peek cache
 	if l.peeked != -1 {
 		return l.peeked
 	}
 
-	if l.position == len(l.input) {
-		return EOF
+	l.peeked, l.width = utf8.DecodeRune(l.input[l.position:])
+
+	// input is garbled, force execution to end early
+	if l.peeked == utf8.RuneError {
+		l.position = len(l.input) // prevent subsequent calls to Peek/Next
+		return rune(EOF)
 	}
 
-	l.peeked, l.width = utf8.DecodeRune(l.input[l.position:])
 	return l.peeked
 }
 
