@@ -64,7 +64,7 @@ func TestCredential(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !cred.Check("alice", c) {
+	if !cred.Check("alice", c.(*tls.Conn)) {
 		t.Fatal("Credential.Check failed")
 	}
 }
@@ -109,7 +109,7 @@ func TestExternal(t *testing.T) {
 	}
 	db.Exec("INSERT INTO sasl_exec VALUES(?, ?)", cred.username, cred.cert)
 
-	if !cred.Check("alice", c) {
+	if !cred.Check("alice", c.(*tls.Conn)) {
 		t.Error("check failed")
 	}
 }

@@ -1,4 +1,4 @@
-package sasl
+package plain
 
 import (
 	"bytes"
@@ -18,13 +18,17 @@ func TestPLAIN(t *testing.T) {
 		{[]byte("Ursel\000Kurt\000xipj3plmq"), []byte("Ursel"), []byte("Kurt"), []byte("xipj3plmq")},
 	}
 
-	for _, v := range tests {
-		authzid, authcid, pass, err := PLAIN(v.input)
-		if err != nil {
-			t.Error(err)
-		}
+	db, err := initTable()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		if bytes.Equal(authzid, v.authcid) && bytes.Equal(authcid, v.authcid) && bytes.Equal(pass, v.pass) {
+	p := NewPlain(db)
+
+	for _, v := range tests {
+		p.Next(v.input)
+
+		if bytes.Equal(p.authzid, v.authcid) && bytes.Equal(p.authcid, v.authcid) && bytes.Equal(p.pass, v.pass) {
 			t.Error("parsed incorrectly")
 		}
 	}
@@ -39,7 +43,8 @@ func TestLookup(t *testing.T) {
 	c := NewCredential("username", "pass")
 	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", c.username, c.pass)
 
-	stored, _ := Lookup(db, "username")
+	p := NewPlain(db)
+	stored, _ := p.lookup("username")
 	if !reflect.DeepEqual(c, stored) {
 		t.Fail()
 	}

@@ -15,7 +15,7 @@ import (
 func TestCredential(t *testing.T) {
 	c := NewCredential(sha1.New, "username", "pass", "salt", 100)
 
-	if !c.Check("username", "pass") {
+	if !c.Check("username", []byte("pass")) {
 		t.Error("check failed")
 	}
 }
@@ -62,7 +62,7 @@ func TestSCRAM(t *testing.T) {
 		cred := NewCredential(v.hash, "user", v.pass, v.salt, v.iter)
 		DB.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", cred.Username, cred.ServerKey, cred.StoredKey, cred.Salt, cred.Iteration)
 
-		s := SCRAM(DB, v.hash)
+		s := NewScram(DB, v.hash)
 		s.ParseClientFirst(v.clientFirst)
 		s.nonce = v.sNonce
 
@@ -73,7 +73,7 @@ func TestSCRAM(t *testing.T) {
 			t.Error(err)
 		}
 
-		if v.serverFinal != serverFinal {
+		if v.serverFinal != string(serverFinal) {
 			t.Error("something went wrong")
 		}
 
@@ -90,7 +90,9 @@ func TestSCRAMLookup(t *testing.T) {
 	c := NewCredential(sha1.New, "username", "pass", "salt", 100)
 	DB.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", c.Username, c.ServerKey, c.StoredKey, c.Salt, c.Iteration)
 
-	stored, err := SCRAM(DB, nil).Lookup("username")
+	s := &Scram{db: DB}
+
+	stored, err := s.lookup("username")
 	if err != nil {
 		t.Error(err)
 	}

@@ -1,11 +1,12 @@
 // Implementation of SASL PLAIN (RFC 4616)
-package sasl
+package plain
 
 import (
 	"bytes"
 	"database/sql"
 	"errors"
 
+	"github.com/mitchr/gossip/sasl"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -25,21 +26,38 @@ func (c *Credential) Check(username string, pass []byte) bool {
 	return c.username == username && success == nil
 }
 
-func Lookup(db *sql.DB, username string) (*Credential, error) {
-	c := &Credential{}
-	row := db.QueryRow("SELECT * FROM sasl_plain WHERE username = ?", username)
-	err := row.Scan(&c.username, &c.pass)
-	return c, err
+type Plain struct {
+	authzid, authcid, pass []byte
+	db                     *sql.DB
 }
 
-func PLAIN(b []byte) (authzid, authcid, pass []byte, err error) {
+func NewPlain(db *sql.DB) *Plain { return &Plain{db: db} }
+
+func (p *Plain) Next(b []byte) (challenge []byte, err error) {
 	out := bytes.Split(b, []byte{0})
 	if len(out) == 2 {
-		authcid, pass = out[0], out[1]
+		p.authcid, p.pass = out[0], out[1]
 	} else if len(out) == 3 {
-		authzid, authcid, pass = out[0], out[1], out[2]
+		p.authzid, p.authcid, p.pass = out[0], out[1], out[2]
 	} else {
-		err = errors.New("missing param for PLAIN")
+		return nil, errors.New("missing param for PLAIN")
 	}
-	return
+
+	cred, err := p.lookup(string(p.authcid))
+	if err != nil {
+		return nil, sasl.ErrInvalidKey
+	}
+
+	if !cred.Check(string(p.authcid), p.pass) {
+		return nil, sasl.ErrInvalidKey
+	}
+
+	return nil, sasl.ErrDone
+}
+
+func (p *Plain) lookup(username string) (*Credential, error) {
+	c := &Credential{}
+	row := p.db.QueryRow("SELECT * FROM sasl_plain WHERE username = ?", username)
+	err := row.Scan(&c.username, &c.pass)
+	return c, err
 }

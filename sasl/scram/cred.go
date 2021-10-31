@@ -20,8 +20,8 @@ type Credential struct {
 	Iteration int
 }
 
-func (c *Credential) Check(username, pass string) bool {
-	saltedPass := pbkdf2.Key([]byte(pass), c.Salt, c.Iteration, c.hash().Size(), c.hash)
+func (c *Credential) Check(username string, pass []byte) bool {
+	saltedPass := pbkdf2.Key(pass, c.Salt, c.Iteration, c.hash().Size(), c.hash)
 	mac := hmac.New(c.hash, saltedPass)
 	mac.Write([]byte("Client Key"))
 	h := c.hash()
@@ -48,4 +48,12 @@ func NewCredential(hash func() hash.Hash, uname, pass, salt string, iter int) *C
 	c.StoredKey = h.Sum(nil)
 
 	return c
+}
+
+func (s *Scram) lookup(username string) (*Credential, error) {
+	row := s.db.QueryRow("SELECT * FROM sasl_scram WHERE username = ?", username)
+
+	c := &Credential{}
+	err := row.Scan(&c.Username, &c.ServerKey, &c.StoredKey, &c.Salt, &c.Iteration)
+	return c, err
 }

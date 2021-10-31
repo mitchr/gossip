@@ -10,10 +10,13 @@ import (
 	"fmt"
 	"hash"
 	"strings"
+
+	"github.com/mitchr/gossip/sasl"
 )
 
 type Scram struct {
-	db *sql.DB
+	db   *sql.DB
+	step int
 
 	// gs2Header string
 	nonce string
@@ -22,20 +25,40 @@ type Scram struct {
 	// used for computing serverSignature
 	clientFirstBare, serverFirst, clientFinalWithoutProof string
 
-	// the Cred associated with the requesting client
-	Cred *Credential
+	// the cred associated with the requesting client
+	cred *Credential
 
-	// Hash function (`H()` in RFC 5802)
-	Hash func() hash.Hash
+	// hash function (`H()` in RFC 5802)
+	hash func() hash.Hash
 }
 
-func (s *Scram) Lookup(username string) (*Credential, error) {
-	row := s.db.QueryRow("SELECT * FROM sasl_scram WHERE username = ?", username)
+func (s *Scram) Next(clientResponse []byte) (challenge []byte, err error) {
+	// always increment step
+	defer func() {
+		s.step++
+	}()
 
-	c := &Credential{}
-	err := row.Scan(&c.Username, &c.ServerKey, &c.StoredKey, &c.Salt, &c.Iteration)
-	return c, err
+	switch s.step {
+	case 0:
+		err := s.ParseClientFirst(string(clientResponse))
+		if err != nil {
+			return nil, err
+		}
+
+		return s.GenServerFirst(), nil
+	case 1:
+		err := s.ParseClientFinal(string(clientResponse))
+		if err != nil {
+			return nil, err
+		}
+
+		return s.GenServerFinal()
+	}
+
+	return nil, sasl.ErrDone
 }
+
+func NewScram(db *sql.DB, h func() hash.Hash) *Scram { return &Scram{db: db, hash: h} }
 
 func (s *Scram) ParseClientFirst(m string) error {
 	attrs := strings.Split(m, ",")
@@ -46,12 +69,12 @@ func (s *Scram) ParseClientFirst(m string) error {
 	// attrs[1] is unused as we do not take advantage of authzid
 
 	// grab username from db
-	cred, err := s.Lookup(attrs[2][2:])
+	cred, err := s.lookup(attrs[2][2:])
 	if err != nil {
 		// TODO: use correct error string here
 		return errors.New("e=other-error")
 	}
-	s.Cred = cred
+	s.cred = cred
 
 	// add arbitrary length nonce
 	nonce := make([]byte, 20)
@@ -62,13 +85,13 @@ func (s *Scram) ParseClientFirst(m string) error {
 	return nil
 }
 
-func (s *Scram) GenServerFirst() string {
+func (s *Scram) GenServerFirst() []byte {
 	s.serverFirst = fmt.Sprintf("r=%s,s=%s,i=%d",
 		s.nonce,
-		base64.StdEncoding.EncodeToString(s.Cred.Salt),
-		s.Cred.Iteration,
+		base64.StdEncoding.EncodeToString(s.cred.Salt),
+		s.cred.Iteration,
 	)
-	return s.serverFirst
+	return []byte(s.serverFirst)
 }
 
 func (s *Scram) ParseClientFinal(m string) error {
@@ -93,28 +116,30 @@ func (s *Scram) ParseClientFinal(m string) error {
 	return nil
 }
 
-func (s *Scram) GenServerFinal() (string, error) {
+func (s *Scram) GenServerFinal() ([]byte, error) {
 	authMsg := fmt.Sprintf("%s,%s,%s", s.clientFirstBare, s.serverFirst, s.clientFinalWithoutProof)
 
-	mac := hmac.New(s.Hash, s.Cred.StoredKey)
+	mac := hmac.New(s.hash, s.cred.StoredKey)
 	mac.Write([]byte(authMsg))
 	clientSignature := mac.Sum(nil)
 
 	clientKey := bytewiseXOR(clientSignature, s.proof)
 
-	hash := s.Hash()
+	hash := s.hash()
 	hash.Write(clientKey)
 	storedKey := hash.Sum(nil)
 
-	if !hmac.Equal(storedKey, s.Cred.StoredKey) {
-		return "", errors.New("e=invalid-proof")
+	if !hmac.Equal(storedKey, s.cred.StoredKey) {
+		return nil, errors.New("e=invalid-proof")
 	}
 
-	mac = hmac.New(s.Hash, s.Cred.ServerKey)
+	mac = hmac.New(s.hash, s.cred.ServerKey)
 	mac.Write([]byte(authMsg))
 	serverSignature := mac.Sum(nil)
 
-	return fmt.Sprintf("v=%s", base64.StdEncoding.EncodeToString(serverSignature)), nil
+	verifier := make([]byte, base64.StdEncoding.EncodedLen(len(serverSignature)))
+	base64.StdEncoding.Encode(verifier, []byte(serverSignature))
+	return append([]byte("v="), verifier...), nil
 }
 
 func bytewiseXOR(b1, b2 []byte) []byte {
@@ -128,5 +153,3 @@ func bytewiseXOR(b1, b2 []byte) []byte {
 	}
 	return x
 }
-
-func SCRAM(db *sql.DB, h func() hash.Hash) *Scram { return &Scram{db: db, Hash: h} }
