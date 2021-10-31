@@ -43,23 +43,10 @@ func LS(s *Server, c *client.Client, params ...string) {
 
 	if c.SupportsCapVersion(302) {
 		// CAP LS 302 implicitly adds 'cap-notify' to capabilities
-		c.ApplyCap(cap.CapNotify, false)
-
-		if s.TLS.STSEnabled {
-			s.updateSTSValue()
-		}
+		c.ApplyCap(cap.CapNotify.Name, false)
 	}
 
-	caps := make([]string, len(cap.SupportedCaps))
-	i := 0
-	for _, v := range cap.SupportedCaps {
-		caps[i] = v.Name
-		if version >= 302 && len(v.Value) > 0 {
-			caps[i] += "=" + v.Value
-		}
-		i++
-	}
-	s.writeReply(c, c.Id(), ":%s CAP %s LS :%s", strings.Join(caps, " "))
+	s.writeReply(c, c.Id(), ":%s CAP %s LS :%s", s.capString(version >= 302))
 }
 
 // see what capabilities this client has active during this connection
@@ -83,8 +70,8 @@ func REQ(s *Server, c *client.Client, params ...string) {
 			v = v[1:]
 			remove = true
 		}
-		if cap, ok := cap.SupportedCaps[v]; ok {
-			todo[i] = func() { c.ApplyCap(cap, remove) }
+		if cap.IsRecognized(v) {
+			todo[i] = func() { c.ApplyCap(v, remove) }
 		} else { // capability not recognized
 			s.writeReply(c, c.Id(), ":%s CAP %s NAK :%s", strings.Join(params, " "))
 			return
@@ -126,16 +113,23 @@ func CAP(s *Server, c *client.Client, m *msg.Message) {
 
 func TAGMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }
 
-// calculate TLS certificate expiration duration for sts value
-func (s *Server) updateSTSValue() {
-	var port string
-	if s.TLS.STSPort != "" {
-		port = s.TLS.STSPort
-	} else {
-		// trim ':' from port
-		port = s.TLS.Port[1:]
+func (s *Server) capString(cap302Enabled bool) string {
+	caps := make([]string, len(s.supportedCaps))
+	for i, v := range s.supportedCaps {
+		caps[i] = v.Name
+		if cap302Enabled && len(v.Value) > 0 {
+			if v == cap.STS {
+				caps[i] += "=" + s.getSTSValue()
+			} else {
+				caps[i] += "=" + v.Value
+			}
+		}
 	}
+	return strings.Join(caps, " ")
+}
 
+func (s *Server) getSTSValue() string {
+	// calculate TLS certificate expiration duration for sts value
 	var duration time.Duration
 	if s.TLS.STSDuration != 0 {
 		duration = s.TLS.STSDuration
@@ -145,10 +139,10 @@ func (s *Server) updateSTSValue() {
 		duration = time.Until(cert.NotAfter)
 	}
 
-	stsCopy := cap.SupportedCaps[cap.STS.Name]
-	stsCopy.Value = fmt.Sprintf(cap.STS.Value, port, duration.Seconds())
+	val := fmt.Sprintf(cap.STS.Value, s.Config.TLS.STSPort, duration.Seconds())
 	if s.Config.TLS.STSPreload {
-		stsCopy.Value += ",preload"
+		val += ",preload"
 	}
-	cap.SupportedCaps[cap.STS.Name] = stsCopy
+
+	return val
 }

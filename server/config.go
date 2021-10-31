@@ -101,6 +101,10 @@ func NewConfig(path string) (*Config, error) {
 			return nil, errors.New("TLS.Port must be defined")
 		}
 
+		if c.TLS.STSPort != "" {
+			c.TLS.STSPort = c.TLS.Port[1:]
+		}
+
 		cert, err := tls.LoadX509KeyPair(c.TLS.Pubkey, c.TLS.Privkey)
 		if err != nil {
 			return nil, err

@@ -15,10 +15,6 @@ var (
 	// MultiPrefix = Capability{"multi-prefix", ""}
 )
 
-var SupportedCaps = map[string]Capability{
-	CapNotify.Name:   CapNotify,
-	MessageTags.Name: MessageTags,
-	STS.Name:         STS,
-	SASL.Name:        SASL,
-	// "multi-prefix": MultiPrefix,
+func IsRecognized(c string) bool {
+	return c == CapNotify.Name || c == MessageTags.Name || c == STS.Name || c == SASL.Name
 }

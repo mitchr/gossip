@@ -90,13 +90,10 @@ func TestCAP302(t *testing.T) {
 
 	// hacky way to test this because we don't have to worry about map
 	// values being out of order
-	capBackup := cap.SupportedCaps
-	cap.SupportedCaps = make(map[string]cap.Capability)
-	cap.SupportedCaps["sasl"] = cap.Capability{"sasl", "PLAIN,EXTERNAL"}
 	t.Run("TestCAPLS302Values", func(t *testing.T) {
 		c.Write([]byte("CAP LS 302\r\n"))
 		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, ":gossip CAP bob LS :sasl=PLAIN,EXTERNAL\r\n", t)
+		assertResponse(resp, ":gossip CAP bob LS :cap-notify message-tags sasl=PLAIN,EXTERNAL,SCRAM\r\n", t)
 	})
 
 	// TODO: is this comment even true?
@@ -105,9 +102,8 @@ func TestCAP302(t *testing.T) {
 	t.Run("TestCAPLSValues", func(t *testing.T) {
 		c.Write([]byte("CAP LS\r\n"))
 		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, ":gossip CAP bob LS :sasl\r\n", t)
+		assertResponse(resp, ":gossip CAP bob LS :cap-notify message-tags sasl\r\n", t)
 	})
-	cap.SupportedCaps = capBackup
 
 	// TODO: test that cap version got updated
 	t.Run("TestCAPUpgrade", func(t *testing.T) {
@@ -171,7 +167,11 @@ func TestMessageTags(t *testing.T) {
 }
 
 func TestSTS(t *testing.T) {
-	s, err := New(generateConfig())
+	conf := generateConfig()
+	conf.TLS.STSPort = conf.TLS.Port[1:]
+	conf.TLS.STSEnabled = true
+
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +194,7 @@ func TestSTS(t *testing.T) {
 
 	resp, _ := r.ReadBytes('\n')
 	// need to use contains here because the caps can be in any order
-	if !strings.Contains(string(resp), "sts="+cap.SupportedCaps[cap.STS.Name].Value) {
+	if !strings.Contains(string(resp), "sts="+s.getSTSValue()) {
 		t.Fail()
 	}
 }
@@ -205,8 +205,9 @@ func TestSTSConfig(t *testing.T) {
 
 	s.Config.TLS.STSPort = "1010"
 	s.Config.TLS.STSDuration = time.Hour * 744 // 1 month
-	s.updateSTSValue()
-	if cap.SupportedCaps[cap.STS.Name].Value != fmt.Sprintf("port=%s,duration=%.f", s.Config.TLS.STSPort, s.Config.TLS.STSDuration.Seconds()) {
+	s.Config.TLS.STSPreload = true
+
+	if s.getSTSValue() != fmt.Sprintf(cap.STS.Value, s.Config.TLS.STSPort, s.Config.TLS.STSDuration.Seconds())+",preload" {
 		t.Fail()
 	}
 }

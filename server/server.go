@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mitchr/gossip/cap"
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
@@ -39,6 +40,8 @@ type Server struct {
 	unknownLock sync.Mutex
 	unknowns    int
 
+	supportedCaps []cap.Capability
+
 	// calling this cancel also cancels all the child client's contexts
 	cancel   context.CancelFunc
 	msgQueue chan *msgBundle
@@ -47,11 +50,12 @@ type Server struct {
 
 func New(c *Config) (*Server, error) {
 	s := &Server{
-		Config:   c,
-		created:  time.Now(),
-		clients:  make(map[string]*client.Client),
-		channels: make(map[string]*channel.Channel),
-		msgQueue: make(chan *msgBundle, 10),
+		Config:        c,
+		created:       time.Now(),
+		clients:       make(map[string]*client.Client),
+		channels:      make(map[string]*channel.Channel),
+		supportedCaps: []cap.Capability{cap.CapNotify, cap.MessageTags, cap.SASL},
+		msgQueue:      make(chan *msgBundle, 10),
 	}
 
 	var err error
@@ -64,6 +68,9 @@ func New(c *Config) (*Server, error) {
 		s.tlsListener, err = tls.Listen("tcp", c.TLS.Port, c.TLS.Config)
 		if err != nil {
 			return nil, err
+		}
+		if c.TLS.STSEnabled {
+			s.supportedCaps = append(s.supportedCaps, cap.STS)
 		}
 	}
 

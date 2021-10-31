@@ -823,10 +823,10 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				if member.Client == c {
 					continue
 				}
-				if msg.Command == "TAGMSG" && !member.Caps[cap.MessageTags] {
+				if msg.Command == "TAGMSG" && !member.Caps[cap.MessageTags.Name] {
 					continue
 				}
-				if !member.Caps[cap.MessageTags] {
+				if !member.Caps[cap.MessageTags.Name] {
 					fmt.Fprint(member, msg.RemoveAllTags().String())
 				} else {
 					fmt.Fprint(member, msg.String())
@@ -846,10 +846,10 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				s.writeReply(c, c.Id(), RPL_AWAY, target.Nick, target.AwayMsg)
 				continue
 			}
-			if msg.Command == "TAGMSG" && !target.Caps[cap.MessageTags] {
+			if msg.Command == "TAGMSG" && !target.Caps[cap.MessageTags.Name] {
 				continue
 			}
-			if !target.Caps[cap.MessageTags] {
+			if !target.Caps[cap.MessageTags.Name] {
 				fmt.Fprint(target, msg.RemoveAllTags().String())
 			} else {
 				fmt.Fprint(target, msg.String())

@@ -4,7 +4,7 @@ import (
 	"github.com/mitchr/gossip/cap"
 )
 
-func (c *Client) ApplyCap(cap cap.Capability, remove bool) {
+func (c *Client) ApplyCap(cap string, remove bool) {
 	// "If a client requests a capability which is already enabled,
 	// or tries to disable a capability which is not enabled, the
 	// server MUST continue processing the REQ subcommand as though
@@ -23,9 +23,9 @@ func (c *Client) ApplyCap(cap cap.Capability, remove bool) {
 
 type capHandler func(*Client, bool)
 
-var capHandlers = map[cap.Capability]capHandler{
-	cap.CapNotify:   doNothing,
-	cap.MessageTags: messageTags,
+var capHandlers = map[string]capHandler{
+	cap.CapNotify.Name:   doNothing,
+	cap.MessageTags.Name: messageTags,
 }
 
 // used to capabilities that are just basically advertisements, like cap-notify

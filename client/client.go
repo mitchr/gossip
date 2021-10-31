@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mitchr/gossip/cap"
 	"github.com/mitchr/gossip/sasl"
 	"github.com/mitchr/gossip/scan/msg"
 )
@@ -42,12 +41,12 @@ type Client struct {
 	RegSuspended      bool
 
 	// Represents a set of IRCv3 capabilities
-	Caps map[cap.Capability]bool
+	Caps map[string]bool
 	// The maximum CAP version that this client supports. If no version is
 	// explicity requested, this will be 0.
 	CapVersion int
 
-	// Mechanism that is currently in use for this clinet
+	// Mechanism that is currently in use for this client
 	SASLMech sasl.Mechanism
 
 	// True if this client has authenticated using SASL
@@ -76,7 +75,7 @@ func New(conn net.Conn) *Client {
 		maxMsgSize: 512,
 
 		PONG:   make(chan struct{}, 1),
-		Caps:   make(map[cap.Capability]bool),
+		Caps:   make(map[string]bool),
 		grants: make(chan bool, 10),
 	}
 
@@ -160,7 +159,7 @@ func (c *Client) CapsSet() string {
 	caps := make([]string, len(c.Caps))
 	i := 0
 	for k := range c.Caps {
-		caps[i] = k.String()
+		caps[i] = k
 	}
 	return strings.Join(caps, " ")
 }
