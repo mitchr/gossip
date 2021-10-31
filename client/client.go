@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/mitchr/gossip/cap"
+	"github.com/mitchr/gossip/sasl"
 	"github.com/mitchr/gossip/scan/msg"
 )
 
@@ -45,6 +46,12 @@ type Client struct {
 	// The maximum CAP version that this client supports. If no version is
 	// explicity requested, this will be 0.
 	CapVersion int
+
+	// Mechanism that is currently in use for this clinet
+	SASLMech sasl.Mechanism
+
+	// True if this client has authenticated using SASL
+	IsAuthenticated bool
 
 	// used to signal when client has successfully responded to server PING
 	PONG chan struct{}

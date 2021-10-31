@@ -79,6 +79,16 @@ const (
 	ERR_CHANOPRIVSNEEDED = ":%s 482 %s %s :You're not a channel operator"
 	ERR_UMODEUNKNOWNFLAG = ":%s 501 %s :Unknown MODE flag"
 	ERR_USERSDONTMATCH   = ":%s 502 %s :Can't change mode for other users"
+
+	RPL_LOGGEDIN    = ":%s 900 %s %s %s :You are now logged in as %s"
+	RPL_LOGGEDOUT   = ":%s 901 %s %s :You are not logged out"
+	ERR_NICKLOCKED  = ":%s 902 %s :You must use a nick assigned to you"
+	RPL_SASLSUCCESS = ":%s 903 %s :SASL authentication successful"
+	ERR_SASLFAIL    = ":%s 904 %s :SASL authentication failed"
+	ERR_SASLTOOLONG = ":%s 905 %s :SASL message too long"
+	ERR_SASLABORTED = ":%s 906 %s :SASL authentication aborted"
+	ERR_SASLALREADY = ":%s 907 %s :You have already authenticated using SASL"
+	RPL_SASLMECHS   = ":%s 908 %s %s :are available SASL mechanisms"
 )
 
 func (s *Server) writeReply(buf io.Writer, clientId string, format string, f ...interface{}) {
