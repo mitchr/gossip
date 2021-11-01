@@ -26,6 +26,7 @@ type capHandler func(*Client, bool)
 var capHandlers = map[string]capHandler{
 	cap.CapNotify.Name:   doNothing,
 	cap.MessageTags.Name: messageTags,
+	cap.SASL.Name:        doNothing,
 }
 
 // used to capabilities that are just basically advertisements, like cap-notify
