@@ -20,12 +20,13 @@ type executor func(*Server, *client.Client, *msg.Message)
 
 var commandMap = map[string]executor{
 	// registration
-	"PASS": PASS,
-	"NICK": NICK,
-	"USER": USER,
-	"OPER": OPER,
-	"QUIT": QUIT,
-	"CAP":  CAP,
+	"PASS":         PASS,
+	"NICK":         NICK,
+	"USER":         USER,
+	"OPER":         OPER,
+	"QUIT":         QUIT,
+	"CAP":          CAP,
+	"AUTHENTICATE": AUTHENTICATE,
 
 	// chanOps
 	"JOIN":   JOIN,
@@ -913,7 +914,7 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	upper := strings.ToUpper(m.Command)
 	// ignore unregistered user commands until registration completes
-	if !c.Is(client.Registered) && (upper != "CAP" && upper != "NICK" && upper != "USER" && upper != "PASS") {
+	if !c.Is(client.Registered) && (upper != "CAP" && upper != "NICK" && upper != "USER" && upper != "PASS" && upper != "AUTHENTICATE") {
 		return
 	}
 
