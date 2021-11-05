@@ -27,6 +27,7 @@ var commandMap = map[string]executor{
 	"QUIT":         QUIT,
 	"CAP":          CAP,
 	"AUTHENTICATE": AUTHENTICATE,
+	"REGISTER":     REGISTER,
 
 	// chanOps
 	"JOIN":   JOIN,

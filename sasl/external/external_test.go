@@ -107,7 +107,7 @@ func TestExternal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db.Exec("INSERT INTO sasl_exec VALUES(?, ?)", cred.username, cred.cert)
+	db.Exec("INSERT INTO sasl_exec VALUES(?, ?)", cred.Username, cred.Cert)
 
 	if !cred.Check("alice", c.(*tls.Conn)) {
 		t.Error("check failed")

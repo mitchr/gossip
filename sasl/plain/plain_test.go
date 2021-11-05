@@ -41,7 +41,7 @@ func TestLookup(t *testing.T) {
 	}
 
 	c := NewCredential("username", "pass")
-	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", c.username, c.pass)
+	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", c.Username, c.Pass)
 
 	p := NewPlain(db)
 	stored, _ := p.lookup("username")

@@ -11,8 +11,8 @@ import (
 )
 
 type Credential struct {
-	username string
-	pass     []byte
+	Username string
+	Pass     []byte
 }
 
 // A plain credential stores the bcrypt of the password
@@ -22,8 +22,8 @@ func NewCredential(username string, pass string) *Credential {
 }
 
 func (c *Credential) Check(username string, pass []byte) bool {
-	success := bcrypt.CompareHashAndPassword(c.pass, pass)
-	return c.username == username && success == nil
+	success := bcrypt.CompareHashAndPassword(c.Pass, pass)
+	return c.Username == username && success == nil
 }
 
 type Plain struct {
@@ -58,6 +58,6 @@ func (p *Plain) Next(b []byte) (challenge []byte, err error) {
 func (p *Plain) lookup(username string) (*Credential, error) {
 	c := &Credential{}
 	row := p.db.QueryRow("SELECT * FROM sasl_plain WHERE username = ?", username)
-	err := row.Scan(&c.username, &c.pass)
+	err := row.Scan(&c.Username, &c.Pass)
 	return c, err
 }

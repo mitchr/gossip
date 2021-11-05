@@ -1,9 +1,11 @@
 package server
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
+	"fmt"
 	"log"
 
 	"github.com/mitchr/gossip/cap"
@@ -126,4 +128,42 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 
 	encodedChallenge := base64.StdEncoding.EncodeToString(challenge)
 	s.writeReply(c, c.Id(), "AUTHENTICATE %s", encodedChallenge)
+}
+
+// REGISTER is nonstandard
+// for now, username is assumed to be the same as the current client's nick
+// REGISTER PASS <pass>
+// REGISTER CERT
+func REGISTER(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) == 0 {
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "REGISTER")
+		return
+	}
+
+	switch m.Params[0] {
+	case "PASS":
+		if len(m.Params) < 2 {
+			// TODO; fail because no password argument
+			s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "REGISTER PASS")
+			return
+		}
+		pass := m.Params[1]
+
+		plainCred := plain.NewCredential(c.Id(), pass)
+		db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+
+		salt := make([]byte, 16)
+		rand.Read(salt)
+		scramCred := scram.NewCredential(sha256.New, c.Id(), pass, base64.StdEncoding.EncodeToString(salt), 4096)
+		db.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", scramCred.Username, scramCred.ServerKey, scramCred.StoredKey, scramCred.Salt, scramCred.Iteration)
+
+	case "CERT":
+		cred, err := external.NewCredential(c.Id(), c.Conn)
+		if err != nil {
+			// TODO: fail registration
+		}
+		db.Exec("INSERT INTO sasl_exec VALUES(?, ?)", cred.Username, cred.Cert)
+	}
+
+	fmt.Fprintf(c, "NOTICE Registered")
 }

@@ -14,8 +14,8 @@ import (
 )
 
 type Credential struct {
-	username string
-	cert     []byte
+	Username string
+	Cert     []byte
 }
 
 // keeps the sha hash of the certificate (the fingerprint)
@@ -47,7 +47,7 @@ func (c *Credential) Check(username string, conn *tls.Conn) bool {
 	sha.Write(certs[0].Raw)
 	fingerprint := sha.Sum(nil)
 
-	return c.username == username && (subtle.ConstantTimeCompare(c.cert, fingerprint) == 1)
+	return c.Username == username && (subtle.ConstantTimeCompare(c.Cert, fingerprint) == 1)
 }
 
 type External struct {
@@ -78,6 +78,6 @@ func (e *External) Next(clientResponse []byte) (challenge []byte, err error) {
 func (e *External) lookup(username string) (*Credential, error) {
 	c := &Credential{}
 	row := e.db.QueryRow("SELECT * FROM sasl_external WHERE username = ?", username)
-	err := row.Scan(&c.username, &c.cert)
+	err := row.Scan(&c.Username, &c.Cert)
 	return c, err
 }
