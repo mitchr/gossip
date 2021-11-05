@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
-	"io/ioutil"
 	"log"
 
 	"github.com/mitchr/gossip/cap"
@@ -20,18 +19,32 @@ import (
 var db *sql.DB
 
 func init() {
-	db, err := sql.Open("sqlite", ":memory:")
+	var err error
+	db, err = sql.Open("sqlite", ":memory:")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	file, err := ioutil.ReadFile("../sasl/auth.sql")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	db.Exec(string(file))
-
+	db.Exec(`CREATE TABLE IF NOT EXISTS sasl_plain(
+		username TEXT,
+		pass BLOB,
+		PRIMARY KEY(username)
+	);
+	
+	CREATE TABLE IF NOT EXISTS sasl_external(
+		username TEXT,
+		clientCert BLOB,
+		PRIMARY KEY(username)
+	);
+	
+	CREATE TABLE IF NOT EXISTS sasl_scram(
+		username TEXT,
+		serverKey BLOB,
+		storedKey BLOB,
+		salt BLOB,
+		iterations INTEGER,
+		PRIMARY KEY(username)
+	);`)
 }
 
 func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
