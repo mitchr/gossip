@@ -106,7 +106,8 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	// *("AUTHENTICATE" SP 400BASE64 CRLF) "AUTHENTICATE" SP (1*399BASE64 / "+") CRLF
 	decodedResp, err := base64.StdEncoding.DecodeString(m.Params[0])
 	if err != nil {
-		// TODO: input is corrupt; what reply to give back here? ERR_SASLFAIL?
+		// TODO: is this an acceptable response?
+		s.writeReply(c, c.Id(), ERR_SASLFAIL)
 	}
 
 	challenge, err := c.SASLMech.Next(decodedResp)
