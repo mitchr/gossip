@@ -189,6 +189,25 @@ func TestMessageTags(t *testing.T) {
 	})
 }
 
+func TestServerTime(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("a", "A")
+	defer c1.Close()
+
+	c1.Write([]byte("CAP REQ :server-time\r\n"))
+	resp, _ := r1.ReadBytes('\n')
+
+	if !strings.Contains(string(resp), "@time=") {
+		t.Error("did not include server-time in tags even though it was requested")
+	}
+}
+
 func TestSTS(t *testing.T) {
 	conf := generateConfig()
 	conf.TLS.STSPort = conf.TLS.Port[1:]

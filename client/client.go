@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mitchr/gossip/cap"
 	"github.com/mitchr/gossip/sasl"
 	"github.com/mitchr/gossip/scan/msg"
 )
@@ -208,7 +209,14 @@ func (c *Client) ReadMsg() (*msg.Message, error) {
 }
 
 func (c *Client) Write(b []byte) (int, error) {
-	return c.ReadWriter.Write(append(b, '\r', '\n'))
+	temp := b
+	if c.Caps[cap.ServerTime.Name] {
+		serverTime := "@time=" + time.Now().Format("2006-01-02T15:04:05.999Z") + " "
+		temp = append([]byte(serverTime), temp...)
+	}
+	temp = append(temp, '\r', '\n')
+
+	return c.ReadWriter.Write(temp)
 }
 
 // requestGrant allows the client to process one message. If the client
