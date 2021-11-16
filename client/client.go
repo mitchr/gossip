@@ -62,7 +62,7 @@ type Client struct {
 	// this with mutual exclusion.
 	capLock sync.Mutex
 
-	grants chan bool
+	grants chan struct{}
 }
 
 func New(conn net.Conn) *Client {
@@ -77,7 +77,7 @@ func New(conn net.Conn) *Client {
 
 		PONG:   make(chan struct{}, 1),
 		Caps:   make(map[string]bool),
-		grants: make(chan bool, 10),
+		grants: make(chan struct{}, 10),
 	}
 
 	c.FillGrants()
@@ -241,7 +241,7 @@ func (c *Client) FillGrants() {
 // grants, this does nothing.
 func (c *Client) AddGrant() {
 	select {
-	case c.grants <- true:
+	case c.grants <- struct{}{}:
 	default:
 		return
 	}
