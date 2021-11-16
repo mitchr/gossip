@@ -19,7 +19,7 @@ var (
 func init() {
 	flag.BoolVar(&sPass, "s", false, "sets server password")
 	flag.BoolVar(&oPass, "o", false, "add a server operator (username and pass)")
-	flag.BoolVar(&debug, "d", false, "print incoming messages to stdio")
+	flag.BoolVar(&debug, "d", false, "print incoming messages to stdout")
 	flag.StringVar(&confPath, "conf", "config.json", "path to the config file")
 	flag.Parse()
 }
