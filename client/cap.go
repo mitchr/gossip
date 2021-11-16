@@ -27,6 +27,7 @@ var capHandlers = map[string]capHandler{
 	cap.CapNotify.Name:   doNothing,
 	cap.MessageTags.Name: messageTags,
 	cap.SASL.Name:        doNothing,
+	cap.EchoMessage.Name: doNothing,
 }
 
 // used to capabilities that are just basically advertisements, like cap-notify

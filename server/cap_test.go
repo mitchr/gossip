@@ -135,6 +135,29 @@ func TestTAGMSG(t *testing.T) {
 	assertResponse(resp, "@+aaa=b :a!a@localhost TAGMSG :b\r\n", t)
 }
 
+func TestEchoMessage(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("a", "A")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("b", "B")
+	defer c2.Close()
+
+	c1.Write([]byte("CAP REQ :echo-message\r\nPRIVMSG b test\r\n"))
+	r1.ReadBytes('\n')
+
+	resp, _ := r1.ReadBytes('\n')
+	bResp, _ := r2.ReadBytes('\n')
+
+	assertResponse(resp, ":a!a@localhost PRIVMSG b :test\r\n", t)
+	assertResponse(bResp, ":a!a@localhost PRIVMSG b :test\r\n", t)
+}
+
 func TestMessageTags(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {

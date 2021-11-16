@@ -9,6 +9,7 @@ func (c Capability) String() string { return c.Name }
 
 var (
 	CapNotify   = Capability{Name: "cap-notify"}
+	EchoMessage = Capability{Name: "echo-message"}
 	MessageTags = Capability{Name: "message-tags"}
 	STS         = Capability{Name: "sts", Value: "port=%s,duration=%.f"}
 	SASL        = Capability{Name: "sasl", Value: "PLAIN,EXTERNAL,SCRAM"}
@@ -16,5 +17,5 @@ var (
 )
 
 func IsRecognized(c string) bool {
-	return c == CapNotify.Name || c == MessageTags.Name || c == STS.Name || c == SASL.Name
+	return c == CapNotify.Name || c == MessageTags.Name || c == STS.Name || c == SASL.Name || c == EchoMessage.Name
 }

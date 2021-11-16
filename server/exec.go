@@ -859,6 +859,10 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			target.Flush()
 		}
 	}
+
+	if c.Caps[cap.EchoMessage.Name] {
+		fmt.Fprint(c, msg.String())
+	}
 }
 
 func PING(s *Server, c *client.Client, m *msg.Message) {
