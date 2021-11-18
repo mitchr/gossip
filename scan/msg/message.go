@@ -86,7 +86,7 @@ func (m Message) String() string {
 		if i == 0 {
 			params += " "
 		}
-		if i == len(m.Params)-1 {
+		if i == len(m.Params)-1 && m.trailingSet {
 			params += ":"
 		}
 		params += v + " "

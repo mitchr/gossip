@@ -47,26 +47,25 @@ func TestMessageString(t *testing.T) {
 		s string
 		m *Message
 	}{
-		{"CAP LS :302",
-			&Message{
-				Command:     "CAP",
-				Params:      []string{"LS", "302"},
-				trailingSet: true,
-			}},
-		{":gossip ERROR :Closing link",
-			&Message{
-				Nick:        "gossip",
-				Command:     "ERROR",
-				Params:      []string{"Closing link"},
-				trailingSet: true,
-			},
-		},
-		{":alice REHASH",
-			&Message{
-				Nick:    "alice",
-				Command: "REHASH",
-			},
-		},
+		{"CAP LS :302", &Message{
+			Command:     "CAP",
+			Params:      []string{"LS", "302"},
+			trailingSet: true,
+		}},
+		{"CAP LS 302", &Message{
+			Command: "CAP",
+			Params:  []string{"LS", "302"},
+		}},
+		{":gossip ERROR :Closing link", &Message{
+			Nick:        "gossip",
+			Command:     "ERROR",
+			Params:      []string{"Closing link"},
+			trailingSet: true,
+		}},
+		{":alice REHASH", &Message{
+			Nick:    "alice",
+			Command: "REHASH",
+		}},
 		// TODO: find a way to test this even though the tags get all jumbled up when parsed
 		// {"@aaa=bbb;ccc;example.com/ddd=eee :nick!ident@host.com PRIVMSG me :Hello\r\n",
 		// 	&Message{

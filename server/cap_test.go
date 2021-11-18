@@ -132,7 +132,7 @@ func TestTAGMSG(t *testing.T) {
 
 	c1.Write([]byte("@+aaa=b TAGMSG b\r\n"))
 	resp, _ := r2.ReadBytes('\n')
-	assertResponse(resp, "@+aaa=b :a!a@localhost TAGMSG :b\r\n", t)
+	assertResponse(resp, "@+aaa=b :a!a@localhost TAGMSG b\r\n", t)
 }
 
 func TestEchoMessage(t *testing.T) {
@@ -154,8 +154,8 @@ func TestEchoMessage(t *testing.T) {
 	resp, _ := r1.ReadBytes('\n')
 	bResp, _ := r2.ReadBytes('\n')
 
-	assertResponse(resp, ":a!a@localhost PRIVMSG b :test\r\n", t)
-	assertResponse(bResp, ":a!a@localhost PRIVMSG b :test\r\n", t)
+	assertResponse(resp, ":a!a@localhost PRIVMSG b test\r\n", t)
+	assertResponse(bResp, ":a!a@localhost PRIVMSG b test\r\n", t)
 }
 
 func TestMessageTags(t *testing.T) {
