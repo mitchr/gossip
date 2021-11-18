@@ -52,7 +52,7 @@ func main() {
 	}
 
 	// capture OS interrupt signal so that we can gracefully shutdown server
-	interrupt := make(chan os.Signal)
+	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
 	go func() {
