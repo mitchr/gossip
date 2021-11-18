@@ -51,10 +51,12 @@ type Message struct {
 
 func (m Message) String() string {
 	var tags string
-	if len(m.tags) > 0 {
-		tags += "@"
-	}
+	var tagCount int
 	for k, v := range m.tags {
+		if tagCount == 0 {
+			tags += "@"
+		}
+
 		if v.ClientPrefix {
 			tags += "+"
 		}
@@ -65,11 +67,14 @@ func (m Message) String() string {
 		if v.Value != "" {
 			tags += "=" + v.Value
 		}
-		tags += ";"
-	}
-	if len(tags) > 0 {
-		tags = tags[:len(tags)-1] // chop off ending ';'
-		tags += " "
+
+		if tagCount == len(m.tags)-1 {
+			tags += " "
+		} else {
+			tags += ";"
+		}
+
+		tagCount++
 	}
 
 	var prefix string
@@ -83,16 +88,10 @@ func (m Message) String() string {
 
 	var params string
 	for i, v := range m.Params {
-		if i == 0 {
-			params += " "
-		}
 		if i == len(m.Params)-1 && m.trailingSet {
-			params += ":"
+			v = ":" + v
 		}
-		params += v + " "
-	}
-	if len(params) > 0 {
-		params = params[:len(params)-1] // chop off ' '
+		params += " " + v
 	}
 
 	return tags + prefix + m.Command + params
