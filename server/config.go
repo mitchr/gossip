@@ -35,26 +35,28 @@ type Config struct {
 		// A path to the server's private key
 		Privkey string `json:"privkey"`
 
-		// Enables strict transport security, which provides opportunistic
-		// TLS client connection upgrades
-		STSEnabled bool `json:"stsEnabled"`
+		STS struct {
+			// Enables strict transport security, which provides opportunistic
+			// TLS client connection upgrades
+			Enabled bool `json:"enabled"`
 
-		// The port that clients should be told to connect to. This defaults
-		// to TLS.Port if not set.
-		STSPort string `json:"stsPort"`
+			// The port that clients should be told to connect to. This defaults
+			// to TLS.Port if not set.
+			Port string `json:"port"`
 
-		// The time that is advertised to clients about how long they should
-		// stay connected with TLS. This defaults to the difference between
-		// the current time and the `NotAfter` property of the server's
-		// certificate.
-		STSDuration time.Duration `json:"stsDuration"`
+			// The time that is advertised to clients about how long they should
+			// stay connected with TLS. This defaults to the difference between
+			// the current time and the `NotAfter` property of the server's
+			// certificate.
+			Duration time.Duration `json:"duration"`
 
-		// https://ircv3.net/specs/extensions/sts#the-preload-key
-		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preloading_strict_transport_security
-		// Tell clients that this server should be included in STS preload
-		// lists (promise that your server will always offer a secure
-		// connection to clients)
-		STSPreload bool `json:"stsPreload"`
+			// https://ircv3.net/specs/extensions/sts#the-preload-key
+			// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preloading_strict_transport_security
+			// Tell clients that this server should be included in STS preload
+			// lists (promise that your server will always offer a secure
+			// connection to clients)
+			Preload bool `json:"preload"`
+		} `json:"sts"`
 	} `json:"tls"`
 
 	// A path to a file containg the server's message of the day. A MOTD
@@ -101,8 +103,8 @@ func NewConfig(path string) (*Config, error) {
 			return nil, errors.New("TLS.Port must be defined")
 		}
 
-		if c.TLS.STSPort != "" {
-			c.TLS.STSPort = c.TLS.Port[1:]
+		if c.TLS.STS.Port != "" {
+			c.TLS.STS.Port = c.TLS.Port[1:]
 		}
 
 		cert, err := tls.LoadX509KeyPair(c.TLS.Pubkey, c.TLS.Privkey)

@@ -69,7 +69,7 @@ func New(c *Config) (*Server, error) {
 		if err != nil {
 			return nil, err
 		}
-		if c.TLS.STSEnabled {
+		if c.TLS.STS.Enabled {
 			s.supportedCaps = append(s.supportedCaps, cap.STS)
 		}
 	}

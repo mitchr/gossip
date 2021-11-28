@@ -251,15 +251,17 @@ func generateConfig() *Config {
 		Name: "gossip",
 		Port: ":6667",
 		TLS: struct {
-			*tls.Config `json:"-"`
-			Enabled     bool          `json:"enabled"`
-			Port        string        `json:"port"`
-			Pubkey      string        `json:"pubkey"`
-			Privkey     string        `json:"privkey"`
-			STSEnabled  bool          `json:"stsEnabled"`
-			STSPort     string        `json:"stsPort"`
-			STSDuration time.Duration `json:"stsDuration"`
-			STSPreload  bool          `json:"stsPreload"`
+			*tls.Config "json:\"-\""
+			Enabled     bool   "json:\"enabled\""
+			Port        string "json:\"port\""
+			Pubkey      string "json:\"pubkey\""
+			Privkey     string "json:\"privkey\""
+			STS         struct {
+				Enabled  bool          "json:\"enabled\""
+				Port     string        "json:\"port\""
+				Duration time.Duration "json:\"duration\""
+				Preload  bool          "json:\"preload\""
+			} "json:\"sts\""
 		}{
 			Config:  &tls.Config{ClientAuth: tls.RequestClientCert, Certificates: []tls.Certificate{cert}},
 			Enabled: true,

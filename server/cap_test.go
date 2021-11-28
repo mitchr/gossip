@@ -210,8 +210,8 @@ func TestServerTime(t *testing.T) {
 
 func TestSTS(t *testing.T) {
 	conf := generateConfig()
-	conf.TLS.STSPort = conf.TLS.Port[1:]
-	conf.TLS.STSEnabled = true
+	conf.TLS.STS.Port = conf.TLS.Port[1:]
+	conf.TLS.STS.Enabled = true
 
 	s, err := New(conf)
 	if err != nil {
@@ -245,11 +245,11 @@ func TestSTSConfig(t *testing.T) {
 	var s Server
 	s.Config = generateConfig()
 
-	s.Config.TLS.STSPort = "1010"
-	s.Config.TLS.STSDuration = time.Hour * 744 // 1 month
-	s.Config.TLS.STSPreload = true
+	s.Config.TLS.STS.Port = "1010"
+	s.Config.TLS.STS.Duration = time.Hour * 744 // 1 month
+	s.Config.TLS.STS.Preload = true
 
-	if s.getSTSValue() != fmt.Sprintf(cap.STS.Value, s.Config.TLS.STSPort, s.Config.TLS.STSDuration.Seconds())+",preload" {
+	if s.getSTSValue() != fmt.Sprintf(cap.STS.Value, s.Config.TLS.STS.Port, s.Config.TLS.STS.Duration.Seconds())+",preload" {
 		t.Fail()
 	}
 }

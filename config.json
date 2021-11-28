@@ -7,7 +7,9 @@
 		"port": ":6697",
 		"pubkey": "",
 		"privkey": "",
-		"stsEnabled": false
+		"sts": {
+			"enabled": false
+		}
 	},
 	"motd": ""
 }

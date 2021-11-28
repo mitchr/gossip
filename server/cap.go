@@ -131,16 +131,16 @@ func (s *Server) capString(cap302Enabled bool) string {
 func (s *Server) getSTSValue() string {
 	// calculate TLS certificate expiration duration for sts value
 	var duration time.Duration
-	if s.TLS.STSDuration != 0 {
-		duration = s.TLS.STSDuration
+	if s.TLS.STS.Duration != 0 {
+		duration = s.TLS.STS.Duration
 	} else {
 		// use time until certificate expires
 		cert, _ := x509.ParseCertificate(s.TLS.Config.Certificates[0].Certificate[0])
 		duration = time.Until(cert.NotAfter)
 	}
 
-	val := fmt.Sprintf(cap.STS.Value, s.Config.TLS.STSPort, duration.Seconds())
-	if s.Config.TLS.STSPreload {
+	val := fmt.Sprintf(cap.STS.Value, s.Config.TLS.STS.Port, duration.Seconds())
+	if s.Config.TLS.STS.Preload {
 		val += ",preload"
 	}
 
