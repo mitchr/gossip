@@ -25,7 +25,12 @@ func init() {
 }
 
 func main() {
-	c, err := server.NewConfig(confPath)
+	confFile, err := os.Open(confPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	c, err := server.NewConfig(confFile)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -36,10 +41,18 @@ func main() {
 		if err != nil {
 			log.Fatalln(err)
 		}
+		err = server.WriteConfigToPath(c, confPath)
+		if err != nil {
+			log.Fatalln(err)
+		}
 		return
 	}
 	if oPass {
 		err := server.AddOp(c)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		err = server.WriteConfigToPath(c, confPath)
 		if err != nil {
 			log.Fatalln(err)
 		}

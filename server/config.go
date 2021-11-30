@@ -5,15 +5,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 )
 
 type Config struct {
-	// path to the underlying config file; used for rehashing
-	path  string
-	Debug bool `json:"-"`
+	// reference to underlying source of config data; used for rehashing
+	configSource io.Reader
+	Debug        bool `json:"-"`
 
 	// The name of the network associated with the server
 	Network string `json:"network"`
@@ -70,14 +72,11 @@ type Config struct {
 }
 
 // Unmarshal's the server's config file
-func loadConfig(file string) (*Config, error) {
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
+func loadConfig(r io.Reader) (*Config, error) {
+	decoder := json.NewDecoder(r)
 
-	c := Config{path: file}
-	err = json.Unmarshal(b, &c)
+	c := &Config{configSource: r}
+	err := decoder.Decode(c)
 	if err != nil {
 		return nil, err
 	}
@@ -88,12 +87,12 @@ func loadConfig(file string) (*Config, error) {
 		base64.StdEncoding.Decode(c.Ops[k], c.Ops[k])
 	}
 
-	return &c, err
+	return c, nil
 }
 
 // NewConfig reads the file at path into a Config.
-func NewConfig(path string) (*Config, error) {
-	c, err := loadConfig(path)
+func NewConfig(r io.Reader) (*Config, error) {
+	c, err := loadConfig(r)
 	if err != nil {
 		return nil, err
 	}
@@ -123,4 +122,15 @@ func NewConfig(path string) (*Config, error) {
 		c.motd = strings.Split(string(m), "\n")
 	}
 	return c, nil
+}
+
+func WriteConfigToPath(c *Config, path string) error {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "\t")
+	return encoder.Encode(c)
 }

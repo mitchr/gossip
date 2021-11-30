@@ -2,10 +2,8 @@ package server
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"golang.org/x/crypto/bcrypt"
@@ -36,17 +34,9 @@ func getPassFromTerm() ([]byte, error) {
 // Sets the server's password in its config file
 func SetPass(c *Config) error {
 	pass, err := getPassFromTerm()
-	if err != nil {
-		return err
-	}
-
 	c.Password = pass
-	out, err := json.MarshalIndent(c, "", "\t")
-	if err != nil {
-		return err
-	}
 
-	return ioutil.WriteFile(c.path, out, 0664)
+	return err
 }
 
 // Adds an operator to the server's config file
@@ -64,10 +54,6 @@ func AddOp(c *Config) error {
 		c.Ops = make(map[string][]byte)
 	}
 	c.Ops[user] = pass
-	out, err := json.MarshalIndent(c, "", "\t")
-	if err != nil {
-		return err
-	}
 
-	return ioutil.WriteFile(c.path, out, 0664)
+	return nil
 }

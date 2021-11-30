@@ -897,9 +897,9 @@ func REHASH(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	conf, _ := NewConfig(s.path)
+	conf, _ := NewConfig(s.configSource)
 	s.Config = conf
-	s.writeReply(c, c.Id(), RPL_REHASHING, s.path)
+	s.writeReply(c, c.Id(), RPL_REHASHING, s.configSource)
 }
 
 func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
