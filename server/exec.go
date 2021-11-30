@@ -358,7 +358,7 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 	if sender == nil { // only members can invite
 		s.writeReply(c, c.Id(), ERR_NOTONCHANNEL, ch)
 		return
-	} else if ch.Invite && sender.Is(channel.Operator) { // if invite mode set, only ops can send an invite
+	} else if ch.Invite && !sender.Is(channel.Operator) { // if invite mode set, only ops can send an invite
 		s.writeReply(c, c.Id(), ERR_CHANOPRIVSNEEDED, ch)
 		return
 	} else if recipient == nil { // nick not on server
@@ -370,7 +370,10 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	ch.Invited = append(ch.Invited, nick)
+
 	fmt.Fprintf(recipient, ":%s INVITE %s %s", sender, nick, ch)
+	recipient.Flush()
+
 	s.writeReply(c, c.Id(), RPL_INVITING, ch, nick)
 }
 

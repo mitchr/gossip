@@ -703,7 +703,7 @@ func TestNoExternal(t *testing.T) {
 	assertResponse(resp, fmt.Sprintf(":%s 404 bob #l :Cannot send to channel\r\n", s.Name), t)
 }
 
-func TestInvite(t *testing.T) {
+func TestINVITE(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -722,10 +722,35 @@ func TestInvite(t *testing.T) {
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
-	c2.Write([]byte("JOIN #local\r\n"))
-	resp, _ := r2.ReadBytes('\n')
 
-	assertResponse(resp, fmt.Sprintf(":%s 473 bob #local :Cannot join channel (+i)\r\n", s.Name), t)
+	t.Run("JoinInviteModedChannelWithoutBeingInvited", func(t *testing.T) {
+		c2.Write([]byte("JOIN #local\r\n"))
+		resp, _ := r2.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 473 bob #local :Cannot join channel (+i)\r\n", s.Name), t)
+	})
+
+	t.Run("JoinInviteModedChannelAfterInvite", func(t *testing.T) {
+		c1.Write([]byte("INVITE bob #local\r\n"))
+		inviteResp, _ := r1.ReadBytes('\n')
+		assertResponse(inviteResp, ":gossip 341 alice #local bob\r\n", t)
+
+		receivedInvite, _ := r2.ReadBytes('\n')
+		assertResponse(receivedInvite, ":alice!alice@localhost INVITE bob #local\r\n", t)
+
+		c2.Write([]byte("JOIN #local\r\n"))
+		resp, _ := r2.ReadBytes('\n')
+		r1.ReadBytes('\n') // read bob's join message
+
+		assertResponse(resp, ":bob!bob@localhost JOIN #local\r\n", t)
+	})
+
+	t.Run("TestMissingParam", func(t *testing.T) {
+		c1.Write([]byte("INVITE\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 461 alice INVITE :Not enough parameters\r\n", t)
+	})
 }
 
 func TestBan(t *testing.T) {

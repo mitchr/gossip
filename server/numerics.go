@@ -37,7 +37,7 @@ const (
 	RPL_CHANNELMODEIS    = ":%s 324 %s %s %s%s"
 	RPL_NOTOPIC          = ":%s 331 %s %s :No topic is set"
 	RPL_TOPIC            = ":%s 332 %s %s :%s"
-	RPL_INVITING         = ":%s 341 %s %s"
+	RPL_INVITING         = ":%s 341 %s %s %s"
 	RPL_INVITELIST       = ":%s 346 %s %s %s"
 	RPL_ENDOFINVITELIST  = ":%s 347 %s %s :End of channel invite list"
 	RPL_EXCEPTLIST       = ":%s 348 %s %s %s"
