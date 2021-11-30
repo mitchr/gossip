@@ -443,7 +443,7 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick string, comment string) {
 	u, _ := ch.GetMember(memberNick)
 	if u == nil {
-		s.writeReply(c, c.Id(), ERR_USERNOTINCHANNEL, u, ch)
+		s.writeReply(c, c.Id(), ERR_USERNOTINCHANNEL, memberNick, ch)
 		return
 	}
 

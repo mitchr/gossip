@@ -374,6 +374,20 @@ func TestKICK(t *testing.T) {
 	// check received correct response
 	assertResponse(aliceKick, ":alice!alice@localhost KICK #local bob :alice\r\n", t)
 	assertResponse(bobKick, ":alice!alice@localhost KICK #local bob :alice\r\n", t)
+
+	t.Run("MissingParam", func(t *testing.T) {
+		c1.Write([]byte("KICK\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 461 alice KICK :Not enough parameters\r\n", t)
+	})
+
+	t.Run("KickClientNotInChannel", func(t *testing.T) {
+		c1.Write([]byte("KICK #local unknownUser\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 441 alice unknownUser #local :They aren't on that channel\r\n", s.Name), t)
+	})
 }
 
 func TestNAMES(t *testing.T) {
