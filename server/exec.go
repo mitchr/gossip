@@ -769,8 +769,7 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 func PRIVMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }
 func NOTICE(s *Server, c *client.Client, m *msg.Message)  { s.communicate(m, c) }
 
-// communicate is used for PRIVMSG/NOTICE. if notice is set to true,
-// then error replies from the server will not be sent.
+// communicate is used for PRIVMSG/NOTICE
 func (s *Server) communicate(m *msg.Message, c *client.Client) {
 	msg := *m
 	// "Tags without the client-only prefix MUST be removed by the
@@ -780,10 +779,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 	msg.Host = c.Host
 	msg.User = c.User
 
-	skipReplies := false
-	if m.Command == "NOTICE" || m.Command == "TAGMSG" {
-		skipReplies = true
-	}
+	skipReplies := m.Command == "NOTICE" || m.Command == "TAGMSG"
 
 	if len(m.Params) < 2 && m.Command != "TAGMSG" {
 		if !skipReplies {
