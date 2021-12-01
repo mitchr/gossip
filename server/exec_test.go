@@ -869,3 +869,32 @@ func TestAWAY(t *testing.T) {
 	unAway, _ := r1.ReadBytes('\n')
 	assertResponse(unAway, fmt.Sprintf(":%s 305 alice :You are no longer marked as being away\r\n", s.Name), t)
 }
+
+func TestWALLOPS(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	defer c2.Close()
+
+	c2.Write([]byte("MODE bob +w\r\n"))
+	r2.ReadBytes('\n')
+
+	c1.Write([]byte("WALLOPS test\r\n"))
+	resp, _ := r2.ReadBytes('\n')
+	assertResponse(resp, "WALLOPS test\r\n", t)
+
+	t.Run("TestMissingParam", func(t *testing.T) {
+		c1.Write([]byte("WALLOPS\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 461 alice WALLOPS :Not enough parameters\r\n", t)
+	})
+
+}
