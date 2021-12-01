@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -11,7 +12,7 @@ import (
 	"github.com/mitchr/gossip/cap"
 )
 
-func TestCap(t *testing.T) {
+func TestCAP(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -19,13 +20,33 @@ func TestCap(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("a", "A")
-	c.Write([]byte("CAP\r\nCAP fakesubcom\r\n"))
-	invalid, _ := r.ReadBytes('\n')
-	invalidSub, _ := r.ReadBytes('\n')
-	assertResponse(invalid, ":gossip 410 a CAP :Invalid CAP command\r\n", t)
-	assertResponse(invalidSub, ":gossip 410 a CAP fakesubcom :Invalid CAP command\r\n", t)
-	defer c.Close()
+	t.Run("TestInvalid", func(t *testing.T) {
+		c, r := connectAndRegister("a", "A")
+		defer c.Close()
+
+		c.Write([]byte("CAP\r\nCAP fakesubcom\r\n"))
+		invalid, _ := r.ReadBytes('\n')
+		invalidSub, _ := r.ReadBytes('\n')
+		assertResponse(invalid, ":gossip 410 a CAP :Invalid CAP command\r\n", t)
+		assertResponse(invalidSub, ":gossip 410 a CAP fakesubcom :Invalid CAP command\r\n", t)
+	})
+
+	t.Run("TestEND", func(t *testing.T) {
+		c, err := net.Dial("tcp", ":6667")
+		if err != nil {
+			t.Error(err)
+		}
+		defer c.Close()
+
+		r := bufio.NewReader(c)
+
+		c.Write([]byte("NICK a\r\nCAP LS\r\nCAP END\r\nUSER A 0 * :A\r\n"))
+		r.ReadBytes('\n') // read CAP LS response
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 001 a :Welcome to the %s IRC Network a!A@localhost\r\n", s.Name, s.Network), t)
+	})
+
 	t.Run("TestLIST", func(t *testing.T) {
 		c, r := connectAndRegister("a", "A")
 		defer c.Close()
@@ -39,6 +60,7 @@ func TestCap(t *testing.T) {
 			t.Fail()
 		}
 	})
+
 }
 
 func TestREQ(t *testing.T) {

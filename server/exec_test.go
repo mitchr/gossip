@@ -23,6 +23,19 @@ func TestRegistration(t *testing.T) {
 	conn, _ := connectAndRegister("alice", "Alice Smith")
 	defer conn.Close()
 
+	t.Run("NICKMissing", func(t *testing.T) {
+		c, err := net.Dial("tcp", "localhost:6667")
+		if err != nil {
+			t.Error(err)
+		}
+		defer c.Close()
+
+		c.Write([]byte("NICK\r\n"))
+		resp, _ := bufio.NewReader(c).ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 431 * :No nickname given\r\n", t)
+	})
+
 	t.Run("NICKChange", func(t *testing.T) {
 		conn, r := connectAndRegister("bob", "Bob Smith")
 		defer conn.Close()
@@ -32,6 +45,29 @@ func TestRegistration(t *testing.T) {
 
 		// sender should be the same user host, but with the previous nick
 		assertResponse(resp, ":bob!bob@localhost NICK :dan\r\n", t)
+	})
+
+	t.Run("TestUserWhenRegistered", func(t *testing.T) {
+		conn, r := connectAndRegister("bob", "Bob Smith")
+		defer conn.Close()
+
+		conn.Write([]byte("USER dan\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 462 bob :You may not reregister\r\n", t)
+	})
+
+	t.Run("TestUserMissingParams", func(t *testing.T) {
+		c, err := net.Dial("tcp", "localhost:6667")
+		if err != nil {
+			t.Error(err)
+		}
+		defer c.Close()
+
+		c.Write([]byte("USER\r\n"))
+		resp, _ := bufio.NewReader(c).ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 461 * USER :Not enough parameters\r\n", t)
 	})
 }
 
@@ -335,6 +371,13 @@ func TestTOPIC(t *testing.T) {
 	clear, _ := r.ReadBytes('\n')
 	assertResponse(clear, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Name), t)
 
+	t.Run("MissingParam", func(t *testing.T) {
+		c.Write([]byte("TOPIC\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 461 alice TOPIC :Not enough parameters\r\n", t)
+	})
+
 	t.Run("TestNoPrivileges", func(t *testing.T) {
 		c2, r2 := connectAndRegister("b", "B")
 		defer c2.Close()
@@ -451,7 +494,7 @@ func TestLIST(t *testing.T) {
 	})
 }
 
-func TestMODE(t *testing.T) {
+func TestMODEChannel(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -498,12 +541,6 @@ func TestMODE(t *testing.T) {
 		c1.Write([]byte("MODE #local +l\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+l :Not enough parameters\r\n", s.Name), t)
-	})
-
-	t.Run("TestUserModeMissingParam", func(t *testing.T) {
-		c1.Write([]byte("MODE #local +o\r\n"))
-		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+o :Not enough parameters\r\n", s.Name), t)
 	})
 
 	t.Run("TestUnknownMode", func(t *testing.T) {
@@ -588,6 +625,30 @@ func TestMODE(t *testing.T) {
 		keyRemoved, _ := r1.ReadBytes('\n')
 		assertResponse(opRemoved, fmt.Sprintf(":%s MODE -o bob\r\n", s.Name), t)
 		assertResponse(keyRemoved, fmt.Sprintf(":%s MODE -k\r\n", s.Name), t)
+	})
+}
+
+func TestMODEClient(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("alice", "Alice Smith")
+	defer c.Close()
+
+	t.Run("TestModeNoParam", func(t *testing.T) {
+		c.Write([]byte("MODE\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 221 alice r\r\n", s.Name), t)
+	})
+
+	t.Run("TestUnknownNick", func(t *testing.T) {
+		c.Write([]byte("MODE bob +o\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 401 alice bob :No such nick/channel\r\n", s.Name), t)
 	})
 }
 
@@ -844,6 +905,23 @@ func TestPRIVMSG(t *testing.T) {
 	})
 }
 
+func TestPING(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("a", "A")
+	defer c.Close()
+
+	c.Write([]byte("PING\r\n"))
+	resp, _ := r.ReadBytes('\n')
+
+	assertResponse(resp, ":gossip PONG\r\n", t)
+}
+
 func TestAWAY(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
@@ -896,5 +974,21 @@ func TestWALLOPS(t *testing.T) {
 
 		assertResponse(resp, ":gossip 461 alice WALLOPS :Not enough parameters\r\n", t)
 	})
+}
 
+func TestUnknownCommand(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("a", "A")
+	defer c.Close()
+
+	c.Write([]byte("UnknownCommand\r\n"))
+	resp, _ := r.ReadBytes('\n')
+
+	assertResponse(resp, ":gossip 421 a UnknownCommand :Unknown command\r\n", t)
 }

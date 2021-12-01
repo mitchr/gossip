@@ -247,25 +247,12 @@ func generateCert() tls.Certificate {
 func generateConfig() *Config {
 	cert := generateCert()
 
-	return &Config{
-		Name: "gossip",
-		Port: ":6667",
-		TLS: struct {
-			*tls.Config "json:\"-\""
-			Enabled     bool   "json:\"enabled\""
-			Port        string "json:\"port\""
-			Pubkey      string "json:\"pubkey\""
-			Privkey     string "json:\"privkey\""
-			STS         struct {
-				Enabled  bool          "json:\"enabled\""
-				Port     string        "json:\"port\""
-				Duration time.Duration "json:\"duration\""
-				Preload  bool          "json:\"preload\""
-			} "json:\"sts\""
-		}{
-			Config:  &tls.Config{ClientAuth: tls.RequestClientCert, Certificates: []tls.Certificate{cert}},
-			Enabled: true,
-			Port:    ":6697",
-		},
-	}
+	c := &Config{}
+	c.Name = "gossip"
+	c.Port = ":6667"
+	c.TLS.Config = &tls.Config{ClientAuth: tls.RequestClientCert, Certificates: []tls.Certificate{cert}}
+	c.TLS.Enabled = true
+	c.TLS.Port = ":6697"
+
+	return c
 }
