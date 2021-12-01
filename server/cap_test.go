@@ -26,6 +26,19 @@ func TestCap(t *testing.T) {
 	assertResponse(invalid, ":gossip 410 a CAP :Invalid CAP command\r\n", t)
 	assertResponse(invalidSub, ":gossip 410 a CAP fakesubcom :Invalid CAP command\r\n", t)
 	defer c.Close()
+	t.Run("TestLIST", func(t *testing.T) {
+		c, r := connectAndRegister("a", "A")
+		defer c.Close()
+
+		c.Write([]byte("CAP REQ sasl message-tags\r\n"))
+		r.ReadBytes('\n')
+		c.Write([]byte("CAP LIST\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		if !strings.Contains(string(resp), "sasl") && !strings.Contains(string(resp), "message-tags") {
+			t.Fail()
+		}
+	})
 }
 
 func TestREQ(t *testing.T) {

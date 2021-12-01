@@ -161,6 +161,7 @@ func (c *Client) CapsSet() string {
 	i := 0
 	for k := range c.Caps {
 		caps[i] = k
+		i++
 	}
 	return strings.Join(caps, " ")
 }
