@@ -50,6 +50,13 @@ func init() {
 }
 
 func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
+	// client must have requested the SASL capability, and has not yet registered
+	if !c.Caps[cap.SASL.Name] || c.Is(client.Registered) {
+		// TODO: what error to give?
+		s.writeReply(c, c.Id(), ERR_SASLFAIL)
+		return
+	}
+
 	// "If the client attempts to issue the AUTHENTICATE command after
 	// already authenticating successfully, the server MUST reject it
 	// with a 907 numeric"
