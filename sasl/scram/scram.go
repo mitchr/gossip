@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"math/big"
 	"strings"
 
 	"github.com/mitchr/gossip/sasl"
@@ -76,8 +77,9 @@ func (s *Scram) ParseClientFirst(m string) error {
 	}
 	s.cred = cred
 
-	// add arbitrary length nonce
-	nonce := make([]byte, 20)
+	// add arbitrary length nonce with size in [24, 32)
+	nonceLength, _ := rand.Int(rand.Reader, big.NewInt(32-24))
+	nonce := make([]byte, nonceLength.Int64()+24)
 	rand.Read(nonce)
 	s.nonce = attrs[3][2:] + base64.StdEncoding.EncodeToString(nonce)
 
