@@ -89,7 +89,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		case "SCRAM":
 			c.SASLMech = scram.NewScram(db, sha256.New)
 		default:
-			s.writeReply(c, cap.SASL.Value, RPL_SASLMECHS)
+			s.writeReply(c, c.Id(), RPL_SASLMECHS, cap.SASL.Value)
 			return
 		}
 
@@ -97,7 +97,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		// so we can be assured that the server should be sending a blank
 		// challenge here. In the future if more mechanisms are added, this
 		// will have to be reevaluated
-		s.writeReply(c, c.Id(), "AUTHENTICATE +")
+		fmt.Fprintf(c, ":%s AUTHENTICATE +", s.Name)
 		return
 	}
 
@@ -114,15 +114,13 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 
 	challenge, err := c.SASLMech.Next(decodedResp)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			s.writeReply(c, c.Id(), ERR_SASLFAIL)
-		}
 		if err == sasl.ErrDone {
 			c.IsAuthenticated = true
 			// TODO: what are <account> and <user>?
 			s.writeReply(c, c.Id(), RPL_LOGGEDIN, c, c.Id(), c.Id())
 			s.writeReply(c, c.Id(), RPL_SASLSUCCESS)
 		}
+		s.writeReply(c, c.Id(), ERR_SASLFAIL)
 		return
 	}
 
