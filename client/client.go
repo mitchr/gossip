@@ -20,8 +20,6 @@ import (
 
 type Client struct {
 	net.Conn
-	// true when the underlying connection is closed
-	IsClosed bool
 
 	Nick     string
 	User     string
@@ -168,11 +166,6 @@ func (c *Client) CapsSet() string {
 
 func (c *Client) SupportsCapVersion(v int) bool {
 	return c.CapVersion >= v
-}
-
-func (c *Client) Close() error {
-	c.IsClosed = true
-	return c.Conn.Close()
 }
 
 var (

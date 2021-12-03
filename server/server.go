@@ -132,6 +132,8 @@ func (s *Server) Close() {
 }
 
 func (s *Server) handleConn(u net.Conn, ctx context.Context) {
+	defer s.wg.Done()
+
 	clientCtx, cancel := context.WithCancel(ctx)
 	c := client.New(u)
 
@@ -189,25 +191,15 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 
 	pingTick := time.NewTicker(time.Minute * 5)  // every 5 minutes, send PING
 	grantTick := time.NewTicker(time.Second * 2) // every 2 seconds, give this client a grant
+	defer pingTick.Stop()
+	defer grantTick.Stop()
+
 	for {
 		select {
 		case <-clientCtx.Done():
-			pingTick.Stop()
-			grantTick.Stop()
-			defer s.wg.Done()
-
-			if c.IsClosed {
-			} else if !c.Is(client.Registered) {
-				s.unknownLock.Lock()
-				s.unknowns--
-				s.unknownLock.Unlock()
-				c.Close()
-			} else {
-				// client was kicked off without first sending a QUIT
-				// command, so we need to remove them from all the channels they
-				// are still connected to
-				s.msgQueue <- &msgBundle{&msg.Message{Command: "QUIT", Params: []string{"Client left without saying goodbye :("}}, c}
-			}
+			// client left/was kicked without first sending a QUIT command,
+			// so send one for them
+			s.msgQueue <- &msgBundle{&msg.Message{Command: "QUIT", Params: []string{"Client left without saying goodbye :("}}, c}
 			return
 		case <-pingTick.C:
 			fmt.Fprintf(c, ":%s PING %s", s.Name, c.Nick)
