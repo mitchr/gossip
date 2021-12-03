@@ -90,20 +90,22 @@ func New(conn net.Conn) *Client {
 func (c *Client) populateHostname() {
 	host, _, _ := net.SplitHostPort(c.RemoteAddr().String())
 
-	ch := make(chan string)
-	go func() {
-		names, err := net.LookupAddr(host)
-		if err != nil {
-			log.Println("unable to resolve hostname", host)
-		}
-		ch <- names[0]
-	}()
-
 	select {
 	case <-time.After(time.Second * 5):
-		c.Host = host
-	case h := <-ch:
-		c.Host = h
+		if host == "" {
+			c.Host = c.RemoteAddr().String()
+		} else {
+			c.Host = host
+		}
+	default:
+		names, err := net.LookupAddr(host)
+		if err != nil {
+			// could not resolve hostname
+			c.Host = c.RemoteAddr().String()
+			return
+		}
+
+		c.Host = names[0]
 	}
 }
 
