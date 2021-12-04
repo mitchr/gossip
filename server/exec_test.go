@@ -205,6 +205,7 @@ func TestQUIT(t *testing.T) {
 		r1.ReadBytes('\n')
 		r2.ReadBytes('\n')
 		r2.ReadBytes('\n')
+		r2.ReadBytes('\n')
 
 		bobPrefix := s.clients["bob"].String()
 
@@ -256,6 +257,7 @@ func TestChannelCreation(t *testing.T) {
 	t.Run("TestChanNameInsensitive", func(t *testing.T) {
 		c2.Write([]byte("JOIN #LOcAl\r\n"))
 		resp, _ := r2.ReadBytes('\n')
+		r2.ReadBytes('\n')
 		r2.ReadBytes('\n')
 		r1.ReadBytes('\n') // alice reading bob's join msg
 
@@ -320,9 +322,13 @@ func TestChannelKeys(t *testing.T) {
 	c.Write([]byte("JOIN #1,#2,#3 Key1,Key2\r\n"))
 	join1, _ := r.ReadBytes('\n')
 	r.ReadBytes('\n')
+	r.ReadBytes('\n')
 	join2, _ := r.ReadBytes('\n')
 	r.ReadBytes('\n')
+	r.ReadBytes('\n')
 	join3, _ := r.ReadBytes('\n')
+	r.ReadBytes('\n')
+	r.ReadBytes('\n')
 
 	assertResponse(join1, ":alice!alice@localhost JOIN #1\r\n", t)
 	assertResponse(join2, ":alice!alice@localhost JOIN #2\r\n", t)
@@ -384,6 +390,7 @@ func TestTOPIC(t *testing.T) {
 		c2.Write([]byte("JOIN &test\r\nTOPIC &test :I have no privileges\r\n"))
 		r2.ReadBytes('\n')
 		r2.ReadBytes('\n')
+		r2.ReadBytes('\n')
 		resp, _ := r2.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 482 b &test :You're not a channel operator\r\n", s.Name), t)
 	})
@@ -408,6 +415,7 @@ func TestKICK(t *testing.T) {
 	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
 	r1.ReadBytes('\n')
+	r2.ReadBytes('\n')
 	r2.ReadBytes('\n')
 	r2.ReadBytes('\n')
 	c1.Write([]byte("KICK #local bob\r\n"))
@@ -748,6 +756,7 @@ func TestModerated(t *testing.T) {
 	r1.ReadBytes('\n')
 	r2.ReadBytes('\n')
 	r2.ReadBytes('\n')
+	r2.ReadBytes('\n')
 	resp, _ := r2.ReadBytes('\n')
 
 	assertResponse(resp, fmt.Sprintf(":%s 404 bob #l :Cannot send to channel\r\n", s.Name), t)
@@ -870,6 +879,7 @@ func TestPRIVMSG(t *testing.T) {
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	c2.Write([]byte("JOIN #local\r\n"))
+	r2.ReadBytes('\n')
 	r2.ReadBytes('\n')
 	r2.ReadBytes('\n')
 	r1.ReadBytes('\n')
