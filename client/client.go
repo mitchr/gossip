@@ -2,6 +2,7 @@ package client
 
 import (
 	"bufio"
+	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
@@ -79,7 +80,7 @@ func New(conn net.Conn) *Client {
 	}
 
 	c.FillGrants()
-	c.populateHostname()
+	c.Host = populateHostname(c.RemoteAddr().String())
 
 	return c
 }
@@ -87,26 +88,26 @@ func New(conn net.Conn) *Client {
 // populateHostname does an rDNS lookup on the client's ip address. If
 // there is an error, or the lookup takes too long, the client's ip
 // address will be used as the default hostname.
-func (c *Client) populateHostname() {
-	host, _, _ := net.SplitHostPort(c.RemoteAddr().String())
-
-	select {
-	case <-time.After(time.Second * 5):
-		if host == "" {
-			c.Host = c.RemoteAddr().String()
-		} else {
-			c.Host = host
-		}
-	default:
-		names, err := net.LookupAddr(host)
-		if err != nil {
-			// could not resolve hostname
-			c.Host = c.RemoteAddr().String()
-			return
-		}
-
-		c.Host = names[0]
+func populateHostname(addr string) string {
+	host, _, err := net.SplitHostPort(addr)
+	if host == "" || err != nil {
+		return addr
 	}
+
+	timeoutCtx, cancel := context.WithTimeout(context.TODO(), time.Millisecond*300)
+	defer cancel()
+	if err != nil {
+		return host
+	}
+
+	var r net.Resolver
+	names, err := r.LookupAddr(timeoutCtx, host)
+	if err != nil {
+		// could not resolve hostname
+		return addr
+	}
+
+	return names[0]
 }
 
 func (c *Client) String() string {
