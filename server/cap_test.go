@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/tls"
 	"fmt"
-	"net"
 	"strings"
 	"testing"
 	"time"
@@ -32,19 +31,15 @@ func TestCAP(t *testing.T) {
 	})
 
 	t.Run("TestEND", func(t *testing.T) {
-		c, err := net.Dial("tcp", ":6667")
-		if err != nil {
-			t.Error(err)
-		}
-		defer c.Close()
-
-		r := bufio.NewReader(c)
+		c, r, p := connect(s)
+		defer p()
 
 		c.Write([]byte("NICK a\r\nCAP LS\r\nCAP END\r\nUSER A 0 * :A\r\n"))
 		r.ReadBytes('\n') // read CAP LS response
 		resp, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(":%s 001 a :Welcome to the %s IRC Network a!A@localhost\r\n", s.Name, s.Network), t)
+		a := s.clients["a"].String()
+		assertResponse(resp, fmt.Sprintf(":%s 001 a :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, a), t)
 	})
 
 	t.Run("TestLIST", func(t *testing.T) {

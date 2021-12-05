@@ -1,9 +1,7 @@
 package server
 
 import (
-	"bufio"
 	"fmt"
-	"net"
 	"testing"
 
 	"github.com/mitchr/gossip/channel"
@@ -20,18 +18,12 @@ func TestRegistration(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	conn, _ := connectAndRegister("alice", "Alice Smith")
-	defer conn.Close()
-
 	t.Run("NICKMissing", func(t *testing.T) {
-		c, err := net.Dial("tcp", "localhost:6667")
-		if err != nil {
-			t.Error(err)
-		}
-		defer c.Close()
+		c, r, p := connect(s)
+		defer p()
 
 		c.Write([]byte("NICK\r\n"))
-		resp, _ := bufio.NewReader(c).ReadBytes('\n')
+		resp, _ := r.ReadBytes('\n')
 
 		assertResponse(resp, ":gossip 431 * :No nickname given\r\n", t)
 	})
@@ -58,14 +50,11 @@ func TestRegistration(t *testing.T) {
 	})
 
 	t.Run("TestUserMissingParams", func(t *testing.T) {
-		c, err := net.Dial("tcp", "localhost:6667")
-		if err != nil {
-			t.Error(err)
-		}
-		defer c.Close()
+		c, r, p := connect(s)
+		defer p()
 
 		c.Write([]byte("USER\r\n"))
-		resp, _ := bufio.NewReader(c).ReadBytes('\n')
+		resp, _ := r.ReadBytes('\n')
 
 		assertResponse(resp, ":gossip 461 * USER :Not enough parameters\r\n", t)
 	})
@@ -119,11 +108,11 @@ func TestPASS(t *testing.T) {
 	go s.Serve()
 
 	t.Run("TestRegisteredWithNoPASS", func(t *testing.T) {
-		c, _ := net.Dial("tcp", ":6667")
-		defer c.Close()
+		c, r, p := connect(s)
+		defer p()
+
 		c.Write([]byte("NICK chris\r\n"))
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
-		r := bufio.NewReader(c)
 		resp, _ := r.ReadBytes('\n')
 		err, _ := r.ReadBytes('\n')
 
@@ -131,11 +120,10 @@ func TestPASS(t *testing.T) {
 		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Name), t)
 	})
 	t.Run("TestPASSParamMissing", func(t *testing.T) {
-		c, _ := net.Dial("tcp", ":6667")
-		defer c.Close()
-		c.Write([]byte("PASS\r\n"))
+		c, r, p := connect(s)
+		defer p()
 
-		r := bufio.NewReader(c)
+		c.Write([]byte("PASS\r\n"))
 		err, _ := r.ReadBytes('\n')
 		// err, _ := r.ReadBytes('\n')
 
@@ -143,12 +131,12 @@ func TestPASS(t *testing.T) {
 		// assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Name), t)
 	})
 	t.Run("TestPASSIncorrect", func(t *testing.T) {
-		c, _ := net.Dial("tcp", ":6667")
-		defer c.Close()
+		c, r, p := connect(s)
+		defer p()
+
 		c.Write([]byte("PASS opensesame\r\n"))
 		c.Write([]byte("NICK chris\r\n"))
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
-		r := bufio.NewReader(c)
 		resp, _ := r.ReadBytes('\n')
 		err, _ := r.ReadBytes('\n')
 
@@ -156,13 +144,13 @@ func TestPASS(t *testing.T) {
 		assertResponse(err, fmt.Sprintf("ERROR :Closing Link: %s (Bad Password)\r\n", s.Name), t)
 	})
 	t.Run("TestPASSCorrect", func(t *testing.T) {
-		c, _ := net.Dial("tcp", ":6667")
-		defer c.Close()
+		c, r, p := connect(s)
+		defer p()
+
 		c.Write([]byte("PASS letmein\r\n"))
 		c.Write([]byte("NICK chris\r\n"))
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
 
-		r := bufio.NewReader(c)
 		for i := 0; i < 11; i++ {
 			r.ReadBytes('\n')
 		}

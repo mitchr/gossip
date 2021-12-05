@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -84,9 +85,8 @@ func TestMessageSize(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, _ := net.Dial("tcp", ":6667")
-	defer c.Close()
-	r := bufio.NewReader(c)
+	c, r, p := connect(s)
+	defer p()
 
 	t.Run("TooLong", func(t *testing.T) {
 		longMsg := make([]byte, 513)
@@ -112,12 +112,13 @@ func TestWriteMultiline(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, _ := net.Dial("tcp", ":6667")
-	defer c.Close()
+	c, r, p := connect(s)
+	defer p()
 
 	c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice\r\n"))
-	resp, _ := bufio.NewReader(c).ReadBytes('\n')
-	assertResponse(resp, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network alice!alice@localhost\r\n", s.Name, s.Network), t)
+	resp, _ := r.ReadBytes('\n')
+	alice := s.clients["alice"].String()
+	assertResponse(resp, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, alice), t)
 }
 
 func TestCaseInsensitivity(t *testing.T) {
@@ -172,10 +173,14 @@ func TestUnicodeNICK(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, _ := net.Dial("tcp", "localhost:6667")
+	c, r, p := connect(s)
+	defer p()
+
 	c.Write([]byte("NICK 🛩️\r\nUSER airplane 0 0 :A\r\n"))
-	resp, _ := bufio.NewReader(c).ReadBytes('\n')
-	assertResponse(resp, ":gossip 001 🛩️ :Welcome to the cafe IRC Network 🛩️!airplane@localhost\r\n", t)
+	resp, _ := r.ReadBytes('\n')
+
+	airplane := s.clients["🛩️"].String()
+	assertResponse(resp, fmt.Sprintf(":%s 001 🛩️ :Welcome to the cafe IRC Network %s\r\n", s.Name, airplane), t)
 }
 
 func BenchmarkRegistrationSurge(b *testing.B) {
@@ -212,6 +217,25 @@ func connectAndRegister(nick, realname string) (net.Conn, *bufio.Reader) {
 	}
 
 	return c, r
+}
+
+// connect can be used for mocking simple connections that don't need
+// to test any tcp/tls specific portions of the server
+func connect(s *Server) (net.Conn, *bufio.Reader, context.CancelFunc) {
+	serverHandle, c := net.Pipe()
+	r := bufio.NewReader(c)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	s.wg.Add(1)
+	go s.handleConn(serverHandle, ctx)
+
+	var p context.CancelFunc = func() {
+		cancel()
+		c.Close()
+		// serverHandle.Close()
+	}
+
+	return c, r, p
 }
 
 func assertResponse(resp []byte, eq string, t *testing.T) {

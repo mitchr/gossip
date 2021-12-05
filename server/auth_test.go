@@ -1,9 +1,7 @@
 package server
 
 import (
-	"bufio"
 	"encoding/base64"
-	"net"
 	"testing"
 
 	"github.com/mitchr/gossip/sasl/plain"
@@ -45,9 +43,8 @@ func TestAUTHENTICATE(t *testing.T) {
 	})
 
 	t.Run("TestMissingParams", func(t *testing.T) {
-		c, _ := net.Dial("tcp", ":6667")
-		defer c.Close()
-		r := bufio.NewReader(c)
+		c, r, p := connect(s)
+		defer p()
 
 		c.Write([]byte("CAP REQ sasl\r\nAUTHENTICATE\r\n"))
 		r.ReadBytes('\n')
@@ -57,9 +54,8 @@ func TestAUTHENTICATE(t *testing.T) {
 	})
 
 	t.Run("TestSASLAbort", func(t *testing.T) {
-		c, _ := net.Dial("tcp", ":6667")
-		defer c.Close()
-		r := bufio.NewReader(c)
+		c, r, p := connect(s)
+		defer p()
 
 		c.Write([]byte("CAP REQ sasl\r\nAUTHENTICATE *\r\n"))
 		r.ReadBytes('\n')
@@ -69,9 +65,8 @@ func TestAUTHENTICATE(t *testing.T) {
 	})
 
 	t.Run("TestUnknownMechanism", func(t *testing.T) {
-		c, _ := net.Dial("tcp", ":6667")
-		defer c.Close()
-		r := bufio.NewReader(c)
+		c, r, p := connect(s)
+		defer p()
 
 		c.Write([]byte("CAP REQ sasl\r\nAUTHENTICATE fakeMech\r\n"))
 		r.ReadBytes('\n')
@@ -89,9 +84,8 @@ func TestAUTHENTICATEPLAIN(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, _ := net.Dial("tcp", ":6667")
-	defer c.Close()
-	r := bufio.NewReader(c)
+	c, r, p := connect(s)
+	defer p()
 
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
 	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
@@ -106,7 +100,7 @@ func TestAUTHENTICATEPLAIN(t *testing.T) {
 
 	c.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\n"))
 	serverFirst, _ := r.ReadBytes('\n')
-	assertResponse(serverFirst, ":gossip 900 a a!a@localhost a :You are now logged in as a\r\n", t)
+	assertResponse(serverFirst, ":gossip 900 a a!a@pipe a :You are now logged in as a\r\n", t)
 
 	authenticationSuccess, _ := r.ReadBytes('\n')
 	assertResponse(authenticationSuccess, ":gossip 903 a :SASL authentication successful\r\n", t)
@@ -120,9 +114,8 @@ func TestAUTHENTICATEEXTERNAL(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, _ := net.Dial("tcp", ":6667")
-	defer c.Close()
-	r := bufio.NewReader(c)
+	c, r, p := connect(s)
+	defer p()
 
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
 	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
@@ -141,9 +134,8 @@ func TestAUTHENTICATESCRAM(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, _ := net.Dial("tcp", ":6667")
-	defer c.Close()
-	r := bufio.NewReader(c)
+	c, r, p := connect(s)
+	defer p()
 
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
 	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
