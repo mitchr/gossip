@@ -34,12 +34,12 @@ func TestCAP(t *testing.T) {
 		c, r, p := connect(s)
 		defer p()
 
-		c.Write([]byte("NICK a\r\nCAP LS\r\nCAP END\r\nUSER A 0 * :A\r\n"))
-		r.ReadBytes('\n') // read CAP LS response
+		c.Write([]byte("CAP REQ :sasl\r\nNICK b\r\nUSER B 0 * :B\r\nCAP END\r\n"))
+		r.ReadBytes('\n') // read CAP REQ response
 		resp, _ := r.ReadBytes('\n')
 
-		a := s.clients["a"].String()
-		assertResponse(resp, fmt.Sprintf(":%s 001 a :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, a), t)
+		b := s.clients["b"].String()
+		assertResponse(resp, fmt.Sprintf(":%s 001 b :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, b), t)
 	})
 
 	t.Run("TestLIST", func(t *testing.T) {
