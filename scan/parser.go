@@ -24,6 +24,9 @@ func (p *Parser) Peek() *Token {
 	}
 
 	p.peeked = <-p.Tokens
+	if p.peeked == nil {
+		return &Token{TokenType(EOF), -1}
+	}
 	return p.peeked
 }
 

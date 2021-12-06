@@ -10,9 +10,7 @@ import (
 
 type TokenType int
 
-const (
-	EOF = -1
-)
+const EOF rune = -1
 
 // A Token is also a node for a queue
 type Token struct {
@@ -63,7 +61,7 @@ func (l *Lexer) Peek() rune {
 	// input is garbled, force execution to end early
 	if l.peeked == utf8.RuneError {
 		l.position = len(l.input) // prevent subsequent calls to Peek/Next
-		return rune(EOF)
+		return EOF
 	}
 
 	return l.peeked
