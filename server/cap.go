@@ -114,18 +114,21 @@ func CAP(s *Server, c *client.Client, m *msg.Message) {
 func TAGMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }
 
 func (s *Server) capString(cap302Enabled bool) string {
-	caps := make([]string, len(s.supportedCaps))
+	caps := ""
 	for i, v := range s.supportedCaps {
-		caps[i] = v.Name
+		caps += v.Name
 		if cap302Enabled && len(v.Value) > 0 {
 			if v == cap.STS {
-				caps[i] += "=" + s.getSTSValue()
+				caps += "=" + s.getSTSValue()
 			} else {
-				caps[i] += "=" + v.Value
+				caps += "=" + v.Value
 			}
 		}
+		if i != len(s.supportedCaps)-1 {
+			caps += " "
+		}
 	}
-	return strings.Join(caps, " ")
+	return caps
 }
 
 func (s *Server) getSTSValue() string {

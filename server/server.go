@@ -54,7 +54,7 @@ func New(c *Config) (*Server, error) {
 		created:       time.Now(),
 		clients:       make(map[string]*client.Client),
 		channels:      make(map[string]*channel.Channel),
-		supportedCaps: []cap.Capability{cap.CapNotify, cap.MessageTags, cap.SASL},
+		supportedCaps: []cap.Capability{cap.CapNotify, cap.EchoMessage, cap.MessageTags, cap.SASL, cap.ServerTime},
 		msgQueue:      make(chan *msgBundle, 10),
 	}
 

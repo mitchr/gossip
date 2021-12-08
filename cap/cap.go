@@ -11,9 +11,9 @@ var (
 	CapNotify   = Capability{Name: "cap-notify"}
 	EchoMessage = Capability{Name: "echo-message"}
 	MessageTags = Capability{Name: "message-tags"}
+	SASL        = Capability{Name: "sasl", Value: "PLAIN,EXTERNAL,SCRAM"}
 	ServerTime  = Capability{Name: "server-time"}
 	STS         = Capability{Name: "sts", Value: "port=%s,duration=%.f"}
-	SASL        = Capability{Name: "sasl", Value: "PLAIN,EXTERNAL,SCRAM"}
 	// MultiPrefix = Capability{"multi-prefix", ""}
 )
 

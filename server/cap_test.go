@@ -123,7 +123,7 @@ func TestCAP302(t *testing.T) {
 	t.Run("TestCAPLS302Values", func(t *testing.T) {
 		c.Write([]byte("CAP LS 302\r\n"))
 		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, ":gossip CAP bob LS :cap-notify message-tags sasl=PLAIN,EXTERNAL,SCRAM\r\n", t)
+		assertResponse(resp, fmt.Sprintf(":%s CAP bob LS :%s\r\n", s.Name, s.capString(true)), t)
 	})
 
 	// TODO: is this comment even true?
@@ -132,7 +132,7 @@ func TestCAP302(t *testing.T) {
 	t.Run("TestCAPLSValues", func(t *testing.T) {
 		c.Write([]byte("CAP LS\r\n"))
 		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, ":gossip CAP bob LS :cap-notify message-tags sasl\r\n", t)
+		assertResponse(resp, fmt.Sprintf(":%s CAP bob LS :%s\r\n", s.Name, s.capString(false)), t)
 	})
 
 	// TODO: test that cap version got updated
