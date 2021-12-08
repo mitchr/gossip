@@ -75,6 +75,15 @@ func TestREQ(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s CAP bob ACK :\r\n", s.Name), t)
 	})
 
+	t.Run("REQ2Params", func(t *testing.T) {
+		c.Write([]byte("CAP REQ :cap-notify message-tags\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s CAP bob ACK :cap-notify message-tags\r\n", s.Name), t)
+		bob := s.clients["bob"]
+		delete(bob.Caps, cap.CapNotify.Name)
+		delete(bob.Caps, cap.MessageTags.Name)
+	})
+
 	t.Run("REQAdd", func(t *testing.T) {
 		c.Write([]byte("CAP REQ message-tags\r\n"))
 

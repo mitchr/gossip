@@ -60,6 +60,13 @@ func REQ(s *Server, c *client.Client, params ...string) {
 		c.RegSuspended = true
 	}
 
+	// if a client requests multiple caps it will be in the form ':cap1
+	// cap2 cap3' which the message parser will treat as one entire
+	// parameter. we have to split it ourselves here
+	if len(params) > 0 {
+		params = strings.Split(params[0], " ")
+	}
+
 	// "The capability identifier set must be accepted as a whole, or
 	// rejected entirely."
 	// todo queues up the acceptance of the cap idents
