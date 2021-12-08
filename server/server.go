@@ -98,18 +98,13 @@ func (s *Server) Serve() {
 	}
 
 	// grabs messages from the queue and executes them in sequential order
-	s.wg.Add(1)
 	for {
 		select {
 		case msg := <-s.msgQueue:
 			s.executeMessage(msg.m, msg.c)
 		case <-ctx.Done():
-			s.wg.Done()
-
-			// empty all remaining messages from queue
-			for msg := range s.msgQueue {
-				s.executeMessage(msg.m, msg.c)
-			}
+			s.wg.Wait()
+			close(s.msgQueue)
 			return
 		}
 	}
@@ -118,8 +113,6 @@ func (s *Server) Serve() {
 // gracefully shutdown server:
 // 1. close listener so that we stop accepting more connections
 // 2. s.cancel to exit serve loop
-// 3. wait until all clients have canceled AND Serve() receives cancel signal
-// 4. close s.msgQueue since we won't be receiving any more messages
 // graceful shutdown from https://blog.golang.org/context
 func (s *Server) Close() {
 	s.listener.Close()
@@ -127,8 +120,6 @@ func (s *Server) Close() {
 		s.tlsListener.Close()
 	}
 	s.cancel()
-	s.wg.Wait()
-	close(s.msgQueue)
 }
 
 func (s *Server) handleConn(u net.Conn, ctx context.Context) {
@@ -152,8 +143,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	}()
 
 	// fetch a message from the client, parse it, then send it to the
-	// server's message queue. This goroutine is implicitly closed when
-	// clientCtx is canceled.
+	// server's message queue
 	go func() {
 		for {
 			buff, err := c.ReadMsg()
@@ -182,10 +172,15 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				return
 			}
 
-			msg := msg.Parse(buff)
-			// ignore all nil messages
-			if msg != nil {
-				s.msgQueue <- &msgBundle{msg, c}
+			select {
+			case <-clientCtx.Done():
+				return
+			default:
+				msg := msg.Parse(buff)
+				// ignore all nil messages
+				if msg != nil {
+					s.msgQueue <- &msgBundle{msg, c}
+				}
 			}
 		}
 	}()
