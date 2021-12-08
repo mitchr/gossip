@@ -16,7 +16,6 @@ import (
 
 	"github.com/mitchr/gossip/cap"
 	"github.com/mitchr/gossip/sasl"
-	"github.com/mitchr/gossip/scan/msg"
 )
 
 type Client struct {
@@ -177,7 +176,7 @@ var (
 )
 
 // Read until encountering a newline
-func (c *Client) ReadMsg() (*msg.Message, error) {
+func (c *Client) ReadMsg() ([]byte, error) {
 	// as a form of flood control, ask for a grant before reading
 	// each request
 	err := c.requestGrant()
@@ -198,7 +197,7 @@ func (c *Client) ReadMsg() (*msg.Message, error) {
 
 		// accepted if we find a newline
 		if b == '\n' {
-			return msg.Parse(read[:n+1]), nil
+			return read[:n+1], nil
 		}
 	}
 

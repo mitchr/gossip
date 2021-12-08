@@ -156,9 +156,9 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	// clientCtx is canceled.
 	go func() {
 		for {
-			msg, err := c.ReadMsg()
+			buff, err := c.ReadMsg()
 			if s.Debug {
-				log.Println(msg)
+				log.Printf("Message: %s\nSent by ip: %s", string(buff), c.RemoteAddr().String())
 			}
 
 			if err == client.ErrFlood {
@@ -182,7 +182,8 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				return
 			}
 
-			// implicitly ignore all nil messages
+			msg := msg.Parse(buff)
+			// ignore all nil messages
 			if msg != nil {
 				s.msgQueue <- &msgBundle{msg, c}
 			}
