@@ -43,7 +43,7 @@ func TestCAP(t *testing.T) {
 	})
 
 	t.Run("TestLIST", func(t *testing.T) {
-		c, r := connectAndRegister("a", "A")
+		c, r := connectAndRegister("c", "C")
 		defer c.Close()
 
 		c.Write([]byte("CAP REQ sasl message-tags\r\n"))
