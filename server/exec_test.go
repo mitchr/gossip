@@ -407,11 +407,9 @@ func TestKICK(t *testing.T) {
 	r2.ReadBytes('\n')
 	r2.ReadBytes('\n')
 	c1.Write([]byte("KICK #local bob\r\n"))
-	aliceKick, _ := r1.ReadBytes('\n')
-	bobKick, _ := r2.ReadBytes('\n')
 
 	// check received correct response
-	assertResponse(aliceKick, ":alice!alice@localhost KICK #local bob :alice\r\n", t)
+	bobKick, _ := r2.ReadBytes('\n')
 	assertResponse(bobKick, ":alice!alice@localhost KICK #local bob :alice\r\n", t)
 
 	t.Run("MissingParam", func(t *testing.T) {

@@ -434,7 +434,7 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 		if len(chans) != 1 {
 			s.kickMember(c, ch, users[i], comment)
 		} else {
-			// If we are only given one channel, kick all users from it
+			// If we are only given one channel, kick all listed users from it
 			for _, u := range users {
 				s.kickMember(c, ch, u, comment)
 			}
@@ -451,7 +451,15 @@ func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick st
 		return
 	}
 
-	fmt.Fprintf(ch, ":%s KICK %s %s :%s", c, ch, u.Nick, comment)
+	// send KICK to all channel members but self
+	for _, v := range ch.Members {
+		if v.Client == c {
+			continue
+		}
+		fmt.Fprintf(v, ":%s KICK %s %s :%s", c, ch, u.Nick, comment)
+		v.Flush()
+	}
+
 	ch.DeleteMember(u.Nick)
 }
 
