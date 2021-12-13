@@ -101,6 +101,8 @@ func (s *Server) writeReply(buf io.Writer, clientId string, format string, f ...
 
 func (s *Server) ERROR(c *client.Client, msg string) {
 	fmt.Fprintf(c, "ERROR :%s", msg)
+	c.Flush()
+	c.Close()
 }
 
 // given a channel, construct a NAMREPLY for all the members. if

@@ -186,8 +186,6 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	s.ERROR(c, fmt.Sprintf("%s quit", c.Nick))
-	c.Flush()
-	c.Close()
 	s.DeleteClient(c.Nick)
 }
 
@@ -203,8 +201,6 @@ func (s *Server) endRegistration(c *client.Client) {
 		if bcrypt.CompareHashAndPassword(s.Password, c.ServerPassAttempt) != nil {
 			s.writeReply(c, c.Id(), ERR_PASSWDMISMATCH)
 			s.ERROR(c, "Closing Link: "+s.Name+" (Bad Password)")
-			c.Flush()
-			c.Close()
 			return
 		}
 	}
