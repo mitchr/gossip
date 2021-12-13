@@ -413,7 +413,7 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 	for i, v := range chans {
 		ch, _ := s.GetChannel(v)
 		if ch == nil {
-			s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, ch)
+			s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, v)
 			return
 		}
 		self, _ := ch.GetMember(c.Nick)

@@ -419,6 +419,38 @@ func TestKICK(t *testing.T) {
 		assertResponse(resp, ":gossip 461 alice KICK :Not enough parameters\r\n", t)
 	})
 
+	t.Run("KICKMoreChansThanUsers", func(t *testing.T) {
+		c1.Write([]byte("KICK #test,#test1 bob\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 461 alice KICK :Not enough parameters\r\n", t)
+	})
+
+	t.Run("NoSuchChannel", func(t *testing.T) {
+		testChannel := channel.New("test", channel.Remote)
+		testChannel.Members["bob"] = &channel.Member{Client: s.clients["bob"]}
+		s.channels["#test"] = testChannel
+		c1.Write([]byte("KICK #test bob\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 442 alice #test :You're not on that channel\r\n", t)
+	})
+
+	t.Run("NoPrivileges", func(t *testing.T) {
+		s.channels["#test"].Members["alice"] = &channel.Member{Client: s.clients["alice"]}
+		c1.Write([]byte("KICK #test bob\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 482 alice #test :You're not a channel operator\r\n", t)
+	})
+
+	t.Run("NotOnChannel", func(t *testing.T) {
+		c1.Write([]byte("KICK #notrealchan bob\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 403 alice #notrealchan :No such channel\r\n", t)
+	})
+
 	t.Run("KickClientNotInChannel", func(t *testing.T) {
 		c1.Write([]byte("KICK #local unknownUser\r\n"))
 		resp, _ := r1.ReadBytes('\n')
