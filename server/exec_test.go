@@ -950,6 +950,25 @@ func TestPING(t *testing.T) {
 	assertResponse(resp, ":gossip PONG\r\n", t)
 }
 
+func TestPONG(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	c := &client.Client{PONG: make(chan struct{}, 1)}
+	s.clients["c"] = c
+
+	PONG(s, c, nil)
+
+	select {
+	case <-c.PONG:
+	default:
+		t.Error("did not receive PONG")
+	}
+}
+
 func TestAWAY(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
