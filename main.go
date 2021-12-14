@@ -68,10 +68,11 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	go func() {
-		<-interrupt
-		s.Close()
-	}()
+	go s.Serve()
 
-	s.Serve()
+	<-interrupt
+	err = s.Close()
+	if err != nil {
+		log.Fatalln(err)
+	}
 }

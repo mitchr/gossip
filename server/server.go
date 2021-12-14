@@ -114,12 +114,23 @@ func (s *Server) Serve() {
 // 1. close listener so that we stop accepting more connections
 // 2. s.cancel to exit serve loop
 // graceful shutdown from https://blog.golang.org/context
-func (s *Server) Close() {
-	s.listener.Close()
-	if s.tlsListener != nil {
-		s.tlsListener.Close()
+func (s *Server) Close() error {
+	err := s.listener.Close()
+	if err != nil {
+		return err
 	}
-	s.cancel()
+	if s.tlsListener != nil {
+		err = s.tlsListener.Close()
+		if err != nil {
+			return err
+		}
+	}
+	if s.cancel == nil {
+		return errors.New("server context is nil; did you call Serve?")
+	} else {
+		s.cancel()
+	}
+	return nil
 }
 
 func (s *Server) handleConn(u net.Conn, ctx context.Context) {
