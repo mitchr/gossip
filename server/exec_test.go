@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mitchr/gossip/channel"
+	"github.com/mitchr/gossip/client"
 	"golang.org/x/crypto/bcrypt"
 )
 
