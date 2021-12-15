@@ -17,6 +17,8 @@ import (
 	"net"
 	"testing"
 	"time"
+
+	"github.com/mitchr/gossip/channel"
 )
 
 func init() {
@@ -144,13 +146,11 @@ func TestCaseInsensitivity(t *testing.T) {
 	})
 
 	t.Run("TestChanCaseInsensitive", func(t *testing.T) {
-		c1.Write([]byte("JOIN #test\r\n"))
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
-		r1.ReadBytes('\n')
+		s.channels["#test"] = channel.New("test", '#')
+		s.channels["#test"].Members["alice"] = &channel.Member{Client: s.clients["alice"]}
+
 		c2.Write([]byte("JOIN #tEsT\r\n"))
 		r1.ReadBytes('\n')
-
 		resp, _ := r2.ReadBytes('\n')
 		assertResponse(resp, ":bob!bob@localhost JOIN #test\r\n", t)
 	})
