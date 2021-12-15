@@ -110,14 +110,10 @@ func (c *Channel) Write(b []byte) (int, error) {
 	var errStrings []string
 
 	for _, v := range c.Members {
-		written, err := v.Write(b)
+		written, err := v.Conn.Write(v.PrepareMessage(b))
 		if err != nil {
 			errStrings = append(errStrings, err.Error())
 			log.Println(b, err)
-		}
-		err = v.Flush()
-		if err != nil {
-			log.Println("flushErr:", err)
 		}
 		n += written
 	}

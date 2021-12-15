@@ -305,14 +305,11 @@ func TestChannelKeys(t *testing.T) {
 
 	c.Write([]byte("JOIN #1,#2,#3 Key1,Key2\r\n"))
 	join1, _ := r.ReadBytes('\n')
-	r.ReadBytes('\n')
-	r.ReadBytes('\n')
 	join2, _ := r.ReadBytes('\n')
-	r.ReadBytes('\n')
-	r.ReadBytes('\n')
 	join3, _ := r.ReadBytes('\n')
-	r.ReadBytes('\n')
-	r.ReadBytes('\n')
+
+	// this is a special case where we can skip reading of the namreplies
+	// because the joins are sent first
 
 	assertResponse(join1, ":alice!alice@localhost JOIN #1\r\n", t)
 	assertResponse(join2, ":alice!alice@localhost JOIN #2\r\n", t)

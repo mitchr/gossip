@@ -205,6 +205,11 @@ func (c *Client) ReadMsg() ([]byte, error) {
 }
 
 func (c *Client) Write(b []byte) (int, error) {
+	prepared := c.PrepareMessage(b)
+	return c.ReadWriter.Write(prepared)
+}
+
+func (c *Client) PrepareMessage(b []byte) []byte {
 	temp := b
 	if c.Caps[cap.ServerTime.Name] {
 		serverTime := "@time=" + time.Now().Format("2006-01-02T15:04:05.999Z") + " "
@@ -212,7 +217,7 @@ func (c *Client) Write(b []byte) (int, error) {
 	}
 	temp = append(temp, '\r', '\n')
 
-	return c.ReadWriter.Write(temp)
+	return temp
 }
 
 // requestGrant allows the client to process one message. If the client
