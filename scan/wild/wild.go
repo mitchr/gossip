@@ -11,9 +11,11 @@ const (
 	nowildesc
 )
 
-func lexWild(l *scan.Lexer) scan.State {
-	for r := l.Next(); r != scan.EOF; r = l.Next() {
-		switch r {
+func lexWild(l *scan.Lexer) {
+	for {
+		switch l.Next() {
+		case scan.EOF:
+			return
 		case '?':
 			l.Push(wildone)
 		case '*':
@@ -24,7 +26,6 @@ func lexWild(l *scan.Lexer) scan.State {
 			l.Push(nowildesc)
 		}
 	}
-	return nil
 }
 
 func Match(regex, m string) bool {

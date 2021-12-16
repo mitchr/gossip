@@ -12,9 +12,11 @@ const (
 )
 
 // mode lexing
-func lexMode(l *scan.Lexer) scan.State {
-	for r := l.Next(); r != scan.EOF; r = l.Next() {
-		switch k := r; {
+func lexMode(l *scan.Lexer) {
+	for {
+		switch k := l.Next(); {
+		case k == scan.EOF:
+			return
 		case k == '+':
 			l.Push(plus)
 		case k == '-':
@@ -23,7 +25,6 @@ func lexMode(l *scan.Lexer) scan.State {
 			l.Push(modechar)
 		}
 	}
-	return nil
 }
 
 type Type int

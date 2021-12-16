@@ -20,9 +20,11 @@ const (
 	clientPrefix
 )
 
-func lexMessage(l *scan.Lexer) scan.State {
-	for r := l.Next(); r != scan.EOF; r = l.Next() {
-		switch r {
+func lexMessage(l *scan.Lexer) {
+	for {
+		switch l.Next() {
+		case scan.EOF:
+			return
 		case '\r':
 			l.Push(cr)
 		case '\n':
@@ -51,5 +53,4 @@ func lexMessage(l *scan.Lexer) scan.State {
 			l.Push(any)
 		}
 	}
-	return nil
 }

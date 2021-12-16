@@ -20,13 +20,12 @@ type Token struct {
 
 func (t Token) String() string { return string(t.Value) }
 
-type State func(*Lexer) State
+type State func(*Lexer)
 
 type Lexer struct {
 	tokens   chan *Token
 	input    []byte
 	position int
-	state    State
 
 	current rune
 	peeked  rune
@@ -75,16 +74,13 @@ func (l *Lexer) Push(t TokenType) {
 // given. This channel is closed whenever initState returns nil.
 func Lex(b []byte, initState State) <-chan *Token {
 	l := &Lexer{
-		state:  initState,
 		input:  b,
 		tokens: make(chan *Token),
 		peeked: -1,
 	}
 
 	go func() {
-		for l.state != nil {
-			l.state = l.state(l)
-		}
+		initState(l)
 		close(l.tokens)
 	}()
 
