@@ -208,3 +208,17 @@ func TestTagRaw(t *testing.T) {
 		})
 	}
 }
+
+var testInput []byte = []byte("@a=b :bob!Bob@example.com PRIVMSG alice :Welcome to the server!\r\n")
+
+func BenchmarkLex(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		scan.Lex(testInput, lexMessage)
+	}
+}
+
+func BenchmarkParse(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Parse(testInput)
+	}
+}
