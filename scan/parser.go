@@ -1,38 +1,16 @@
 package scan
 
-type Parser struct {
-	Tokens <-chan *Token
+type Parser struct{ Tokens *Queue }
 
-	peeked *Token
-}
-
-func (p *Parser) Next() *Token {
-	if p.peeked != nil {
-		temp := p.peeked
-		p.peeked = nil
-		return temp
-	}
-
-	return <-p.Tokens
-}
+func (p *Parser) Next() Token { return p.Tokens.poll() }
 
 // Multiple calls to Peek will continue to return the same value until
 // Next is called.
-func (p *Parser) Peek() *Token {
-	if p.peeked != nil {
-		return p.peeked
-	}
-
-	p.peeked = <-p.Tokens
-	if p.peeked == nil {
-		return &Token{TokenType(EOF), -1}
-	}
-	return p.peeked
-}
+func (p *Parser) Peek() Token { return p.Tokens.peek() }
 
 func (p *Parser) Expect(t TokenType) bool {
 	next := p.Next()
-	if next == nil {
+	if next == EOFToken {
 		return false
 	}
 

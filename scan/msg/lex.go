@@ -20,6 +20,8 @@ const (
 	clientPrefix
 )
 
+func Lex(b []byte) *scan.Queue { return scan.Lex(b, lexMessage) }
+
 func lexMessage(l *scan.Lexer) {
 	for {
 		switch l.Next() {

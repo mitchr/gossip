@@ -187,7 +187,8 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			case <-clientCtx.Done():
 				return
 			default:
-				msg := msg.Parse(buff)
+				tokens := msg.Lex(buff)
+				msg := msg.Parse(tokens)
 				// ignore all nil messages
 				if msg != nil {
 					s.msgQueue <- &msgBundle{msg, c}

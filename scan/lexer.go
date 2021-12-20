@@ -4,15 +4,14 @@
 
 package scan
 
-import (
-	"unicode/utf8"
-)
+import "unicode/utf8"
 
 type TokenType int
 
 const EOF rune = -1
 
-// A Token is also a node for a queue
+var EOFToken Token = Token{TokenType(EOF), EOF}
+
 type Token struct {
 	TokenType TokenType
 	Value     rune
@@ -23,7 +22,7 @@ func (t Token) String() string { return string(t.Value) }
 type State func(*Lexer)
 
 type Lexer struct {
-	tokens   chan *Token
+	tokens   *Queue
 	input    []byte
 	position int
 
@@ -67,22 +66,19 @@ func (l *Lexer) Peek() rune {
 }
 
 func (l *Lexer) Push(t TokenType) {
-	l.tokens <- &Token{TokenType: t, Value: l.current}
+	l.tokens.offer(Token{TokenType: t, Value: l.current})
 }
 
 // Lex generates a channel of tokens depending on the initial state
 // given. This channel is closed whenever initState returns nil.
-func Lex(b []byte, initState State) <-chan *Token {
+func Lex(b []byte, initState State) *Queue {
 	l := &Lexer{
 		input:  b,
-		tokens: make(chan *Token),
+		tokens: new(Queue),
 		peeked: -1,
 	}
 
-	go func() {
-		initState(l)
-		close(l.tokens)
-	}()
+	initState(l)
 
 	return l.tokens
 }

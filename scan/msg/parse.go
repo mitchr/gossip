@@ -9,12 +9,12 @@ import (
 
 // given a slice of tokens, produce a corresponding irc message
 //["@" tags SPACE] [":" source SPACE] command [params] crlf
-func Parse(b []byte) *Message {
-	if len(b) == 0 || b == nil {
+func Parse(q *scan.Queue) *Message {
+	if q.IsEmpty() {
 		return nil
 	}
 
-	p := &scan.Parser{Tokens: scan.Lex(b, lexMessage)}
+	p := &scan.Parser{Tokens: q}
 	m := &Message{}
 
 	if p.Peek().TokenType == at {
@@ -235,7 +235,7 @@ func trailing(p *scan.Parser) string {
 	m := ""
 	for {
 		t := p.Peek()
-		if t == nil {
+		if t == scan.EOFToken {
 			break
 		} else if t.TokenType == colon || t.TokenType == space {
 			m += string(t.Value)
@@ -254,7 +254,7 @@ func nospcrlfcl(p *scan.Parser) string {
 	var tok strings.Builder
 	for {
 		s := p.Peek()
-		if s != nil && isNospcrlfcl(s.Value) {
+		if s != scan.EOFToken && isNospcrlfcl(s.Value) {
 			tok.WriteRune(s.Value)
 			p.Next()
 		} else {

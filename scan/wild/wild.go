@@ -36,7 +36,7 @@ func Match(regex, m string) bool {
 
 	for {
 		switch r := p.Next(); {
-		case r == nil:
+		case r == scan.EOFToken:
 			// if we were able to reach the end of the string without error, then it's a match
 			return true
 		case r.TokenType == nowildesc:
@@ -66,7 +66,7 @@ func Match(regex, m string) bool {
 		case r.TokenType == wildmany:
 			stop := p.Peek()
 			n := getRune(m, pos)
-			for stop != nil && n != scan.EOF && n != stop.Value {
+			for stop != scan.EOFToken && n != scan.EOF && n != stop.Value {
 				pos++
 				n = getRune(m, pos)
 			}

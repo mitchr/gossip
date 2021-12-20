@@ -54,7 +54,7 @@ func Parse(b []byte) []Mode {
 	}
 	for {
 		r := p.Peek()
-		if r == nil || (r.TokenType != plus && r.TokenType != minus) {
+		if r == scan.EOFToken || (r.TokenType != plus && r.TokenType != minus) {
 			return m
 		} else {
 			chars, op := modeset(p)
@@ -77,7 +77,7 @@ func modeset(p *scan.Parser) ([]rune, Type) {
 
 	for {
 		t := p.Peek()
-		if t == nil || t.TokenType != modechar {
+		if t == scan.EOFToken || t.TokenType != modechar {
 			break
 		} else {
 			r := p.Next()
