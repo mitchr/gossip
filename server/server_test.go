@@ -106,6 +106,28 @@ func TestMessageSize(t *testing.T) {
 	})
 }
 
+func TestFlooding(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("alice", "Alice Smith")
+	defer c.Close()
+
+	for i := 0; i < 11; i++ {
+		c.Write([]byte("NICK\r\n"))
+	}
+	for i := 0; i < 10; i++ {
+		r.ReadBytes('\n')
+	}
+
+	flood, _ := r.ReadBytes('\n')
+	assertResponse(flood, "ERROR :Flooding\r\n", t)
+}
+
 func TestWriteMultiline(t *testing.T) {
 	s, err := New(&Config{Network: "cafeteria", Name: "gossip", Port: ":6667"})
 	if err != nil {
