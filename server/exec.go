@@ -185,7 +185,6 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 
-	s.DeleteClient(c.Nick)
 	s.ERROR(c, fmt.Sprintf("%s quit", c.Nick))
 	s.DeleteClient(c.Nick)
 }
