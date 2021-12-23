@@ -213,10 +213,12 @@ func (c *Client) Write(b []byte) (int, error) {
 	return c.ReadWriter.Write(prepared)
 }
 
+const timeFormat string = "2006-01-02T15:04:05.999Z"
+
 func (c *Client) PrepareMessage(b []byte) []byte {
 	temp := b
 	if c.Caps[cap.ServerTime.Name] {
-		serverTime := "@time=" + time.Now().Format("2006-01-02T15:04:05.999Z") + " "
+		serverTime := "@time=" + time.Now().Format(timeFormat) + " "
 		temp = append([]byte(serverTime), temp...)
 	}
 	temp = append(temp, '\r', '\n')
