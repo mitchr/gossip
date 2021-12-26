@@ -533,13 +533,13 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 
-	s.writeReply(c, c.Id(), RPL_LUSERCLIENT, len(s.clients), invis, 1)
+	s.writeReply(c, c.Id(), RPL_LUSERCLIENT, s.ClientLen(), invis, 1)
 	s.writeReply(c, c.Id(), RPL_LUSEROP, ops)
 	s.unknownLock.Lock()
 	s.writeReply(c, c.Id(), RPL_LUSERUNKNOWN, s.unknowns)
 	s.unknownLock.Unlock()
 	s.writeReply(c, c.Id(), RPL_LUSERCHANNELS, s.ChannelLen())
-	s.writeReply(c, c.Id(), RPL_LUSERME, len(s.clients), 1)
+	s.writeReply(c, c.Id(), RPL_LUSERME, s.ClientLen(), 1)
 
 	s.clientLock.RUnlock()
 }
