@@ -45,20 +45,19 @@ type Channel struct {
 
 	// map of Nick to undelying client
 	Members     map[string]*Member
-	MembersLock *sync.RWMutex
+	MembersLock sync.RWMutex
 }
 
 func New(name string, t ChanType) *Channel {
 	return &Channel{
-		Name:        name,
-		ChanType:    t,
-		Limit:       math.MaxUint32,
-		Members:     make(map[string]*Member),
-		MembersLock: new(sync.RWMutex),
+		Name:     name,
+		ChanType: t,
+		Limit:    math.MaxUint32,
+		Members:  make(map[string]*Member),
 	}
 }
 
-func (c Channel) String() string {
+func (c *Channel) String() string {
 	return string(c.ChanType) + c.Name
 }
 
@@ -90,7 +89,7 @@ func (c *Channel) DeleteMember(m string) {
 	delete(c.Members, strings.ToLower(m))
 }
 
-func (c Channel) Modes() (modestr string, params []string) {
+func (c *Channel) Modes() (modestr string, params []string) {
 	if len(c.Ban) != 0 {
 		modestr += "b"
 		params = append(params, strings.Join(c.Ban, ","))
