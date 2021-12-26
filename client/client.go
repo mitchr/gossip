@@ -61,7 +61,8 @@ type Client struct {
 	// this with mutual exclusion.
 	capLock sync.Mutex
 
-	grants chan struct{}
+	grants    int
+	grantLock sync.Mutex
 }
 
 func New(conn net.Conn) *Client {
@@ -74,9 +75,8 @@ func New(conn net.Conn) *Client {
 		ReadWriter: bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
 		maxMsgSize: 512,
 
-		PONG:   make(chan struct{}, 1),
-		Caps:   make(map[string]bool),
-		grants: make(chan struct{}, 10),
+		PONG: make(chan struct{}, 1),
+		Caps: make(map[string]bool),
 	}
 
 	c.FillGrants()
@@ -236,27 +236,33 @@ func (c *Client) Flush() error {
 // requestGrant allows the client to process one message. If the client
 // has no grants, this returns an error.
 func (c *Client) requestGrant() error {
-	select {
-	case <-c.grants:
-		return nil
-	default:
+	c.grantLock.Lock()
+	defer c.grantLock.Unlock()
+
+	if c.grants == 0 {
 		return ErrFlood
 	}
+
+	c.grants--
+	return nil
 }
 
 // FillGrants fills the clients grant queue to the max.
 func (c *Client) FillGrants() {
-	for i := 0; i < 10; i++ {
-		c.AddGrant()
-	}
+	c.grantLock.Lock()
+	defer c.grantLock.Unlock()
+
+	c.grants = 10
 }
 
 // Increment the grant counter by 1. If the client already has max
 // grants, this does nothing.
 func (c *Client) AddGrant() {
-	select {
-	case c.grants <- struct{}{}:
-	default:
+	c.grantLock.Lock()
+	defer c.grantLock.Unlock()
+
+	if c.grants == 10 {
 		return
 	}
+	c.grants++
 }
