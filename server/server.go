@@ -120,67 +120,30 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) handleConn(u net.Conn, ctx context.Context) {
-	defer s.wg.Done()
-
 	clientCtx, cancel := context.WithCancel(ctx)
 	c := client.New(u)
+
+	defer s.wg.Done()
+	defer cancel()
+	defer func() {
+		if !c.Is(client.Registered) {
+			s.unknownLock.Lock()
+			s.unknowns--
+			s.unknownLock.Unlock()
+			c.Close()
+			return
+		}
+	}()
 
 	s.unknownLock.Lock()
 	s.unknowns++
 	s.unknownLock.Unlock()
 
-	// give a small window for client to register before kicking them off
-	go func() {
-		time.Sleep(time.Second * 10)
-		if !c.Is(client.Registered) {
-			s.ERROR(c, "Closing Link: Client failed to register in allotted time (10 seconds)")
-			c.Flush()
-			cancel()
-		}
-	}()
+	msgs := make(chan *msg.Message, 1)
+	errs := make(chan error)
 
-	// fetch a message from the client, parse it, then execute it
-	go func() {
-		for {
-			buff, err := c.ReadMsg()
-			if s.Debug {
-				log.Printf("Message: %s\nSent by ip: %s", string(buff), c.RemoteAddr().String())
-			}
-
-			if err == client.ErrFlood {
-				// TODO: instead of kicking the client right away, maybe a
-				// timeout would be more appropriate (atleast for the first 2
-				// or 3 offenses)
-				s.ERROR(c, "Flooding")
-				c.Flush()
-				cancel()
-				return
-			} else if err == client.ErrMsgSizeOverflow {
-				// client went past the 512 message length requirement
-				// TODO: discourage client from multiple buffer overflows in a
-				// row to try to prevent against denial of service attacks
-				s.writeReply(c, c.Id(), ERR_INPUTTOOLONG)
-				c.Flush()
-				continue
-			} else if err != nil {
-				// either client closed its own connection, or they disconnected without quit
-				cancel()
-				return
-			}
-
-			select {
-			case <-clientCtx.Done():
-				return
-			default:
-				tokens := msg.Lex(buff)
-				msg := msg.Parse(tokens)
-				// ignore all nil messages
-				if msg != nil {
-					s.executeMessage(msg, c)
-				}
-			}
-		}
-	}()
+	go s.startRegistrationTimer(c, errs)
+	go s.getMessage(c, clientCtx, msgs, errs)
 
 	pingTick := time.NewTicker(time.Minute * 5)  // every 5 minutes, send PING
 	grantTick := time.NewTicker(time.Second * 2) // every 2 seconds, give this client a grant
@@ -190,24 +153,83 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	for {
 		select {
 		case <-clientCtx.Done():
-			// client left/was kicked without first sending a QUIT command,
-			// so send one for them
-			QUIT(s, c, &msg.Message{Params: []string{"Client left without saying goodbye :("}})
 			return
 		case <-pingTick.C:
 			fmt.Fprintf(c, ":%s PING %s", s.Name, c.Nick)
 			c.Flush()
 
 			select {
-			case <-clientCtx.Done():
+			case <-ctx.Done():
 			case <-c.PONG:
 			case <-time.After(time.Second * 10):
-				s.ERROR(c, "Closing Link: PING timeout (300 seconds)")
-				c.Flush()
-				cancel()
+				QUIT(s, c, &msg.Message{Params: []string{"Closing Link: PING timeout (300 seconds)"}})
+				return
 			}
 		case <-grantTick.C:
 			c.AddGrant()
+		case msg := <-msgs:
+			s.executeMessage(msg, c)
+		case err := <-errs:
+			switch err {
+			case ErrRegistrationTimeout:
+				s.ERROR(c, "Closing Link: Client failed to register in allotted time (10 seconds)")
+				return
+			case client.ErrFlood:
+				// TODO: instead of kicking the client right away, maybe a
+				// timeout would be more appropriate (atleast for the first 2
+				// or 3 offenses)
+				QUIT(s, c, &msg.Message{Params: []string{"Flooding"}})
+				return
+			case client.ErrMsgSizeOverflow:
+				// client went past the 512 message length requirement
+				// TODO: discourage client from multiple buffer overflows in a
+				// row to try to prevent against denial of service attacks
+				s.writeReply(c, c.Id(), ERR_INPUTTOOLONG)
+				c.Flush()
+				continue
+			default:
+				// either client closed its own connection, or something bad happened
+				// we need to send a QUIT command for them
+				QUIT(s, c, &msg.Message{Params: []string{"Client left without saying goodbye :("}})
+				return
+			}
+		}
+	}
+}
+
+var ErrRegistrationTimeout = errors.New("failed to register in allotted time")
+
+// give a small window for client to register before kicking them off
+func (s *Server) startRegistrationTimer(c *client.Client, errs chan<- error) {
+	time.Sleep(time.Second * 10)
+	if !c.Is(client.Registered) {
+		errs <- ErrRegistrationTimeout
+	}
+}
+
+// fetch a message from the client and parse it
+func (s *Server) getMessage(c *client.Client, ctx context.Context, msgs chan<- *msg.Message, errs chan<- error) {
+	for {
+		select {
+		case <-ctx.Done():
+			close(msgs)
+			return
+		default:
+			buff, err := c.ReadMsg()
+			if s.Debug {
+				log.Printf("Message: %s\nSent by ip: %s", string(buff), c.RemoteAddr().String())
+			}
+
+			if err != nil {
+				errs <- err
+				continue
+			}
+
+			tokens := msg.Lex(buff)
+			msg := msg.Parse(tokens)
+			if msg != nil {
+				msgs <- msg
+			}
 		}
 	}
 }

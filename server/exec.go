@@ -156,15 +156,7 @@ func OPER(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func QUIT(s *Server, c *client.Client, m *msg.Message) {
-	if !c.Is(client.Registered) {
-		s.unknownLock.Lock()
-		s.unknowns--
-		s.unknownLock.Unlock()
-		c.Close()
-		return
-	}
-
-	reason := "" // assume client does not send a reason for quit
+	reason := c.Nick + " quit" // assume client does not send a reason for quit
 	if len(m.Params) > 0 {
 		reason = m.Params[0]
 	}
@@ -185,7 +177,7 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 
-	s.ERROR(c, fmt.Sprintf("%s quit", c.Nick))
+	s.ERROR(c, reason)
 	s.DeleteClient(c.Nick)
 }
 

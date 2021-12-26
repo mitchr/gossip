@@ -119,11 +119,9 @@ func TestFlooding(t *testing.T) {
 
 	for i := 0; i < 11; i++ {
 		c.Write([]byte("NICK\r\n"))
+		r.ReadString('\n')
 	}
-	for i := 0; i < 10; i++ {
-		r.ReadBytes('\n')
-	}
-
+	c.Write([]byte("NICK\r\n"))
 	flood, _ := r.ReadBytes('\n')
 	assertResponse(flood, "ERROR :Flooding\r\n", t)
 }
@@ -203,6 +201,38 @@ func TestUnicodeNICK(t *testing.T) {
 
 	airplane := s.clients["🛩️"].String()
 	assertResponse(resp, fmt.Sprintf(":%s 001 🛩️ :Welcome to the cafe IRC Network %s\r\n", s.Name, airplane), t)
+}
+
+func TestUnknownCount(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r, p := connect(s)
+	defer p()
+
+	// we send NICK and USER in separate parts here to ensure that that
+	// getMessage has been started and therefore unknownCount was
+	// incremented
+	c.Write([]byte("NICK 1\r\n"))
+
+	s.unknownLock.Lock()
+	if s.unknowns != 1 {
+		t.Error("did not increment unknown count")
+	}
+	s.unknownLock.Unlock()
+
+	c.Write([]byte("USER 1 0 0 :1\r\n"))
+	r.ReadBytes('\n')
+
+	s.unknownLock.Lock()
+	if s.unknowns != 0 {
+		t.Error("did not decrement unknown count")
+	}
+	s.unknownLock.Unlock()
 }
 
 func BenchmarkRegistrationSurge(b *testing.B) {

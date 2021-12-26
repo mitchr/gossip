@@ -197,7 +197,7 @@ func TestQUIT(t *testing.T) {
 		c1.Write([]byte("QUIT :Done for the day\r\n"))
 
 		bobQuitErr, _ := r1.ReadBytes('\n')
-		assertResponse(bobQuitErr, "ERROR :bob quit\r\n", t)
+		assertResponse(bobQuitErr, "ERROR :Done for the day\r\n", t)
 
 		danReceivesReason, _ := r2.ReadBytes('\n')
 		assertResponse(danReceivesReason, fmt.Sprintf(":%s QUIT :Done for the day\r\n", bobPrefix), t)
