@@ -233,6 +233,8 @@ func (c *Client) Flush() error {
 	return c.ReadWriter.Flush()
 }
 
+const maxGrants = 10
+
 // requestGrant allows the client to process one message. If the client
 // has no grants, this returns an error.
 func (c *Client) requestGrant() error {
@@ -252,7 +254,7 @@ func (c *Client) FillGrants() {
 	c.grantLock.Lock()
 	defer c.grantLock.Unlock()
 
-	c.grants = 10
+	c.grants = maxGrants
 }
 
 // Increment the grant counter by 1. If the client already has max
@@ -261,7 +263,7 @@ func (c *Client) AddGrant() {
 	c.grantLock.Lock()
 	defer c.grantLock.Unlock()
 
-	if c.grants == 10 {
+	if c.grants == maxGrants {
 		return
 	}
 	c.grants++
