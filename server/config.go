@@ -58,8 +58,8 @@ type Config struct {
 			// lists (promise that your server will always offer a secure
 			// connection to clients)
 			Preload bool `json:"preload"`
-		} `json:"sts"`
-	} `json:"tls"`
+		} `json:"sts,omitempty"`
+	} `json:"tls,omitempty"`
 
 	// A path to a file containg the server's message of the day. A MOTD
 	// is divided when encountering a newline. If a line is too long, it
@@ -68,7 +68,7 @@ type Config struct {
 	motd []string
 
 	// A map where operator names are the keys and pass is the value
-	Ops map[string][]byte `json:"ops"`
+	Ops map[string][]byte `json:"ops,omitempty"`
 }
 
 // Unmarshal's the server's config file
