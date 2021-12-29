@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -106,12 +107,15 @@ func NewConfig(r io.Reader) (*Config, error) {
 			c.TLS.STS.Port = c.TLS.Port[1:]
 		}
 
-		cert, err := tls.LoadX509KeyPair(c.TLS.Pubkey, c.TLS.Privkey)
+		cachedCert, err := tls.LoadX509KeyPair(c.TLS.Pubkey, c.TLS.Privkey)
 		if err != nil {
 			return nil, err
 		}
 
-		c.TLS.Config = &tls.Config{ClientAuth: tls.RequestClientCert, Certificates: []tls.Certificate{cert}}
+		c.TLS.Config = &tls.Config{
+			ClientAuth:     tls.RequestClientCert,
+			GetCertificate: getCertificate(&cachedCert, c.TLS.Pubkey, c.TLS.Privkey),
+		}
 	}
 
 	if c.MOTD != "" {
@@ -133,4 +137,21 @@ func WriteConfigToPath(c *Config, path string) error {
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "\t")
 	return encoder.Encode(c)
+}
+
+// when sending certificate to the client, check to see if it is
+// expired and reload it if it is
+func getCertificate(cached *tls.Certificate, pubkey, privkey string) func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	return func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+		cert, _ := x509.ParseCertificate(cached.Certificate[0])
+		if time.Now().After(cert.NotAfter) {
+			c, err := tls.LoadX509KeyPair(pubkey, privkey)
+			if err != nil {
+				return nil, err
+			}
+			cached = &c
+		}
+
+		return cached, nil
+	}
 }
