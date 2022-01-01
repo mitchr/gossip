@@ -41,13 +41,13 @@ func TestRegistration(t *testing.T) {
 	})
 
 	t.Run("TestUserWhenRegistered", func(t *testing.T) {
-		conn, r := connectAndRegister("bob", "Bob Smith")
+		conn, r := connectAndRegister("alice", "Alice Smith")
 		defer conn.Close()
 
 		conn.Write([]byte("USER dan\r\n"))
 		resp, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, ":gossip 462 bob :You may not reregister\r\n", t)
+		assertResponse(resp, ":gossip 462 alice :You may not reregister\r\n", t)
 	})
 
 	t.Run("TestUserMissingParams", func(t *testing.T) {
