@@ -86,13 +86,13 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	challenge, err := c.SASLMech.Next(decodedResp)
-	if err != nil {
-		if err == sasl.ErrDone {
-			c.IsAuthenticated = true
-			// TODO: what are <account> and <user>?
-			s.writeReply(c, c.Id(), RPL_LOGGEDIN, c, c.Id(), c.Id())
-			s.writeReply(c, c.Id(), RPL_SASLSUCCESS)
-		}
+	if err == sasl.ErrDone {
+		c.IsAuthenticated = true
+		// TODO: what are <account> and <user>?
+		s.writeReply(c, c.Id(), RPL_LOGGEDIN, c, c.Id(), c.Id())
+		s.writeReply(c, c.Id(), RPL_SASLSUCCESS)
+		return
+	} else if err != nil {
 		s.writeReply(c, c.Id(), ERR_SASLFAIL)
 		return
 	}
