@@ -3,10 +3,8 @@ package server
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/base64"
 	"fmt"
-	"log"
 
 	"github.com/mitchr/gossip/cap"
 	"github.com/mitchr/gossip/client"
@@ -15,39 +13,7 @@ import (
 	"github.com/mitchr/gossip/sasl/plain"
 	"github.com/mitchr/gossip/sasl/scram"
 	"github.com/mitchr/gossip/scan/msg"
-	_ "modernc.org/sqlite"
 )
-
-var db *sql.DB
-
-func init() {
-	var err error
-	db, err = sql.Open("sqlite", ":memory:")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	db.Exec(`CREATE TABLE IF NOT EXISTS sasl_plain(
-		username TEXT,
-		pass BLOB,
-		PRIMARY KEY(username)
-	);
-	
-	CREATE TABLE IF NOT EXISTS sasl_external(
-		username TEXT,
-		clientCert BLOB,
-		PRIMARY KEY(username)
-	);
-	
-	CREATE TABLE IF NOT EXISTS sasl_scram(
-		username TEXT,
-		serverKey BLOB,
-		storedKey BLOB,
-		salt BLOB,
-		iterations INTEGER,
-		PRIMARY KEY(username)
-	);`)
-}
 
 func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	// client must have requested the SASL capability, and has not yet registered
@@ -90,11 +56,11 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	if c.SASLMech == nil {
 		switch m.Params[0] {
 		case "PLAIN":
-			c.SASLMech = plain.NewPlain(db)
+			c.SASLMech = plain.NewPlain(s.db)
 		case "EXTERNAL":
-			c.SASLMech = external.NewExternal(db, c)
+			c.SASLMech = external.NewExternal(s.db, c)
 		case "SCRAM":
-			c.SASLMech = scram.NewScram(db, sha256.New)
+			c.SASLMech = scram.NewScram(s.db, sha256.New)
 		default:
 			s.writeReply(c, c.Id(), RPL_SASLMECHS, cap.SASL.Value)
 			return
@@ -155,19 +121,19 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 		pass := m.Params[1]
 
 		plainCred := plain.NewCredential(c.Id(), pass)
-		db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+		s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
 
 		salt := make([]byte, 16)
 		rand.Read(salt)
 		scramCred := scram.NewCredential(sha256.New, c.Id(), pass, base64.StdEncoding.EncodeToString(salt), 4096)
-		db.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", scramCred.Username, scramCred.ServerKey, scramCred.StoredKey, scramCred.Salt, scramCred.Iteration)
+		s.db.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", scramCred.Username, scramCred.ServerKey, scramCred.StoredKey, scramCred.Salt, scramCred.Iteration)
 
 	case "CERT":
 		cred, err := external.NewCredential(c.Id(), c.Conn)
 		if err != nil {
 			// TODO: fail registration
 		}
-		db.Exec("INSERT INTO sasl_exec VALUES(?, ?)", cred.Username, cred.Cert)
+		s.db.Exec("INSERT INTO sasl_exec VALUES(?, ?)", cred.Username, cred.Cert)
 	}
 
 	fmt.Fprintf(c, "NOTICE Registered")

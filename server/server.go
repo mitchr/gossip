@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -15,10 +16,14 @@ import (
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
+	_ "modernc.org/sqlite"
 )
 
 type Server struct {
 	*Config
+
+	// database used for user account information
+	db *sql.DB
 
 	listener    net.Listener
 	tlsListener net.Listener
@@ -53,7 +58,11 @@ func New(c *Config) (*Server, error) {
 		supportedCaps: []cap.Capability{cap.CapNotify, cap.EchoMessage, cap.MessageTags, cap.SASL, cap.ServerTime},
 	}
 
-	var err error
+	err := s.loadDatabase(s.Datasource)
+	if err != nil {
+		return nil, err
+	}
+
 	s.listener, err = net.Listen("tcp", c.Port)
 	if err != nil {
 		return nil, err
@@ -70,6 +79,37 @@ func New(c *Config) (*Server, error) {
 	}
 
 	return s, nil
+}
+
+func (s *Server) loadDatabase(datasource string) error {
+	var err error
+	s.db, err = sql.Open("sqlite", datasource)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.db.Exec(`CREATE TABLE IF NOT EXISTS sasl_plain(
+		username TEXT,
+		pass BLOB,
+		PRIMARY KEY(username)
+	);
+	
+	CREATE TABLE IF NOT EXISTS sasl_external(
+		username TEXT,
+		clientCert BLOB,
+		PRIMARY KEY(username)
+	);
+	
+	CREATE TABLE IF NOT EXISTS sasl_scram(
+		username TEXT,
+		serverKey BLOB,
+		storedKey BLOB,
+		salt BLOB,
+		iterations INTEGER,
+		PRIMARY KEY(username)
+	);`)
+
+	return err
 }
 
 func (s *Server) startAccept(ctx context.Context, l net.Listener) {

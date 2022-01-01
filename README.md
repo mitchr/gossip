@@ -9,6 +9,8 @@
 
 To add a server password, use `gossip -s`. This will prompt you to enter a password and then save the bcrypt-ed hash in `config.json`. Similarly to add a new server operator, you can use `gossip -o`.
 
+You can register an account using `REGISTER PASS <pass>`. By default, `REGISTER` uses your current nick as the username. If you are connected with a client tls certificate, `REGISTER CERT` will grab its fingerprint and use that for authentication. User accounts only support SASL authentication, so you must use `PLAIN` or `SCRAM-256` for passwords, or `EXTERNAL` for certificate authentication. User accounts are by default stored in an in-memory sqlite database. You can specify a specific db file by changing the `datasource` config property. 
+
 ## References
 - [RFC 1459](https://datatracker.ietf.org/doc/html/rfc1459)
 - [RFC 2812](https://datatracker.ietf.org/doc/html/rfc2812)

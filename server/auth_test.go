@@ -88,7 +88,7 @@ func TestAUTHENTICATEPLAIN(t *testing.T) {
 	defer p()
 
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
-	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
 
 	c.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE PLAIN\r\n"))
 	r.ReadBytes('\n')
@@ -118,7 +118,7 @@ func TestAUTHENTICATEEXTERNAL(t *testing.T) {
 	defer p()
 
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
-	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
 
 	c.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE EXTERNAL\r\n"))
 	r.ReadBytes('\n')
@@ -138,7 +138,7 @@ func TestAUTHENTICATESCRAM(t *testing.T) {
 	defer p()
 
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
-	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
 
 	c.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE SCRAM\r\n"))
 	r.ReadBytes('\n')

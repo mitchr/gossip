@@ -26,7 +26,10 @@ type Config struct {
 	Password []byte `json:"password"`
 
 	Port string `json:"port"`
-	TLS  struct {
+
+	// Location of sqlite db. If nil, assume :memory:
+	Datasource string `json:"datasource"`
+	TLS        struct {
 		*tls.Config `json:"-"`
 
 		Enabled bool   `json:"enabled"`
@@ -96,6 +99,10 @@ func NewConfig(r io.Reader) (*Config, error) {
 	c, err := loadConfig(r)
 	if err != nil {
 		return nil, err
+	}
+
+	if c.Datasource == "" {
+		c.Datasource = ":memory:"
 	}
 
 	if c.TLS.Enabled {
