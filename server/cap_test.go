@@ -42,6 +42,19 @@ func TestCAP(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s 001 b :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, b), t)
 	})
 
+	t.Run("TestUnregisteredBeforeEND", func(t *testing.T) {
+		c, r, p := connect(s)
+		defer p()
+
+		c.Write([]byte("CAP REQ :sasl\r\nNICK d\r\nUSER D 0 * :D\r\n"))
+		r.ReadBytes('\n') // read CAP REQ response
+
+		_, exists := s.GetClient("d")
+		if exists {
+			t.Error("client's registration should be suspended until CAP END")
+		}
+	})
+
 	t.Run("TestLIST", func(t *testing.T) {
 		c, r := connectAndRegister("c", "C")
 		defer c.Close()
