@@ -252,7 +252,6 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, msgs chan<- *
 	for {
 		select {
 		case <-ctx.Done():
-			close(msgs)
 			return
 		default:
 			buff, err := c.ReadMsg()
