@@ -27,7 +27,6 @@ type Channel struct {
 	ChanType ChanType
 	Topic    string
 
-	// Modes string
 	// array of nickmasks
 	Ban          []string
 	BanExcept    []string
@@ -52,7 +51,7 @@ func New(name string, t ChanType) *Channel {
 	return &Channel{
 		Name:     name,
 		ChanType: t,
-		Limit:    math.MaxUint32,
+		Limit:    math.MaxInt,
 		Members:  make(map[string]*Member),
 	}
 }
@@ -98,7 +97,7 @@ func (c *Channel) Modes() (modestr string, params []string) {
 		modestr += "e"
 		params = append(params, strings.Join(c.BanExcept, ","))
 	}
-	if c.Limit != math.MaxUint32 {
+	if c.Limit != math.MaxInt {
 		modestr += "l"
 		params = append(params, strconv.Itoa(c.Limit))
 	}

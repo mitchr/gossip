@@ -78,7 +78,7 @@ func limit(ch *Channel, param string, add bool) {
 	if add {
 		ch.Limit, _ = strconv.Atoi(param)
 	} else {
-		ch.Limit = math.MaxUint32
+		ch.Limit = math.MaxInt
 	}
 }
 
