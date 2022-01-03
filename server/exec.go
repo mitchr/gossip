@@ -375,7 +375,7 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel.Channel {
 	ch, ok := s.GetChannel(chanName)
 	if !ok { // channel not found
-		s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, ch)
+		s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, chanName)
 	} else {
 		if _, ok := ch.GetMember(c.Nick); !ok { // client does not belong to channel
 			s.writeReply(c, c.Id(), ERR_NOTONCHANNEL, ch)
