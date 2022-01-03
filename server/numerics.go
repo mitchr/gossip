@@ -117,7 +117,7 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, memb
 
 	c.MembersLock.RLock()
 	defer c.MembersLock.RUnlock()
-	for k, v := range c.Members {
+	for _, v := range c.Members {
 		// if not inluding invisible clients, and this client is invisible
 		if !invisibles && v.Client.Is(client.Invisible) {
 			continue
@@ -128,7 +128,7 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool) (symbol string, memb
 				members += string(highest)
 			}
 		}
-		members += k + " "
+		members += v.Nick + " "
 	}
 	return symbol, members[0 : len(members)-1]
 }
