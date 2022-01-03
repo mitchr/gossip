@@ -171,14 +171,14 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 	if ch.Invite {
 		for _, v := range ch.InviteExcept {
 			// client doesn't need an invite, add them
-			if wild.Match(v, strings.ToLower(c.String())) {
+			if wild.Match(strings.ToLower(v), strings.ToLower(c.String())) {
 				ch.SetMember(c.Nick, &Member{Client: c})
 				return nil
 			}
 		}
 		for _, v := range ch.Invited {
 			// client was invited
-			if c.Nick == v {
+			if strings.ToLower(c.Nick) == strings.ToLower(v) {
 				ch.SetMember(c.Nick, &Member{Client: c})
 				return nil
 			}
@@ -187,9 +187,9 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 	}
 
 	for _, v := range ch.Ban {
-		if wild.Match(v, strings.ToLower(c.String())) { // nickmask found in banlist
+		if wild.Match(strings.ToLower(v), strings.ToLower(c.String())) { // nickmask found in banlist
 			for _, k := range ch.BanExcept {
-				if wild.Match(k, strings.ToLower(c.Nick)) { // nickmask is an exception, so admit
+				if wild.Match(strings.ToLower(k), strings.ToLower(c.Nick)) { // nickmask is an exception, so admit
 					ch.SetMember(c.Nick, &Member{Client: c})
 					return nil
 				}
