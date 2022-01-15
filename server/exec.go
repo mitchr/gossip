@@ -18,7 +18,7 @@ import (
 
 type executor func(*Server, *client.Client, *msg.Message)
 
-var commandMap = map[string]executor{
+var commands = map[string]executor{
 	// registration
 	"PASS":         PASS,
 	"NICK":         NICK,
@@ -946,7 +946,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		return
 	}
 
-	if e, ok := commandMap[upper]; ok {
+	if e, ok := commands[upper]; ok {
 		c.Idle = time.Now()
 		e(s, c, m)
 	} else {
