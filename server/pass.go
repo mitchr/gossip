@@ -32,15 +32,18 @@ func getPassFromTerm() ([]byte, error) {
 }
 
 // Sets the server's password in its config file
-func SetPass(c *Config) error {
+func (c *Config) SetPass() error {
 	pass, err := getPassFromTerm()
-	c.Password = pass
+	if err != nil {
+		return err
+	}
 
-	return err
+	c.Password = pass
+	return nil
 }
 
 // Adds an operator to the server's config file
-func AddOp(c *Config) error {
+func (c *Config) AddOp() error {
 	var user string
 	fmt.Print("Username: ")
 	fmt.Scanln(&user)

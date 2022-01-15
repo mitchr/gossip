@@ -37,7 +37,7 @@ func main() {
 	c.Debug = debug
 
 	if sPass {
-		err := server.SetPass(c)
+		err := c.SetPass()
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -48,7 +48,7 @@ func main() {
 		return
 	}
 	if oPass {
-		err := server.AddOp(c)
+		err := c.AddOp()
 		if err != nil {
 			log.Fatalln(err)
 		}
