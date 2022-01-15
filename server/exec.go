@@ -341,7 +341,8 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 
 	nick := m.Params[0]
 	ch, ok := s.getChannel(m.Params[1])
-	if !ok { // channel exists
+	if !ok { // channel does not exist
+		s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, m.Params[1])
 		return
 	}
 
@@ -357,7 +358,7 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 		s.writeReply(c, c.Id(), ERR_NOSUCHNICK, nick)
 		return
 	} else if _, ok := ch.GetMember(nick); ok { // can't invite a member who is already on channel
-		s.writeReply(c, c.Id(), ERR_USERONCHANNEL, c, nick, ch)
+		s.writeReply(c, c.Id(), ERR_USERONCHANNEL, nick, ch)
 		return
 	}
 
@@ -542,7 +543,7 @@ func TIME(s *Server, c *client.Client, m *msg.Message) {
 
 // TODO: support commands like this that intersperse the modechar and modem.Params MODE &oulu +b *!*@*.edu +e *!*@*.bu.edu
 func MODE(s *Server, c *client.Client, m *msg.Message) {
-	if len(m.Params) < 1 {
+	if len(m.Params) < 1 { // give back own mode
 		s.writeReply(c, c.Id(), RPL_UMODEIS, c.Mode)
 		return
 	}
@@ -583,7 +584,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 	} else {
 		ch, ok := s.getChannel(target)
 		if !ok {
-			s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, ch)
+			s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, target)
 			return
 		}
 

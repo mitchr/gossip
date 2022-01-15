@@ -548,6 +548,12 @@ func TestMODEChannel(t *testing.T) {
 		t.Error("Failed to set member mode")
 	}
 
+	t.Run("TestUnknownChannel", func(t *testing.T) {
+		c1.Write([]byte("MODE #notExist +w\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 403 alice #notExist :No such channel\r\n", s.Name), t)
+	})
+
 	t.Run("TestChannelModeMissingParam", func(t *testing.T) {
 		c1.Write([]byte("MODE #local +l\r\n"))
 		resp, _ := r1.ReadBytes('\n')
@@ -660,6 +666,28 @@ func TestMODEClient(t *testing.T) {
 		c.Write([]byte("MODE bob +o\r\n"))
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 401 alice bob :No such nick/channel\r\n", s.Name), t)
+	})
+
+	t.Run("TestModifyOtherUser", func(t *testing.T) {
+		d, _ := connectAndRegister("bob", "Bob")
+		defer d.Close()
+
+		c.Write([]byte("MODE bob +o\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 502 alice :Can't change mode for other users\r\n", s.Name), t)
+	})
+
+	t.Run("TestUnknownMode", func(t *testing.T) {
+		c.Write([]byte("MODE alice +j\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 501 alice :Unknown MODE flag\r\n", s.Name), t)
+		r.ReadBytes('\n')
+	})
+
+	t.Run("TestOwnModeEcho", func(t *testing.T) {
+		c.Write([]byte("MODE alice\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 221 alice r\r\n", s.Name), t)
 	})
 }
 
@@ -810,6 +838,25 @@ func TestINVITE(t *testing.T) {
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 
+	t.Run("TestMissingParam", func(t *testing.T) {
+		c1.Write([]byte("INVITE\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 461 alice INVITE :Not enough parameters\r\n", t)
+	})
+
+	t.Run("NoSuchChannel", func(t *testing.T) {
+		c1.Write([]byte("INVITE bob #notExist\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 403 alice #notExist :No such channel\r\n", s.Name), t)
+	})
+
+	t.Run("NotOnChannel", func(t *testing.T) {
+		c2.Write([]byte("INVITE alice #local\r\n"))
+		resp, _ := r2.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 442 bob #local :You're not on that channel\r\n", s.Name), t)
+	})
+
 	t.Run("JoinInviteModedChannelWithoutBeingInvited", func(t *testing.T) {
 		c2.Write([]byte("JOIN #local\r\n"))
 		resp, _ := r2.ReadBytes('\n')
@@ -827,16 +874,32 @@ func TestINVITE(t *testing.T) {
 
 		c2.Write([]byte("JOIN #local\r\n"))
 		resp, _ := r2.ReadBytes('\n')
+		r2.ReadBytes('\n')
+		r2.ReadBytes('\n')
 		r1.ReadBytes('\n') // read bob's join message
 
 		assertResponse(resp, ":bob!bob@localhost JOIN #local\r\n", t)
 	})
 
-	t.Run("TestMissingParam", func(t *testing.T) {
-		c1.Write([]byte("INVITE\r\n"))
+	t.Run("NoPrivileges", func(t *testing.T) {
+		c2.Write([]byte("INVITE somebody #local\r\n"))
+		resp, _ := r2.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 482 bob #local :You're not a channel operator\r\n", t)
+	})
+
+	t.Run("NoSuchNick", func(t *testing.T) {
+		c1.Write([]byte("INVITE somebody #local\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 
-		assertResponse(resp, ":gossip 461 alice INVITE :Not enough parameters\r\n", t)
+		assertResponse(resp, ":gossip 401 alice somebody :No such nick/channel\r\n", t)
+	})
+
+	t.Run("AlreadyInvited", func(t *testing.T) {
+		c1.Write([]byte("INVITE bob #local\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 443 alice bob #local :is already on channel\r\n", t)
 	})
 }
 
