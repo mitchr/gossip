@@ -848,9 +848,9 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 					continue
 				}
 				if !member.Caps[cap.MessageTags.Name] {
-					fmt.Fprint(member, msg.RemoveAllTags().String())
+					fmt.Fprint(member, msg.RemoveAllTags())
 				} else {
-					fmt.Fprint(member, msg.String())
+					fmt.Fprint(member, msg)
 				}
 				member.Flush()
 			}
@@ -872,16 +872,16 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				continue
 			}
 			if !target.Caps[cap.MessageTags.Name] {
-				fmt.Fprint(target, msg.RemoveAllTags().String())
+				fmt.Fprint(target, msg.RemoveAllTags())
 			} else {
-				fmt.Fprint(target, msg.String())
+				fmt.Fprint(target, msg)
 			}
 			target.Flush()
 		}
 	}
 
 	if c.Caps[cap.EchoMessage.Name] {
-		fmt.Fprint(c, msg.String())
+		fmt.Fprint(c, msg)
 	}
 }
 
@@ -932,7 +932,7 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 	for _, v := range s.clients {
 		if v.Is(client.Wallops) {
 			// TODO: enforce source if it is not given
-			fmt.Fprint(v, m.String())
+			fmt.Fprint(v, m)
 			v.Flush()
 		}
 	}
