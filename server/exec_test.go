@@ -188,11 +188,10 @@ func TestQUIT(t *testing.T) {
 		defer c2.Close()
 
 		s.channels["#l"] = channel.New("l", '#')
-		s.channels["#l"].Members["bob"] = &channel.Member{Client: s.clients["bob"], Prefix: string(channel.Operator)}
-		s.channels["#l"].Members["dan"] = &channel.Member{Client: s.clients["dan"]}
+		s.channels["#l"].SetMember(&channel.Member{Client: s.clients["bob"], Prefix: string(channel.Operator)})
+		s.channels["#l"].SetMember(&channel.Member{Client: s.clients["dan"]})
 
 		bob, _ := s.GetClient("bob")
-		bobPrefix := bob.String()
 
 		c1.Write([]byte("QUIT :Done for the day\r\n"))
 
@@ -200,7 +199,7 @@ func TestQUIT(t *testing.T) {
 		assertResponse(bobQuitErr, "ERROR :Done for the day\r\n", t)
 
 		danReceivesReason, _ := r2.ReadBytes('\n')
-		assertResponse(danReceivesReason, fmt.Sprintf(":%s QUIT :Done for the day\r\n", bobPrefix), t)
+		assertResponse(danReceivesReason, fmt.Sprintf(":%s QUIT :Done for the day\r\n", bob.String()), t)
 	})
 }
 
@@ -339,7 +338,7 @@ func TestTOPIC(t *testing.T) {
 	defer c.Close()
 
 	s.channels["&test"] = channel.New("test", '&')
-	s.channels["&test"].Members["alice"] = &channel.Member{Client: s.clients["alice"], Prefix: string(channel.Operator)}
+	s.channels["&test"].SetMember(&channel.Member{Client: s.clients["alice"], Prefix: string(channel.Operator)})
 
 	c.Write([]byte("TOPIC &test\r\n"))
 	c.Write([]byte("TOPIC &test :This is a test\r\n"))
@@ -390,9 +389,10 @@ func TestKICK(t *testing.T) {
 	c2, r2 := connectAndRegister("bob", "Bob")
 	defer c2.Close()
 
-	s.channels["#local"] = channel.New("local", '#')
-	s.channels["#local"].Members["alice"] = &channel.Member{Client: s.clients["alice"], Prefix: string(channel.Operator)}
-	s.channels["#local"].Members["bob"] = &channel.Member{Client: s.clients["bob"]}
+	local := channel.New("local", '#')
+	s.SetChannel(local)
+	local.SetMember(&channel.Member{Client: s.clients["alice"], Prefix: string(channel.Operator)})
+	local.SetMember(&channel.Member{Client: s.clients["bob"]})
 	c1.Write([]byte("KICK #local bob\r\n"))
 
 	// check received correct response
@@ -415,8 +415,8 @@ func TestKICK(t *testing.T) {
 
 	t.Run("NoSuchChannel", func(t *testing.T) {
 		testChannel := channel.New("test", channel.Remote)
-		testChannel.Members["bob"] = &channel.Member{Client: s.clients["bob"]}
-		s.channels["#test"] = testChannel
+		testChannel.SetMember(&channel.Member{Client: s.clients["bob"]})
+		s.SetChannel(testChannel)
 		c1.Write([]byte("KICK #test bob\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 
@@ -424,7 +424,7 @@ func TestKICK(t *testing.T) {
 	})
 
 	t.Run("NoPrivileges", func(t *testing.T) {
-		s.channels["#test"].Members["alice"] = &channel.Member{Client: s.clients["alice"]}
+		s.channels["#test"].SetMember(&channel.Member{Client: s.clients["alice"]})
 		c1.Write([]byte("KICK #test bob\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 
@@ -520,8 +520,9 @@ func TestMODEChannel(t *testing.T) {
 	c2, r2 := connectAndRegister("bob", "Bob")
 	defer c2.Close()
 
-	s.channels["#local"] = channel.New("local", '#')
-	s.channels["#local"].Members["alice"] = &channel.Member{Client: s.clients["alice"]}
+	local := channel.New("local", '#')
+	s.SetChannel(local)
+	local.SetMember(&channel.Member{Client: s.clients["alice"]})
 
 	t.Run("TestUserNotInChan", func(t *testing.T) {
 		c2.Write([]byte("MODE #local +o bob\r\n"))
@@ -529,7 +530,8 @@ func TestMODEChannel(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s 441 bob bob #local :They aren't on that channel\r\n", s.Name), t)
 	})
 
-	s.channels["#local"].Members["bob"] = &channel.Member{Client: s.clients["bob"]}
+	bob := &channel.Member{Client: s.clients["bob"]}
+	local.SetMember(bob)
 
 	c1.Write([]byte("MODE #local +k pass\r\n"))
 	c1.Write([]byte("MODE #local +o bob\r\n"))
@@ -542,8 +544,6 @@ func TestMODEChannel(t *testing.T) {
 	assertResponse(opApplied, fmt.Sprintf(":%s MODE +o bob\r\n", s.Name), t)
 	assertResponse(getModeResp, fmt.Sprintf(":%s 324 alice #local k\r\n", s.Name), t)
 
-	local, _ := s.GetChannel("#local")
-	bob, _ := local.GetMember("bob")
 	if bob.Prefix != "@" {
 		t.Error("Failed to set member mode")
 	}
@@ -879,9 +879,9 @@ func TestPRIVMSG(t *testing.T) {
 	defer c2.Close()
 
 	local := channel.New("local", '#')
-	s.channels["#local"] = local
-	s.channels["#local"].Members["alice"] = &channel.Member{Client: s.clients["alice"], Prefix: string(channel.Operator)}
-	s.channels["#local"].Members["bob"] = &channel.Member{Client: s.clients["bob"]}
+	s.SetChannel(local)
+	local.SetMember(&channel.Member{Client: s.clients["alice"], Prefix: string(channel.Operator)})
+	local.SetMember(&channel.Member{Client: s.clients["bob"]})
 
 	t.Run("TestClientPRIVMSG", func(t *testing.T) {
 		// alice sends message to bob
@@ -901,7 +901,7 @@ func TestPRIVMSG(t *testing.T) {
 		c3, _ := connectAndRegister("c", "c")
 		defer c3.Close()
 
-		local.SetMember("c", &channel.Member{Client: s.clients["c"]})
+		local.SetMember(&channel.Member{Client: s.clients["c"]})
 
 		c3.Write([]byte("PRIVMSG #local,bob :From c\r\n"))
 		chanResp1, _ := r1.ReadBytes('\n')

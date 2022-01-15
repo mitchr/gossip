@@ -139,8 +139,8 @@ func TestWriteMultiline(t *testing.T) {
 
 	c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice\r\n"))
 	resp, _ := r.ReadBytes('\n')
-	alice := s.clients["alice"].String()
-	assertResponse(resp, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, alice), t)
+	alice, _ := s.GetClient("alice")
+	assertResponse(resp, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, alice.String()), t)
 }
 
 func TestCaseInsensitivity(t *testing.T) {
@@ -167,7 +167,7 @@ func TestCaseInsensitivity(t *testing.T) {
 
 	t.Run("TestChanCaseInsensitive", func(t *testing.T) {
 		s.channels["#test"] = channel.New("test", '#')
-		s.channels["#test"].Members["alice"] = &channel.Member{Client: s.clients["alice"]}
+		s.channels["#test"].SetMember(&channel.Member{Client: s.clients["alice"]})
 
 		c2.Write([]byte("JOIN #tEsT\r\n"))
 		r1.ReadBytes('\n')

@@ -38,8 +38,8 @@ func TestCAP(t *testing.T) {
 		r.ReadBytes('\n') // read CAP REQ response
 		resp, _ := r.ReadBytes('\n')
 
-		b := s.clients["b"].String()
-		assertResponse(resp, fmt.Sprintf(":%s 001 b :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, b), t)
+		b, _ := s.GetClient("b")
+		assertResponse(resp, fmt.Sprintf(":%s 001 b :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, b.String()), t)
 	})
 
 	t.Run("TestUnregisteredBeforeEND", func(t *testing.T) {
@@ -92,7 +92,7 @@ func TestREQ(t *testing.T) {
 		c.Write([]byte("CAP REQ :cap-notify message-tags\r\n"))
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s CAP bob ACK :cap-notify message-tags\r\n", s.Name), t)
-		bob := s.clients["bob"]
+		bob, _ := s.GetClient("bob")
 		delete(bob.Caps, cap.CapNotify.Name)
 		delete(bob.Caps, cap.MessageTags.Name)
 	})

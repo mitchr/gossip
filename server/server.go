@@ -280,11 +280,11 @@ func (s *Server) GetClient(c string) (*client.Client, bool) {
 	client, ok := s.clients[strings.ToLower(c)]
 	return client, ok
 }
-func (s *Server) SetClient(k string, v *client.Client) {
+func (s *Server) SetClient(v *client.Client) {
 	s.clientLock.Lock()
 	defer s.clientLock.Unlock()
 
-	s.clients[strings.ToLower(k)] = v
+	s.clients[strings.ToLower(v.Nick)] = v
 }
 func (s *Server) DeleteClient(k string) {
 	s.clientLock.Lock()
@@ -306,11 +306,11 @@ func (s *Server) GetChannel(c string) (*channel.Channel, bool) {
 	ch, ok := s.channels[strings.ToLower(c)]
 	return ch, ok
 }
-func (s *Server) SetChannel(k string, v *channel.Channel) {
+func (s *Server) SetChannel(v *channel.Channel) {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 
-	s.channels[strings.ToLower(k)] = v
+	s.channels[strings.ToLower(v.String())] = v
 }
 func (s *Server) DeleteChannel(k string) {
 	s.chanLock.Lock()

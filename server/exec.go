@@ -100,12 +100,12 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 			// update member map entry
 			m, _ := v.GetMember(c.Nick)
 			v.DeleteMember(c.Nick)
-			v.SetMember(nick, m)
+			v.SetMember(m)
 		}
 
 		// update client map entry
 		s.DeleteClient(c.Nick)
-		s.SetClient(nick, c)
+		s.SetClient(c)
 		c.Nick = nick
 	} else { // nick is being set for first time
 		c.Nick = nick
@@ -198,7 +198,7 @@ func (s *Server) endRegistration(c *client.Client) {
 	}
 
 	c.Mode |= client.Registered
-	s.SetClient(c.Nick, c)
+	s.SetClient(c)
 	s.unknownLock.Lock()
 	s.unknowns--
 	s.unknownLock.Unlock()
@@ -274,8 +274,8 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			}
 
 			newChan := channel.New(chanName, chanChar)
-			s.SetChannel(newChan.String(), newChan)
-			newChan.SetMember(c.Nick, &channel.Member{Client: c, Prefix: string(channel.Founder)})
+			s.SetChannel(newChan)
+			newChan.SetMember(&channel.Member{Client: c, Prefix: string(channel.Founder)})
 			fmt.Fprintf(c, ":%s JOIN %s", c, newChan)
 
 			NAMES(s, c, &msg.Message{Params: []string{newChan.String()}})
