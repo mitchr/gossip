@@ -84,7 +84,7 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 	nick := m.Params[0]
 
 	// if nickname is already in use, send back error
-	if _, ok := s.GetClient(nick); ok {
+	if _, ok := s.getClient(nick); ok {
 		s.writeReply(c, c.Id(), ERR_NICKNAMEINUSE, nick)
 		return
 	}
@@ -104,8 +104,8 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 		}
 
 		// update client map entry
-		s.DeleteClient(c.Nick)
-		s.SetClient(c)
+		s.deleteClient(c.Nick)
+		s.setClient(c)
 		c.Nick = nick
 	} else { // nick is being set for first time
 		c.Nick = nick
@@ -169,7 +169,7 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 		// client themselves. isntead, they receive an error message from
 		// the server signifying their depature.
 		if v.Len() == 1 {
-			s.DeleteChannel(v.String())
+			s.deleteChannel(v.String())
 		} else {
 			// message entire channel that client left
 			v.DeleteMember(c.Nick)
@@ -178,7 +178,7 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	s.ERROR(c, reason)
-	s.DeleteClient(c.Nick)
+	s.deleteClient(c.Nick)
 }
 
 func (s *Server) endRegistration(c *client.Client) {
@@ -198,7 +198,7 @@ func (s *Server) endRegistration(c *client.Client) {
 	}
 
 	c.Mode |= client.Registered
-	s.SetClient(c)
+	s.setClient(c)
 	s.unknownLock.Lock()
 	s.unknowns--
 	s.unknownLock.Unlock()
@@ -243,7 +243,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	for i := range chans {
-		if ch, ok := s.GetChannel(chans[i]); ok { // channel already exists
+		if ch, ok := s.getChannel(chans[i]); ok { // channel already exists
 			err := ch.Admit(c, keys[i])
 			if err != nil {
 				if err == channel.ErrKeyMissing {
@@ -274,7 +274,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			}
 
 			newChan := channel.New(chanName, chanChar)
-			s.SetChannel(newChan)
+			s.setChannel(newChan)
 			newChan.SetMember(&channel.Member{Client: c, Prefix: string(channel.Founder)})
 			fmt.Fprintf(c, ":%s JOIN %s", c, newChan)
 
@@ -299,7 +299,7 @@ func PART(s *Server, c *client.Client, m *msg.Message) {
 
 		fmt.Fprintf(ch, ":%s PART %s%s", c, ch, reason)
 		if ch.Len() == 1 {
-			s.DeleteChannel(ch.String())
+			s.deleteChannel(ch.String())
 		} else {
 			ch.DeleteMember(c.Nick)
 		}
@@ -340,13 +340,13 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	nick := m.Params[0]
-	ch, ok := s.GetChannel(m.Params[1])
+	ch, ok := s.getChannel(m.Params[1])
 	if !ok { // channel exists
 		return
 	}
 
 	sender, _ := ch.GetMember(c.Nick)
-	recipient, _ := s.GetClient(nick)
+	recipient, _ := s.getClient(nick)
 	if sender == nil { // only members can invite
 		s.writeReply(c, c.Id(), ERR_NOTONCHANNEL, ch)
 		return
@@ -373,7 +373,7 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 // channel. If it doesn't, or if the channel doesn't exist, write a
 // numeric reply to the client and return nil.
 func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel.Channel {
-	ch, ok := s.GetChannel(chanName)
+	ch, ok := s.getChannel(chanName)
 	if !ok { // channel not found
 		s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, chanName)
 	} else {
@@ -403,7 +403,7 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	for i, v := range chans {
-		ch, _ := s.GetChannel(v)
+		ch, _ := s.getChannel(v)
 		if ch == nil {
 			s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, v)
 			return
@@ -459,7 +459,7 @@ func NAMES(s *Server, c *client.Client, m *msg.Message) {
 
 	chans := strings.Split(m.Params[0], ",")
 	for _, v := range chans {
-		ch, _ := s.GetChannel(v)
+		ch, _ := s.getChannel(v)
 		if ch == nil {
 			s.writeReply(c, c.Id(), RPL_ENDOFNAMES, v)
 		} else {
@@ -488,7 +488,7 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 		s.chanLock.RUnlock()
 	} else {
 		for _, v := range strings.Split(m.Params[0], ",") {
-			if ch, ok := s.GetChannel(v); ok {
+			if ch, ok := s.getChannel(v); ok {
 				s.writeReply(c, c.Id(), RPL_LIST, ch, ch.Len(), ch.Topic)
 			}
 		}
@@ -525,13 +525,13 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 
-	s.writeReply(c, c.Id(), RPL_LUSERCLIENT, s.ClientLen(), invis, 1)
+	s.writeReply(c, c.Id(), RPL_LUSERCLIENT, s.clientLen(), invis, 1)
 	s.writeReply(c, c.Id(), RPL_LUSEROP, ops)
 	s.unknownLock.Lock()
 	s.writeReply(c, c.Id(), RPL_LUSERUNKNOWN, s.unknowns)
 	s.unknownLock.Unlock()
-	s.writeReply(c, c.Id(), RPL_LUSERCHANNELS, s.ChannelLen())
-	s.writeReply(c, c.Id(), RPL_LUSERME, s.ClientLen(), 1)
+	s.writeReply(c, c.Id(), RPL_LUSERCHANNELS, s.channelLen())
+	s.writeReply(c, c.Id(), RPL_LUSERME, s.clientLen(), 1)
 
 	s.clientLock.RUnlock()
 }
@@ -549,7 +549,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 
 	target := m.Params[0]
 	if !isChannel(target) {
-		client, ok := s.GetClient(target)
+		client, ok := s.getClient(target)
 		if !ok {
 			s.writeReply(c, c.Id(), ERR_NOSUCHNICK, target)
 			return
@@ -581,7 +581,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 			s.writeReply(c, c.Id(), RPL_UMODEIS, c.Mode)
 		}
 	} else {
-		ch, ok := s.GetChannel(target)
+		ch, ok := s.getChannel(target)
 		if !ok {
 			s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, ch)
 			return
@@ -813,7 +813,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 
 		// TODO: support sending to only a specific user mode in channel (i.e., PRIVMSG %#buffy)
 		if isChannel(v) {
-			ch, _ := s.GetChannel(v)
+			ch, _ := s.getChannel(v)
 			if ch == nil { // channel doesn't exist
 				if !skipReplies {
 					s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, v)
@@ -856,7 +856,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			}
 			ch.MembersLock.RUnlock()
 		} else { // client->client
-			target, ok := s.GetClient(v)
+			target, ok := s.getClient(v)
 			if !ok {
 				if !skipReplies {
 					s.writeReply(c, c.Id(), ERR_NOSUCHNICK, v)

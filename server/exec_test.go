@@ -191,7 +191,7 @@ func TestQUIT(t *testing.T) {
 		s.channels["#l"].SetMember(&channel.Member{Client: s.clients["bob"], Prefix: string(channel.Operator)})
 		s.channels["#l"].SetMember(&channel.Member{Client: s.clients["dan"]})
 
-		bob, _ := s.GetClient("bob")
+		bob, _ := s.getClient("bob")
 
 		c1.Write([]byte("QUIT :Done for the day\r\n"))
 
@@ -390,7 +390,7 @@ func TestKICK(t *testing.T) {
 	defer c2.Close()
 
 	local := channel.New("local", '#')
-	s.SetChannel(local)
+	s.setChannel(local)
 	local.SetMember(&channel.Member{Client: s.clients["alice"], Prefix: string(channel.Operator)})
 	local.SetMember(&channel.Member{Client: s.clients["bob"]})
 	c1.Write([]byte("KICK #local bob\r\n"))
@@ -416,7 +416,7 @@ func TestKICK(t *testing.T) {
 	t.Run("NoSuchChannel", func(t *testing.T) {
 		testChannel := channel.New("test", channel.Remote)
 		testChannel.SetMember(&channel.Member{Client: s.clients["bob"]})
-		s.SetChannel(testChannel)
+		s.setChannel(testChannel)
 		c1.Write([]byte("KICK #test bob\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 
@@ -521,7 +521,7 @@ func TestMODEChannel(t *testing.T) {
 	defer c2.Close()
 
 	local := channel.New("local", '#')
-	s.SetChannel(local)
+	s.setChannel(local)
 	local.SetMember(&channel.Member{Client: s.clients["alice"]})
 
 	t.Run("TestUserNotInChan", func(t *testing.T) {
@@ -879,7 +879,7 @@ func TestPRIVMSG(t *testing.T) {
 	defer c2.Close()
 
 	local := channel.New("local", '#')
-	s.SetChannel(local)
+	s.setChannel(local)
 	local.SetMember(&channel.Member{Client: s.clients["alice"], Prefix: string(channel.Operator)})
 	local.SetMember(&channel.Member{Client: s.clients["bob"]})
 

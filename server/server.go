@@ -273,52 +273,52 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, msgs chan<- *
 	}
 }
 
-func (s *Server) GetClient(c string) (*client.Client, bool) {
+func (s *Server) getClient(c string) (*client.Client, bool) {
 	s.clientLock.RLock()
 	defer s.clientLock.RUnlock()
 
 	client, ok := s.clients[strings.ToLower(c)]
 	return client, ok
 }
-func (s *Server) SetClient(v *client.Client) {
+func (s *Server) setClient(v *client.Client) {
 	s.clientLock.Lock()
 	defer s.clientLock.Unlock()
 
 	s.clients[strings.ToLower(v.Nick)] = v
 }
-func (s *Server) DeleteClient(k string) {
+func (s *Server) deleteClient(k string) {
 	s.clientLock.Lock()
 	defer s.clientLock.Unlock()
 
 	delete(s.clients, strings.ToLower(k))
 }
-func (s *Server) ClientLen() int {
+func (s *Server) clientLen() int {
 	s.clientLock.RLock()
 	defer s.clientLock.RUnlock()
 
 	return len(s.clients)
 }
 
-func (s *Server) GetChannel(c string) (*channel.Channel, bool) {
+func (s *Server) getChannel(c string) (*channel.Channel, bool) {
 	s.chanLock.RLock()
 	defer s.chanLock.RUnlock()
 
 	ch, ok := s.channels[strings.ToLower(c)]
 	return ch, ok
 }
-func (s *Server) SetChannel(v *channel.Channel) {
+func (s *Server) setChannel(v *channel.Channel) {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 
 	s.channels[strings.ToLower(v.String())] = v
 }
-func (s *Server) DeleteChannel(k string) {
+func (s *Server) deleteChannel(k string) {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 
 	delete(s.channels, strings.ToLower(k))
 }
-func (s *Server) ChannelLen() int {
+func (s *Server) channelLen() int {
 	s.chanLock.RLock()
 	defer s.chanLock.RUnlock()
 

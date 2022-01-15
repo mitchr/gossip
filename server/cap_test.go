@@ -38,7 +38,7 @@ func TestCAP(t *testing.T) {
 		r.ReadBytes('\n') // read CAP REQ response
 		resp, _ := r.ReadBytes('\n')
 
-		b, _ := s.GetClient("b")
+		b, _ := s.getClient("b")
 		assertResponse(resp, fmt.Sprintf(":%s 001 b :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, b.String()), t)
 	})
 
@@ -49,7 +49,7 @@ func TestCAP(t *testing.T) {
 		c.Write([]byte("CAP REQ :sasl\r\nNICK d\r\nUSER D 0 * :D\r\n"))
 		r.ReadBytes('\n') // read CAP REQ response
 
-		_, exists := s.GetClient("d")
+		_, exists := s.getClient("d")
 		if exists {
 			t.Error("client's registration should be suspended until CAP END")
 		}
@@ -92,7 +92,7 @@ func TestREQ(t *testing.T) {
 		c.Write([]byte("CAP REQ :cap-notify message-tags\r\n"))
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s CAP bob ACK :cap-notify message-tags\r\n", s.Name), t)
-		bob, _ := s.GetClient("bob")
+		bob, _ := s.getClient("bob")
 		delete(bob.Caps, cap.CapNotify.Name)
 		delete(bob.Caps, cap.MessageTags.Name)
 	})

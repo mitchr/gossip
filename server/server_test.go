@@ -139,7 +139,7 @@ func TestWriteMultiline(t *testing.T) {
 
 	c.Write([]byte("NICK alice\r\nUSER alice 0 0 :Alice\r\n"))
 	resp, _ := r.ReadBytes('\n')
-	alice, _ := s.GetClient("alice")
+	alice, _ := s.getClient("alice")
 	assertResponse(resp, fmt.Sprintf(":%s 001 alice :Welcome to the %s IRC Network %s\r\n", s.Name, s.Network, alice.String()), t)
 }
 
