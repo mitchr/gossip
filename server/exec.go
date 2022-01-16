@@ -643,90 +643,79 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 func WHO(s *Server, c *client.Client, m *msg.Message) {
 	mask := "*"
 	if len(m.Params) > 0 {
-		mask = m.Params[0]
+		if mask == "0" {
+			mask = "*"
+		} else {
+			mask = strings.ToLower(m.Params[0])
+		}
 	}
 
-	// send WHOREPLY to every noninvisible client who does not share a
-	// channel with the sender
-	if mask == "*" || mask == "0" {
-		s.clientLock.RLock()
-		for _, v := range s.clients {
-			if v.Is(client.Invisible) {
-				continue
-			}
-			if !s.haveChanInCommon(c, v) {
-				flags := "H"
-				if v.Is(client.Away) {
-					flags = "G"
-				}
-				if v.Is(client.Op) {
-					flags += "*"
-				}
-				s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
-			}
+	// first, try to match channels exactly against the mask. if exists,
+	// returns WHOREPLY for every member in channel. else, we will match
+	// exactly against the client name.
+	ch, ok := s.getChannel(mask)
+	if ok {
+		ch.MembersLock.RLock()
+		for _, member := range ch.Members {
+			flags := whoreplyFlagsForMember(member)
+			s.writeReply(c, c.Id(), RPL_WHOREPLY, ch, member.User, member.Host, s.Name, member.Nick, flags, member.Realname)
 		}
-		s.clientLock.RUnlock()
+		ch.MembersLock.RUnlock()
 		s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
 		return
 	}
 
-	onlyOps := false
-	if len(m.Params) > 1 && m.Params[1] == "o" {
-		onlyOps = true
+	// no channel results found, match against a single client
+	whoClient, ok := s.getClient(mask)
+	if ok {
+		flags := whoreplyFlagsForClient(whoClient)
+		s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", whoClient.User, whoClient.Host, s.Name, whoClient.Nick, flags, whoClient.Realname)
+		s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
+		return
 	}
 
-	// given a mask, match against all channels. if no channels match,
-	// treat the mask as a client prefix and match against all clients.
-	s.chanLock.RLock()
-	defer s.chanLock.RUnlock()
-	for _, v := range s.channels {
-		if wild.Match(mask, strings.ToLower(v.String())) {
-			v.MembersLock.RLock()
-			for _, member := range v.Members {
-				if onlyOps && !member.Client.Is(client.Op) { // skip nonops
-					continue
-				}
-				flags := "H"
-				if member.Client.Is(client.Away) {
-					flags = "G"
-				}
-				if member.Client.Is(client.Op) {
-					flags += "*"
-				}
-				if member.Is(channel.Operator) {
-					flags += "@"
-				}
-				if member.Is(channel.Voice) {
-					flags += "+"
-				}
-				s.writeReply(c, c.Id(), RPL_WHOREPLY, v, member.User, member.Host, s.Name, member.Nick, flags, member.Realname)
-			}
-			v.MembersLock.RUnlock()
-			s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
-			return
-		}
-	}
-
-	// no channel results found
+	// no exact client matches, so use mask to match against all visible clients
+	onlyOps := len(m.Params) > 1 && m.Params[1] == "o"
 	s.clientLock.RLock()
 	for _, v := range s.clients {
-		if wild.Match(mask, strings.ToLower(v.String())) {
-			if onlyOps && !v.Is(client.Op) { // skip nonops
-				continue
-			}
-
-			flags := "H"
-			if v.Is(client.Away) {
-				flags = "G"
-			}
-			if v.Is(client.Op) {
-				flags += "*"
-			}
-			s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
+		if onlyOps && !v.Is(client.Op) { // skip this client if they are not an op
+			continue
 		}
+
+		// "Visible users are users who aren’t invisible (user mode +i) and
+		// who don’t have a common channel with the requesting client"
+		// https://modern.ircdocs.horse/#who-message
+		if v.Is(client.Invisible) && !s.haveChanInCommon(c, v) {
+			continue
+		}
+
+		flags := whoreplyFlagsForClient(v)
+		s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
 	}
 	s.clientLock.RUnlock()
 	s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
+}
+
+func whoreplyFlagsForClient(c *client.Client) string {
+	flags := "H"
+	if c.Is(client.Away) {
+		flags = "G"
+	}
+	if c.Is(client.Op) {
+		flags += "*"
+	}
+	return flags
+}
+
+func whoreplyFlagsForMember(m *channel.Member) string {
+	flags := whoreplyFlagsForClient(m.Client)
+	if m.Is(channel.Operator) {
+		flags += "@"
+	}
+	if m.Is(channel.Voice) {
+		flags += "+"
+	}
+	return flags
 }
 
 // we only support the <mask> *( "," <mask> ) parameter, target seems

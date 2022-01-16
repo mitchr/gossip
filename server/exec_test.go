@@ -691,7 +691,7 @@ func TestMODEClient(t *testing.T) {
 	})
 }
 
-func TestWHO(t *testing.T) {
+func TestWHOClient(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -709,6 +709,93 @@ func TestWHO(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice localhost %s alice H :0 Alice Smith\r\n", s.Name, s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.Name), t)
 	})
+
+	t.Run("TestAwayOp", func(t *testing.T) {
+		alice, _ := s.getClient("alice")
+		alice.Mode |= client.Away | client.Op
+
+		c1.Write([]byte("WHO\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		end, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice localhost %s alice G* :0 Alice Smith\r\n", s.Name, s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.Name), t)
+	})
+
+	t.Run("WHObob", func(t *testing.T) {
+		c2, _ := connectAndRegister("bob", "Bob")
+		defer c2.Close()
+
+		c1.Write([]byte("WHO bob\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		r1.ReadBytes('\n') // end
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice * bob localhost %s bob H :0 Bob\r\n", s.Name, s.Name), t)
+	})
+}
+
+func TestWHOChannel(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+
+	local := channel.New("local", channel.Remote)
+	alice, _ := s.getClient("alice")
+	aliceMem := &channel.Member{Client: alice}
+	local.SetMember(aliceMem)
+	s.setChannel(local)
+
+	t.Run("ExactChannel", func(t *testing.T) {
+		c1.Write([]byte("WHO #local\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		end, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice #local alice localhost %s alice H :0 Alice Smith\r\n", s.Name, s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 315 alice #local :End of WHO list\r\n", s.Name), t)
+	})
+
+	t.Run("AwayOpsVoice", func(t *testing.T) {
+		aliceMem.Mode |= client.Away | client.Op
+		aliceMem.Prefix = string(channel.Operator) + string(channel.Voice)
+		c1.Write([]byte("WHO #local\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		end, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice #local alice localhost %s alice G*@+ :0 Alice Smith\r\n", s.Name, s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 315 alice #local :End of WHO list\r\n", s.Name), t)
+	})
+
+	c2, _ := connectAndRegister("bob", "Bob")
+	defer c2.Close()
+
+	// bob is invisible, so he should not show up in the general WHO list
+	t.Run("Invisible", func(t *testing.T) {
+		bob, _ := s.getClient("bob")
+		bob.Mode |= client.Invisible
+
+		c1.Write([]byte("WHO\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		end, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice localhost %s alice G* :0 Alice Smith\r\n", s.Name, s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.Name), t)
+	})
+
+	// when bob joins a channel that alice is also joined to, they now
+	// show up when alice requests a general WHO
+	t.Run("InvisibleButJoined", func(t *testing.T) {
+		bob, _ := s.getClient("bob")
+		local.SetMember(&channel.Member{Client: bob})
+
+		c1.Write([]byte("WHO\r\n"))
+		// should get two WHOREPLY, one for alice and one for bob; they can come in any order which is why don't check here
+		r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		end, _ := r1.ReadBytes('\n')
+		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.Name), t)
+	})
+
 }
 
 func TestWHOIS(t *testing.T) {
