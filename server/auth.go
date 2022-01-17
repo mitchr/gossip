@@ -16,6 +16,16 @@ import (
 )
 
 func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
+	// "If the client completes registration (with CAP END, NICK, USER and
+	// any other necessary messages) while the SASL authentication is
+	// still in progress, the server SHOULD abort it and send a 906
+	// numeric, then register the client without authentication"
+	if c.Is(client.Registered) && c.SASLMech != nil && !c.IsAuthenticated {
+		c.SASLMech = nil
+		s.writeReply(c, c.Id(), ERR_SASLABORTED)
+		return
+	}
+
 	// client must have requested the SASL capability, and has not yet registered
 	if !c.Caps[cap.SASL.Name] || c.Is(client.Registered) {
 		// TODO: what error to give?
@@ -28,16 +38,6 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	// with a 907 numeric"
 	if c.IsAuthenticated {
 		s.writeReply(c, c.Id(), ERR_SASLALREADY)
-		return
-	}
-
-	// "If the client completes registration (with CAP END, NICK, USER and
-	// any other necessary messages) while the SASL authentication is
-	// still in progress, the server SHOULD abort it and send a 906
-	// numeric, then register the client without authentication"
-	if c.Is(client.Registered) && c.SASLMech != nil && !c.IsAuthenticated {
-		c.SASLMech = nil
-		s.writeReply(c, c.Id(), ERR_SASLABORTED)
 		return
 	}
 

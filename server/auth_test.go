@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/base64"
+	"fmt"
 	"testing"
 
 	"github.com/mitchr/gossip/sasl/plain"
@@ -32,6 +33,9 @@ func TestAUTHENTICATE(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
+	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
+	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+
 	t.Run("TestAUTHENTICATEAfterRegister", func(t *testing.T) {
 		c, r := connectAndRegister("a", "A")
 		defer c.Close()
@@ -40,6 +44,45 @@ func TestAUTHENTICATE(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 
 		assertResponse(resp, ":gossip 904 a :SASL authentication failed\r\n", t)
+	})
+
+	t.Run("TestAUTHENTICATEAfterAuthenticate", func(t *testing.T) {
+		c, r, p := connect(s)
+		defer p()
+
+		c.Write([]byte("CAP REQ sasl\r\nAUTHENTICATE PLAIN\r\n"))
+		r.ReadBytes('\n') // cap ack
+		r.ReadBytes('\n')
+
+		clientFirst := []byte("\000tim\000tanstaaftanstaaf")
+		firstEncoded := base64.StdEncoding.EncodeToString(clientFirst)
+
+		c.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\n"))
+		r.ReadBytes('\n')
+		r.ReadBytes('\n')
+
+		c.Write([]byte("AUTHENTICATE PLAIN\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(ERR_SASLALREADY, s.Name, "*")+"\r\n", t)
+	})
+
+	t.Run("TestAUTHENTICATEAbort", func(t *testing.T) {
+		c, r, p := connect(s)
+		defer p()
+
+		c.Write([]byte("CAP REQ sasl\r\nAUTHENTICATE PLAIN\r\nNICK b\r\nUSER b 0 0 :B\r\nCAP END\r\n"))
+		r.ReadBytes('\n') // cap ack
+		r.ReadBytes('\n') // authenticate +
+
+		for i := 0; i < 11; i++ {
+			r.ReadBytes('\n')
+		}
+
+		c.Write([]byte("AUTHENTICATE anything\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(ERR_SASLABORTED, s.Name, "b")+"\r\n", t)
 	})
 
 	t.Run("TestMissingParams", func(t *testing.T) {
