@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/mitchr/gossip/channel"
@@ -1150,6 +1151,26 @@ func TestWALLOPS(t *testing.T) {
 		resp, _ := r1.ReadBytes('\n')
 
 		assertResponse(resp, ":gossip 461 alice WALLOPS :Not enough parameters\r\n", t)
+	})
+}
+
+func TestREHASH(t *testing.T) {
+	conf.configSource = strings.NewReader(`{"name": "gossip"}`)
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("a", "A")
+	defer c.Close()
+
+	t.Run("NoPriviliges", func(t *testing.T) {
+		c.Write([]byte("REHASH\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(ERR_NOPRIVILEGES+"\r\n", s.Name, "a"), t)
 	})
 }
 

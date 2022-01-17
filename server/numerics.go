@@ -51,7 +51,7 @@ const (
 	RPL_MOTD             = ":%s 371 %s :%s"
 	RPL_ENDOFMOTD        = ":%s 376 %s :End of /MOTD command"
 	RPL_YOUREOPER        = ":%s 381 %s :You are now an IRC operator"
-	RPL_REHASHING        = ":%s 382 $s %s :Rehashing"
+	RPL_REHASHING        = ":%s 382 %s %s :Rehashing"
 	RPL_TIME             = ":%s 391 %s %s :%s"
 	ERR_NOSUCHNICK       = ":%s 401 %s %s :No such nick/channel"
 	ERR_NOSUCHCHANNEL    = ":%s 403 %s %s :No such channel"
