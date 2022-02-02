@@ -468,6 +468,40 @@ func TestNAMES(t *testing.T) {
 
 	assertResponse(namreply, fmt.Sprintf(":%s 353 alice = &test :~alice\r\n", s.Name), t)
 	assertResponse(end, fmt.Sprintf(":%s 366 alice &test :End of /NAMES list\r\n", s.Name), t)
+
+	t.Run("TestNoParam", func(t *testing.T) {
+		c.Write([]byte("NAMES\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 366 alice * :End of /NAMES list\r\n", s.Name), t)
+	})
+
+	t.Run("TestUnknownChan", func(t *testing.T) {
+		c.Write([]byte("NAMES #notReal\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 366 alice #notReal :End of /NAMES list\r\n", s.Name), t)
+	})
+
+	t.Run("TestSecretChanNotBelong", func(t *testing.T) {
+		secret := channel.New("secret", channel.Remote)
+		secret.Secret = true
+		s.setChannel(secret)
+
+		c.Write([]byte("NAMES #secret\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 366 alice #secret :End of /NAMES list\r\n", s.Name), t)
+	})
+
+	t.Run("TestSecretChanBelong", func(t *testing.T) {
+		secret, _ := s.getChannel("#secret")
+		alice, _ := s.getClient("alice")
+		secret.SetMember(&channel.Member{Client: alice})
+
+		c.Write([]byte("NAMES #secret\r\n"))
+		namreply, _ := r.ReadBytes('\n')
+		end, _ := r.ReadBytes('\n')
+		assertResponse(namreply, fmt.Sprintf(":%s 353 alice @ #secret :alice\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 366 alice #secret :End of /NAMES list\r\n", s.Name), t)
+	})
 }
 
 func TestLIST(t *testing.T) {
@@ -657,6 +691,8 @@ func TestMODEClient(t *testing.T) {
 	c, r := connectAndRegister("alice", "Alice Smith")
 	defer c.Close()
 
+	alice, _ := s.getClient("alice")
+
 	t.Run("TestModeNoParam", func(t *testing.T) {
 		c.Write([]byte("MODE\r\n"))
 		resp, _ := r.ReadBytes('\n')
@@ -689,6 +725,46 @@ func TestMODEClient(t *testing.T) {
 		c.Write([]byte("MODE alice\r\n"))
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 221 alice r\r\n", s.Name), t)
+	})
+
+	t.Run("TestAddMode", func(t *testing.T) {
+		c.Write([]byte("MODE alice +w\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s MODE alice +w\r\n", s.Name), t)
+
+		if !alice.Is(client.Wallops) {
+			t.Error(alice.Mode)
+		}
+	})
+
+	t.Run("TestRemoveMode", func(t *testing.T) {
+		c.Write([]byte("MODE alice -w\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s MODE alice -w\r\n", s.Name), t)
+
+		if alice.Is(client.Wallops) {
+			t.Error(alice.Mode)
+		}
+	})
+
+	t.Run("TestAddMultipleMode", func(t *testing.T) {
+		c.Write([]byte("MODE alice +wi\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s MODE alice +w+i\r\n", s.Name), t)
+
+		if !alice.Is(client.Wallops) || !alice.Is(client.Invisible) {
+			t.Error(alice.Mode)
+		}
+	})
+
+	t.Run("TestRemoveMultipleMode", func(t *testing.T) {
+		c.Write([]byte("MODE alice -wi\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s MODE alice -w-i\r\n", s.Name), t)
+
+		if alice.Is(client.Wallops) || alice.Is(client.Invisible) {
+			t.Error(alice.Mode)
+		}
 	})
 }
 

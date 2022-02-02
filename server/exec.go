@@ -572,8 +572,6 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 						applied += "+" + string(v.ModeChar)
 					} else if v.Type == mode.Remove {
 						applied += "-" + string(v.ModeChar)
-					} else {
-						applied += string(v.ModeChar)
 					}
 				}
 			}
