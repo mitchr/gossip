@@ -31,14 +31,26 @@ func TestRegistration(t *testing.T) {
 	})
 
 	t.Run("NICKChange", func(t *testing.T) {
-		conn, r := connectAndRegister("bob", "Bob Smith")
-		defer conn.Close()
+		c1, r1 := connectAndRegister("bob", "Bob Smith")
+		defer c1.Close()
 
-		conn.Write([]byte("NICK dan\r\n"))
-		resp, _ := r.ReadBytes('\n')
+		c2, r2 := connectAndRegister("c", "C")
+		defer c2.Close()
+
+		bob, _ := s.getClient("bob")
+		c, _ := s.getClient("c")
+		ch := channel.New("local", channel.Remote)
+		ch.SetMember(&channel.Member{Client: bob})
+		ch.SetMember(&channel.Member{Client: c})
+		s.setChannel(ch)
+
+		c1.Write([]byte("NICK dan\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		cAck, _ := r2.ReadBytes('\n')
 
 		// sender should be the same user host, but with the previous nick
 		assertResponse(resp, ":bob!bob@localhost NICK :dan\r\n", t)
+		assertResponse(cAck, ":bob!bob@localhost NICK :dan\r\n", t)
 	})
 
 	t.Run("TestUserWhenRegistered", func(t *testing.T) {
@@ -539,6 +551,39 @@ func TestLIST(t *testing.T) {
 
 		assertResponse(listReply, fmt.Sprintf(":%s 322 alice &params 1 :\r\n", s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.Name), t)
+	})
+}
+
+func TestMOTD(t *testing.T) {
+	confCopy := *conf
+	s, err := New(&confCopy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("alice", "Alice Smith")
+	defer c.Close()
+
+	t.Run("NoFile", func(t *testing.T) {
+		c.Write([]byte("MOTD\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(ERR_NOMOTD+"\r\n", s.Name, "alice"), t)
+	})
+
+	t.Run("Success", func(t *testing.T) {
+		s.motd = []string{"this is line 1", "line 2"}
+		c.Write([]byte("MOTD\r\n"))
+		start, _ := r.ReadBytes('\n')
+		line1, _ := r.ReadBytes('\n')
+		line2, _ := r.ReadBytes('\n')
+		end, _ := r.ReadBytes('\n')
+
+		assertResponse(start, fmt.Sprintf(RPL_MOTDSTART+"\r\n", s.Name, "alice", s.Name), t)
+		assertResponse(line1, fmt.Sprintf(RPL_MOTD+"\r\n", s.Name, "alice", "this is line 1"), t)
+		assertResponse(line2, fmt.Sprintf(RPL_MOTD+"\r\n", s.Name, "alice", "line 2"), t)
+		assertResponse(end, fmt.Sprintf(RPL_ENDOFMOTD+"\r\n", s.Name, "alice"), t)
 	})
 }
 
@@ -1110,6 +1155,12 @@ func TestPRIVMSG(t *testing.T) {
 	local.SetMember(&channel.Member{Client: s.clients["alice"], Prefix: string(channel.Operator)})
 	local.SetMember(&channel.Member{Client: s.clients["bob"]})
 
+	t.Run("TestNoTextToSend", func(t *testing.T) {
+		c1.Write([]byte("PRIVMSG bob\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(ERR_NOTEXTTOSEND+"\r\n", s.Name, "alice"), t)
+	})
+
 	t.Run("TestClientPRIVMSG", func(t *testing.T) {
 		// alice sends message to bob
 		c1.Write([]byte("PRIVMSG bob :hello\r\n"))
@@ -1117,11 +1168,23 @@ func TestPRIVMSG(t *testing.T) {
 		assertResponse(msgResp, ":alice!alice@localhost PRIVMSG bob :hello\r\n", t)
 	})
 
+	t.Run("TestNoSuchNick", func(t *testing.T) {
+		c1.Write([]byte("PRIVMSG notReal :hello\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(ERR_NOSUCHNICK+"\r\n", s.Name, "alice", "notReal"), t)
+	})
+
 	t.Run("TestChannelPRIVMSG", func(t *testing.T) {
 		// message sent to channel should broadcast to all members
 		c1.Write([]byte("PRIVMSG #local :hello\r\n"))
 		resp, _ := r2.ReadBytes('\n')
 		assertResponse(resp, ":alice!alice@localhost PRIVMSG #local :hello\r\n", t)
+	})
+
+	t.Run("TestNoSuchChan", func(t *testing.T) {
+		c1.Write([]byte("PRIVMSG #notFound :hello\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(ERR_NOSUCHCHANNEL+"\r\n", s.Name, "alice", "#notFound"), t)
 	})
 
 	t.Run("TestMultipleTargets", func(t *testing.T) {
