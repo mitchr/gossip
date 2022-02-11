@@ -7,11 +7,13 @@ func TestMatchEscape(t *testing.T) {
 		regex, match string
 		doesMatch    bool
 	}{
-		{"abc\\*", "abc*", true},
-		{"lucky\\*lucky", "lucky*lucky", true},
-		{"lucky\\*lucky", "luckySTARlucky", false},
-		{"http:\\google.com", "http:\\google.com", true},
-		{"http:\\\\google.*", "http:\\\\google.\\*", true},
+		{`abc\*`, "abc*", true},
+		{`lucky\*lucky`, "lucky*lucky", true},
+		{`lucky\*lucky`, "luckySTARlucky", false},
+		{`esc\`, "esc", false},
+		{`http:\google.com`, `http:\google.com`, true},
+		{`http:\\google.*`, `http:\\google.\*`, true},
+		{`http:\\google.*`, `http:\\google.com`, true},
 	}
 
 	for _, v := range tests {
@@ -63,7 +65,7 @@ func TestMatchWildone(t *testing.T) {
 	}
 }
 
-func TestMatchWilmany(t *testing.T) {
+func TestMatchWildmany(t *testing.T) {
 	tests := []struct {
 		regex, match string
 		doesMatch    bool

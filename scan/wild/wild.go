@@ -1,3 +1,5 @@
+// wild implements the pattern matching for IRC wildcard expressions.
+// The pattern syntax is described at https://modern.ircdocs.horse/#wildcard-expressions.
 package wild
 
 import (
@@ -28,8 +30,9 @@ func lexWild(l *scan.Lexer) {
 	}
 }
 
-func Match(regex, m string) bool {
-	p := &scan.Parser{Tokens: scan.Lex([]byte(regex), lexWild)}
+// Match returns true if m matches the given pattern.
+func Match(pattern, m string) bool {
+	p := &scan.Parser{Tokens: scan.Lex([]byte(pattern), lexWild)}
 
 	// position that we are currently matching on in m
 	pos := 0
@@ -46,7 +49,7 @@ func Match(regex, m string) bool {
 			pos++
 		case r.TokenType == esc:
 			// if the next character is a '*' or '?', then disregard this '\'
-			// and compare m against the appropriate wildcard
+			// and compare m against the appropriate escaped wildcard
 			if n := p.Peek(); n.TokenType == wildone || n.TokenType == wildmany {
 				if n.Value != getRune(m, pos) {
 					return false
