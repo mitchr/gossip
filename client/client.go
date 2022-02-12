@@ -139,6 +139,30 @@ func (c *Client) IsSecure() bool {
 	return ok
 }
 
+func (c *Client) Certificate() ([]byte, error) {
+	if !c.IsSecure() {
+		return nil, errors.New("client is not connected over tls")
+	}
+
+	certs := c.Conn.(*tls.Conn).ConnectionState().PeerCertificates
+	if len(certs) < 1 {
+		return nil, errors.New("client has not provided a certificate")
+	}
+
+	return certs[0].Raw, nil
+}
+
+func (c *Client) CertificateSha() ([]byte, error) {
+	cert, err := c.Certificate()
+	if err != nil {
+		return nil, err
+	}
+
+	sha := sha256.New()
+	sha.Write(cert)
+	return sha.Sum(nil), nil
+}
+
 // return a hex string of the sha256 hash of the client's tls
 // certificate. if the client is not connected via tls, or they have
 // not provided a cert, return nil.
@@ -149,21 +173,6 @@ func (c *Client) CertificateFingerprint() (string, error) {
 	}
 
 	return hex.EncodeToString(sha), nil
-}
-
-func (c *Client) CertificateSha() ([]byte, error) {
-	if !c.IsSecure() {
-		return nil, errors.New("client is not connected over tls")
-	}
-
-	certs := c.Conn.(*tls.Conn).ConnectionState().PeerCertificates
-	if len(certs) < 1 {
-		return nil, errors.New("client has not provided a certificate")
-	}
-
-	sha := sha256.New()
-	sha.Write(certs[0].Raw)
-	return sha.Sum(nil), nil
 }
 
 func (c *Client) CapsSet() string {

@@ -1,10 +1,13 @@
 package server
 
 import (
+	"bufio"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"testing"
 
+	"github.com/mitchr/gossip/sasl/external"
 	"github.com/mitchr/gossip/sasl/plain"
 )
 
@@ -150,23 +153,36 @@ func TestAUTHENTICATEPLAIN(t *testing.T) {
 }
 
 func TestAUTHENTICATEEXTERNAL(t *testing.T) {
-	s, err := New(conf)
+	s, err := New(generateConfig())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer s.Close()
 	go s.Serve()
 
-	c, r, p := connect(s)
-	defer p()
+	cert := generateCert()
 
-	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
-	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+	c, err := tls.Dial("tcp", ":6697", &tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true})
+	if err != nil {
+		t.Error(err)
+	}
+	defer c.Close()
+	r := bufio.NewReader(c)
+
+	cred := external.NewCredential("a", cert.Certificate[0])
+	s.db.Exec("INSERT INTO sasl_external VALUES(?, ?)", cred.Username, cred.Cert)
 
 	c.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE EXTERNAL\r\n"))
 	r.ReadBytes('\n')
 	resp, _ := r.ReadBytes('\n')
 	assertResponse(resp, ":gossip AUTHENTICATE +\r\n", t)
+
+	c.Write([]byte("AUTHENTICATE +\r\n"))
+	resp, _ = r.ReadBytes('\n')
+	assertResponse(resp, fmt.Sprintf(RPL_LOGGEDIN+"\r\n", s.Name, "a", "a!a@localhost", "a", "a"), t)
+
+	resp, _ = r.ReadBytes('\n')
+	assertResponse(resp, fmt.Sprintf(RPL_SASLSUCCESS+"\r\n", s.Name, "a"), t)
 }
 
 func TestAUTHENTICATESCRAM(t *testing.T) {

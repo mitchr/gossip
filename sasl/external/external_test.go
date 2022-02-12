@@ -60,10 +60,7 @@ func TestCredential(t *testing.T) {
 		}
 	}
 
-	cred, err := NewCredential("alice", c)
-	if err != nil {
-		t.Fatal(err)
-	}
+	cred := NewCredential("alice", clientCert.Certificate[0])
 
 	sha := sha256.New()
 	sha.Write(clientCert.Certificate[0])
@@ -106,10 +103,7 @@ func TestExternal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cred, err := NewCredential("alice", c)
-	if err != nil {
-		t.Fatal(err)
-	}
+	cred := NewCredential("alice", clientCert.Certificate[0])
 	db.Exec("INSERT INTO sasl_exec VALUES(?, ?)", cred.Username, cred.Cert)
 
 	sha := sha256.New()

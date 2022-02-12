@@ -74,15 +74,21 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	// TODO: this kind of request can have a continuation if the initial
-	// request byte count is over 400, so we should check to see if we
-	// have a situation like this and append the messages together before
-	// decoding
-	// *("AUTHENTICATE" SP 400BASE64 CRLF) "AUTHENTICATE" SP (1*399BASE64 / "+") CRLF
-	decodedResp, err := base64.StdEncoding.DecodeString(m.Params[0])
-	if err != nil {
-		// TODO: is this an acceptable response?
-		s.writeReply(c, c.Id(), ERR_SASLFAIL)
+	var decodedResp []byte
+	// if this was not a continuation request (a request containing just '+')
+	if m.Params[0] != "+" {
+		// TODO: this kind of request can have a continuation if the initial
+		// request byte count is over 400, so we should check to see if we
+		// have a situation like this and append the messages together before
+		// decoding
+		// *("AUTHENTICATE" SP 400BASE64 CRLF) "AUTHENTICATE" SP (1*399BASE64 / "+") CRLF
+		resp, err := base64.StdEncoding.DecodeString(m.Params[0])
+		if err != nil {
+			fmt.Println(err)
+			// TODO: is this an acceptable response?
+			s.writeReply(c, c.Id(), ERR_SASLFAIL)
+		}
+		decodedResp = resp
 	}
 
 	challenge, err := c.SASLMech.Next(decodedResp)
@@ -129,10 +135,11 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 		s.db.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", scramCred.Username, scramCred.ServerKey, scramCred.StoredKey, scramCred.Salt, scramCred.Iteration)
 
 	case "CERT":
-		cred, err := external.NewCredential(c.Id(), c.Conn)
+		cert, err := c.Certificate()
 		if err != nil {
 			// TODO: fail registration
 		}
+		cred := external.NewCredential(c.Id(), cert)
 		s.db.Exec("INSERT INTO sasl_exec VALUES(?, ?)", cred.Username, cred.Cert)
 	}
 

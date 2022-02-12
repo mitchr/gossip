@@ -4,10 +4,7 @@ package external
 import (
 	"crypto/sha256"
 	"crypto/subtle"
-	"crypto/tls"
 	"database/sql"
-	"errors"
-	"net"
 
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/sasl"
@@ -19,22 +16,12 @@ type Credential struct {
 }
 
 // keeps the sha hash of the certificate (the fingerprint)
-func NewCredential(username string, baseConn net.Conn) (*Credential, error) {
-	conn, ok := baseConn.(*tls.Conn)
-	if !ok { // not a tls connection
-		return nil, errors.New("not connected over tls")
-	}
-
-	certs := conn.ConnectionState().PeerCertificates
-	if len(certs) < 1 {
-		return nil, errors.New("client has no associated certificate")
-	}
-
+func NewCredential(username string, cert []byte) *Credential {
 	sha := sha256.New()
-	sha.Write(certs[0].Raw)
+	sha.Write(cert)
 	fingerprint := sha.Sum(nil)
 
-	return &Credential{username, fingerprint}, nil
+	return &Credential{username, fingerprint}
 }
 
 func (c *Credential) Check(username string, fingerprint []byte) bool {
