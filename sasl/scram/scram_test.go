@@ -62,7 +62,7 @@ func TestSCRAM(t *testing.T) {
 		cred := NewCredential(v.hash, "user", v.pass, v.salt, v.iter)
 		DB.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", cred.Username, cred.ServerKey, cred.StoredKey, cred.Salt, cred.Iteration)
 
-		s := NewScram(DB, v.hash)
+		s := New(DB, v.hash)
 		s.ParseClientFirst(v.clientFirst)
 		s.nonce = v.sNonce
 

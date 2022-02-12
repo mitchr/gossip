@@ -31,7 +31,7 @@ type Plain struct {
 	db                     *sql.DB
 }
 
-func NewPlain(db *sql.DB) *Plain { return &Plain{db: db} }
+func New(db *sql.DB) *Plain { return &Plain{db: db} }
 
 func (p *Plain) Next(b []byte) (challenge []byte, err error) {
 	out := bytes.Split(b, []byte{0})

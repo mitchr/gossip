@@ -59,7 +59,7 @@ func (s *Scram) Next(clientResponse []byte) (challenge []byte, err error) {
 	return nil, sasl.ErrDone
 }
 
-func NewScram(db *sql.DB, h func() hash.Hash) *Scram { return &Scram{db: db, hash: h} }
+func New(db *sql.DB, h func() hash.Hash) *Scram { return &Scram{db: db, hash: h} }
 
 func (s *Scram) ParseClientFirst(m string) error {
 	attrs := strings.Split(m, ",")

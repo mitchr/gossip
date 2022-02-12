@@ -55,7 +55,7 @@ type External struct {
 	client *client.Client
 }
 
-func NewExternal(db *sql.DB, client *client.Client) *External { return &External{db, client} }
+func New(db *sql.DB, client *client.Client) *External { return &External{db, client} }
 
 func (e *External) Next(clientResponse []byte) (challenge []byte, err error) {
 	// client is not connected over TLS, so we should not move forward checking for cert

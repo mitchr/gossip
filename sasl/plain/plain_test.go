@@ -23,7 +23,7 @@ func TestPLAIN(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p := NewPlain(db)
+	p := New(db)
 
 	for _, v := range tests {
 		p.Next(v.input)
@@ -43,7 +43,7 @@ func TestLookup(t *testing.T) {
 	c := NewCredential("username", "pass")
 	db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", c.Username, c.Pass)
 
-	p := NewPlain(db)
+	p := New(db)
 	stored, _ := p.lookup("username")
 	if !reflect.DeepEqual(c, stored) {
 		t.Fail()
