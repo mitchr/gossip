@@ -37,16 +37,7 @@ func NewCredential(username string, baseConn net.Conn) (*Credential, error) {
 	return &Credential{username, fingerprint}, nil
 }
 
-func (c *Credential) Check(username string, conn *tls.Conn) bool {
-	certs := conn.ConnectionState().PeerCertificates
-	if len(certs) < 1 {
-		return false
-	}
-
-	sha := sha256.New()
-	sha.Write(certs[0].Raw)
-	fingerprint := sha.Sum(nil)
-
+func (c *Credential) Check(username string, fingerprint []byte) bool {
 	return c.Username == username && (subtle.ConstantTimeCompare(c.Cert, fingerprint) == 1)
 }
 
@@ -57,9 +48,10 @@ type External struct {
 
 func New(db *sql.DB, client *client.Client) *External { return &External{db, client} }
 
-func (e *External) Next(clientResponse []byte) (challenge []byte, err error) {
-	// client is not connected over TLS, so we should not move forward checking for cert
-	if !e.client.IsSecure() {
+func (e *External) Next([]byte) (challenge []byte, err error) {
+	// grab client cert if it exists
+	certfp, err := e.client.CertificateSha()
+	if err != nil {
 		return nil, sasl.ErrSaslFail
 	}
 
@@ -68,7 +60,7 @@ func (e *External) Next(clientResponse []byte) (challenge []byte, err error) {
 		return nil, sasl.ErrSaslFail
 	}
 
-	if !cred.Check(e.client.Nick, e.client.Conn.(*tls.Conn)) {
+	if !cred.Check(e.client.Nick, certfp) {
 		return nil, sasl.ErrInvalidKey
 	}
 
