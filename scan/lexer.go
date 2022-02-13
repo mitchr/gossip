@@ -6,7 +6,7 @@ package scan
 
 import "unicode/utf8"
 
-type TokenType int
+type TokenType int8
 
 const EOF rune = -1
 
