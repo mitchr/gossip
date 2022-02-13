@@ -9,12 +9,12 @@ import (
 
 // given a slice of tokens, produce a corresponding irc message
 //["@" tags SPACE] [":" source SPACE] command [params] crlf
-func Parse(q *scan.Queue) *Message {
-	if q.IsEmpty() {
+func Parse(t []scan.Token) *Message {
+	if len(t) == 0 {
 		return nil
 	}
 
-	p := &scan.Parser{Tokens: q}
+	p := &scan.Parser{Tokens: t}
 	m := &Message{}
 
 	if p.Peek().TokenType == at {

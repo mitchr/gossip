@@ -1,12 +1,24 @@
 package scan
 
-type Parser struct{ Tokens *Queue }
+type Parser struct {
+	position int
+	Tokens   []Token
+}
 
-func (p *Parser) Next() Token { return p.Tokens.poll() }
+func (p *Parser) Next() Token {
+	t := p.Peek()
+	p.position++
+	return t
+}
 
 // Multiple calls to Peek will continue to return the same value until
 // Next is called.
-func (p *Parser) Peek() Token { return p.Tokens.peek() }
+func (p *Parser) Peek() Token {
+	if p.position > len(p.Tokens)-1 {
+		return EOFToken
+	}
+	return p.Tokens[p.position]
+}
 
 func (p *Parser) Expect(t TokenType) bool {
 	next := p.Next()

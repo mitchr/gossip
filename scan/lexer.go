@@ -22,7 +22,9 @@ func (t Token) String() string { return string(t.Value) }
 type State func(*Lexer)
 
 type Lexer struct {
-	tokens   *Queue
+	tokens   []Token
+	tokenPos int
+
 	input    []byte
 	position int
 
@@ -66,16 +68,23 @@ func (l *Lexer) Peek() rune {
 }
 
 func (l *Lexer) Push(t TokenType) {
-	l.tokens.offer(Token{TokenType: t, Value: l.current})
+	l.tokens[l.tokenPos] = Token{TokenType: t, Value: l.current}
+	l.tokenPos++
 }
 
 // Lex generates a channel of tokens depending on the initial state
 // given. This channel is closed whenever initState returns nil.
-func Lex(b []byte, initState State) *Queue {
+func Lex(b []byte, initState State) []Token {
+	// allocate enough space to hold a token for every byte in the input
+	tokens := make([]Token, len(b))
+	for i := range tokens {
+		tokens[i] = EOFToken
+	}
+
 	l := &Lexer{
 		input:  b,
-		tokens: new(Queue),
 		peeked: -1,
+		tokens: tokens,
 	}
 
 	initState(l)

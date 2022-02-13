@@ -213,16 +213,15 @@ var testInput []byte = []byte("@a=b :bob!Bob@example.com PRIVMSG alice :Welcome 
 
 func BenchmarkLex(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		scan.Lex(testInput, lexMessage)
+		Lex(testInput)
 	}
 }
 
 func BenchmarkParse(b *testing.B) {
-	tokens := scan.Lex(testInput, lexMessage)
+	tokens := Lex(testInput)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		copy := *tokens
-		Parse(&copy)
+		Parse(tokens)
 	}
 }
