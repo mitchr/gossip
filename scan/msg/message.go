@@ -38,7 +38,7 @@ func (t TagVal) Raw() string {
 	return string(escaped)
 }
 
-// a Message represents a single irc Message
+// Message represents a single irc message
 type Message struct {
 	tags             map[string]TagVal
 	Nick, User, Host string // source/prefix information
@@ -97,7 +97,7 @@ func (m Message) String() string {
 	return tags + prefix + m.Command + params
 }
 
-func (m *Message) TrimNonClientTags() {
+func (m Message) TrimNonClientTags() {
 	for k, v := range m.tags {
 		if !v.ClientPrefix {
 			delete(m.tags, k)
@@ -107,8 +107,7 @@ func (m *Message) TrimNonClientTags() {
 
 // Return a copy of the message with the tags removed. Used for sending
 // messages to clients that do not support message-tags
-func (m *Message) RemoveAllTags() Message {
-	msg := *m
-	msg.tags = nil
-	return msg
+func (m Message) RemoveAllTags() Message {
+	m.tags = nil
+	return m
 }
