@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mitchr/gossip/cap"
+	cap "github.com/mitchr/gossip/capability"
 )
 
 func TestCAP(t *testing.T) {

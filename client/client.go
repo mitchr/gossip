@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mitchr/gossip/cap"
+	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/sasl"
 )
 

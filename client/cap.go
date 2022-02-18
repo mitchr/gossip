@@ -1,8 +1,6 @@
 package client
 
-import (
-	"github.com/mitchr/gossip/cap"
-)
+import cap "github.com/mitchr/gossip/capability"
 
 func (c *Client) ApplyCap(cap string, remove bool) {
 	// "If a client requests a capability which is already enabled,

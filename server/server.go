@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mitchr/gossip/cap"
+	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
@@ -42,7 +42,7 @@ type Server struct {
 	unknownLock sync.Mutex
 	unknowns    int
 
-	supportedCaps []cap.Capability
+	supportedCaps []cap.Cap
 
 	// calling this cancel also cancels all the child client's contexts
 	cancel context.CancelFunc
@@ -55,7 +55,7 @@ func New(c *Config) (*Server, error) {
 		created:       time.Now(),
 		clients:       make(map[string]*client.Client),
 		channels:      make(map[string]*channel.Channel),
-		supportedCaps: []cap.Capability{cap.CapNotify, cap.EchoMessage, cap.MessageTags, cap.SASL, cap.ServerTime},
+		supportedCaps: []cap.Cap{cap.CapNotify, cap.EchoMessage, cap.MessageTags, cap.SASL, cap.ServerTime},
 	}
 
 	err := s.loadDatabase(s.Datasource)

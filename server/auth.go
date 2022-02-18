@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/mitchr/gossip/cap"
+	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/sasl"
 	"github.com/mitchr/gossip/sasl/external"
