@@ -1,17 +1,29 @@
 package msg
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"strings"
 
 	"github.com/mitchr/gossip/scan"
 )
 
+const (
+	maxTags = 8191
+	maxMsg  = 512
+)
+
+var (
+	ErrMsgSizeOverflow = errors.New("message too large")
+	ErrParse           = errors.New("parse error")
+)
+
 // given a slice of tokens, produce a corresponding irc message
 //["@" tags SPACE] [":" source SPACE] command [params] crlf
-func Parse(t []scan.Token) *Message {
+func Parse(t []scan.Token) (*Message, error) {
 	if len(t) == 0 {
-		return nil
+		return nil, fmt.Errorf("%v: empty message", ErrParse)
 	}
 
 	p := &scan.Parser{Tokens: t}
@@ -21,16 +33,19 @@ func Parse(t []scan.Token) *Message {
 		p.Next() // consume '@'
 		m.tags = tags(p)
 		if !p.Expect(space) {
-			log.Println("expected space")
-			return nil
+			return nil, fmt.Errorf("%v: expected space", ErrParse)
 		}
 	}
+	tagBytes := p.BytesRead
+	if tagBytes > maxTags {
+		return nil, ErrMsgSizeOverflow
+	}
+
 	if p.Peek().TokenType == colon {
 		p.Next() // consume colon
 		m.Nick, m.User, m.Host = source(p)
 		if !p.Expect(space) {
-			log.Println("expected space")
-			return nil
+			return nil, fmt.Errorf("%v: expected space", ErrParse)
 		}
 	}
 	m.Command = command(p)
@@ -38,15 +53,17 @@ func Parse(t []scan.Token) *Message {
 
 	// expect a crlf ending
 	if !p.Expect(cr) {
-		log.Println("no cr; ignoring")
-		return nil
+		return nil, fmt.Errorf("%v: no cr; ignoring", ErrParse)
 	}
 	if !p.Expect(lf) {
-		log.Println("no lf; ignoring")
-		return nil
+		return nil, fmt.Errorf("%v: no lf; ignoring", ErrParse)
 	}
 
-	return m
+	if p.BytesRead-tagBytes > maxMsg {
+		return nil, ErrMsgSizeOverflow
+	}
+
+	return m, nil
 }
 
 // <tag> *[';' <tag>]

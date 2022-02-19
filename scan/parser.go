@@ -1,12 +1,14 @@
 package scan
 
 type Parser struct {
-	position int
-	Tokens   []Token
+	position  int
+	Tokens    []Token
+	BytesRead int
 }
 
 func (p *Parser) Next() Token {
 	t := p.Peek()
+	p.BytesRead += t.width
 	p.position++
 	return t
 }

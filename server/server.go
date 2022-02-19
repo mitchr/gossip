@@ -220,7 +220,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				// or 3 offenses)
 				QUIT(s, c, &msg.Message{Params: []string{"Flooding"}})
 				return
-			case client.ErrMsgSizeOverflow:
+			case msg.ErrMsgSizeOverflow:
 				// client went past the 512 message length requirement
 				// TODO: discourage client from multiple buffer overflows in a
 				// row to try to prevent against denial of service attacks
@@ -228,6 +228,11 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				c.Flush()
 				continue
 			default:
+				err = errors.Unwrap(err)
+				if err == msg.ErrParse {
+					// silently ignore parse errors
+					continue
+				}
 				// either client closed its own connection, or something bad happened
 				// we need to send a QUIT command for them
 				QUIT(s, c, &msg.Message{Params: []string{"Client left without saying goodbye :("}})
@@ -265,7 +270,11 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, msgs chan<- *
 			}
 
 			tokens := msg.Lex(buff)
-			msg := msg.Parse(tokens)
+			msg, err := msg.Parse(tokens)
+			if err != nil {
+				errs <- err
+				continue
+			}
 			if msg != nil {
 				msgs <- msg
 			}

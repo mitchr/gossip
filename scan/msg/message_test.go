@@ -145,7 +145,7 @@ func TestParseMessage(t *testing.T) {
 
 	for _, v := range tests {
 		t.Run(v.s, func(t *testing.T) {
-			out := Parse(scan.Lex([]byte(v.s), lexMessage))
+			out, _ := Parse(scan.Lex([]byte(v.s), lexMessage))
 			if !reflect.DeepEqual(out, v.m) {
 				t.Error("parse error", out, v.m)
 			}
@@ -184,7 +184,10 @@ func TestParseTags(t *testing.T) {
 
 	for _, v := range tests {
 		t.Run(v.input, func(t *testing.T) {
-			out := Parse(scan.Lex([]byte(v.input), lexMessage))
+			out, err := Parse(scan.Lex([]byte(v.input), lexMessage))
+			if err != nil {
+				t.Error(err)
+			}
 			if !reflect.DeepEqual(out.tags, v.tags) {
 				t.Error("parse error", out.tags, v.tags)
 			}

@@ -16,6 +16,7 @@ import (
 
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/sasl"
+	"github.com/mitchr/gossip/scan/msg"
 )
 
 type Client struct {
@@ -190,10 +191,7 @@ func (c *Client) SupportsCapVersion(v int) bool {
 	return c.CapVersion >= v
 }
 
-var (
-	ErrMsgSizeOverflow = errors.New("message too large")
-	ErrFlood           = errors.New("flooding the server")
-)
+var ErrFlood = errors.New("flooding the server")
 
 // Read until encountering a newline
 func (c *Client) ReadMsg() ([]byte, error) {
@@ -220,8 +218,7 @@ func (c *Client) ReadMsg() ([]byte, error) {
 			return read[:n+1], nil
 		}
 	}
-
-	return nil, ErrMsgSizeOverflow
+	return nil, msg.ErrMsgSizeOverflow
 }
 
 func (c *Client) Write(b []byte) (int, error) {

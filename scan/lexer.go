@@ -10,11 +10,12 @@ type TokenType int8
 
 const EOF rune = -1
 
-var EOFToken Token = Token{TokenType(EOF), EOF}
+var EOFToken Token = Token{TokenType(EOF), EOF, 0}
 
 type Token struct {
 	TokenType TokenType
 	Value     rune
+	width     int
 }
 
 func (t Token) String() string { return string(t.Value) }
@@ -68,7 +69,7 @@ func (l *Lexer) Peek() rune {
 }
 
 func (l *Lexer) Push(t TokenType) {
-	l.tokens[l.tokenPos] = Token{TokenType: t, Value: l.current}
+	l.tokens[l.tokenPos] = Token{TokenType: t, Value: l.current, width: l.width}
 	l.tokenPos++
 }
 
