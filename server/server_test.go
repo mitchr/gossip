@@ -104,6 +104,28 @@ func TestMessageSize(t *testing.T) {
 		msg[511] = '\n'
 		c.Write(msg)
 	})
+
+	t.Run("HugeTags", func(t *testing.T) {
+		d, r2 := connectAndRegister("d", "d")
+		d.Write([]byte("CAP REQ message-tags\r\n"))
+		r2.ReadBytes('\n')
+
+		tags := make([]byte, 8190)
+		for i := range tags {
+			tags[i] = 'a'
+		}
+		tags = append([]byte("@"), tags...)
+		command := make([]byte, 512-7)
+		for i := range command {
+			command[i] = ' '
+		}
+		command = append(command, []byte(" TIME\r\n")...)
+		tags = append(tags, command...)
+
+		d.Write(tags)
+		resp, _ := r2.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(ERR_INPUTTOOLONG+"\r\n", s.Name, "d"), t)
+	})
 }
 
 func TestFlooding(t *testing.T) {

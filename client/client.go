@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	cap "github.com/mitchr/gossip/capability"
+	"github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/sasl"
 	"github.com/mitchr/gossip/scan/msg"
 )
@@ -33,8 +33,9 @@ type Client struct {
 	Idle time.Time
 
 	*bufio.ReadWriter
-	writeLock  sync.Mutex
-	maxMsgSize int
+	writeLock     sync.Mutex
+	msgSizeChange chan int
+	msgBuf        []byte
 
 	Mode              Mode
 	AwayMsg           string
@@ -56,12 +57,6 @@ type Client struct {
 	// used to signal when client has successfully responded to server PING
 	PONG chan struct{}
 
-	// this lock is used when negotiating capabilities that modify the
-	// client state in some way. most notably, when requesting
-	// message-tags the client message size increases, so we need to do
-	// this with mutual exclusion.
-	capLock sync.Mutex
-
 	grants    int
 	grantLock sync.Mutex
 }
@@ -74,8 +69,8 @@ func New(conn net.Conn) *Client {
 		Idle:     now,
 
 		ReadWriter:    bufio.NewReadWriter(bufio.NewReaderSize(conn, 512), bufio.NewWriter(conn)),
-		ReadWriter: bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
-		maxMsgSize: 512,
+		msgSizeChange: make(chan int, 1),
+		msgBuf:        make([]byte, 0, 512),
 
 		PONG: make(chan struct{}, 1),
 		Caps: make(map[string]bool),
@@ -191,31 +186,37 @@ func (c *Client) SupportsCapVersion(v int) bool {
 	return c.CapVersion >= v
 }
 
-var ErrFlood = errors.New("flooding the server")
-
-// Read until encountering a newline
+// Read until encountering a newline. If the client does not have any
+// grants left, this returns an error.
 func (c *Client) ReadMsg() ([]byte, error) {
-	// as a form of flood control, ask for a grant before reading
-	// each request
 	err := c.requestGrant()
 	if err != nil {
 		return nil, err
 	}
 
-	c.capLock.Lock()
-	read := make([]byte, c.maxMsgSize)
-	c.capLock.Unlock()
+	c.msgBuf = c.msgBuf[:0] // clear
+	n := 0
+	for n < cap(c.msgBuf) {
+		// when the client adds or removes the 'message-tags' capability,
+		// the maximum message size will change. by checking this signal
+		// before every byte, we avoid the case where message1 requests
+		// message-tags, and the reading of a possible message2 is blocked
+		// on Read before the buffer has been increased.
+		select {
+		case size := <-c.msgSizeChange:
+			resizeBuffer(c.msgBuf, size)
+		default:
+			b, err := c.ReadByte()
+			if err != nil {
+				return nil, err
+			}
+			c.msgBuf = append(c.msgBuf, b)
 
-	for n := 0; n < len(read); n++ {
-		b, err := c.ReadByte()
-		if err != nil {
-			return nil, err
-		}
-		read[n] = b
-
-		// accepted if we find a newline
-		if b == '\n' {
-			return read[:n+1], nil
+			// accepted if we find a newline
+			if b == '\n' {
+				return c.msgBuf, nil
+			}
+			n++
 		}
 	}
 	return nil, msg.ErrMsgSizeOverflow
@@ -229,11 +230,27 @@ func (c *Client) Write(b []byte) (int, error) {
 	return c.ReadWriter.Write(prepared)
 }
 
+func resizeBuffer(b []byte, size int) {
+	// requesting a smaller capacity
+	if size < cap(b) {
+		length := len(b)
+
+		// truncate existing data in buffer to number of bytes specified by 'size'
+		if length > size {
+			length = size
+		}
+		b = b[:length]
+	}
+	temp := make([]byte, len(b), size)
+	copy(temp, b)
+	b = temp
+}
+
 const timeFormat string = "2006-01-02T15:04:05.999Z"
 
 func (c *Client) PrepareMessage(b []byte) []byte {
 	temp := b
-	if c.Caps[cap.ServerTime.Name] {
+	if c.Caps[capability.ServerTime.Name] {
 		serverTime := "@time=" + time.Now().Format(timeFormat) + " "
 		temp = append([]byte(serverTime), temp...)
 	}
@@ -250,6 +267,8 @@ func (c *Client) Flush() error {
 }
 
 const maxGrants = 10
+
+var ErrFlood = errors.New("flooding the server")
 
 // requestGrant allows the client to process one message. If the client
 // has no grants, this returns an error.
