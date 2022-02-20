@@ -24,8 +24,6 @@ type State func(*Lexer)
 
 type Lexer struct {
 	tokens   []Token
-	tokenPos int
-
 	input    []byte
 	position int
 
@@ -69,23 +67,17 @@ func (l *Lexer) Peek() rune {
 }
 
 func (l *Lexer) Push(t TokenType) {
-	l.tokens[l.tokenPos] = Token{TokenType: t, Value: l.current, width: l.width}
-	l.tokenPos++
+	l.tokens = append(l.tokens, Token{TokenType: t, Value: l.current, width: l.width})
 }
 
-// Lex generates a channel of tokens depending on the initial state
-// given. This channel is closed whenever initState returns nil.
+// Lex creates a slice of tokens using the given initial state
 func Lex(b []byte, initState State) []Token {
-	// allocate enough space to hold a token for every byte in the input
-	tokens := make([]Token, len(b))
-	for i := range tokens {
-		tokens[i] = EOFToken
-	}
-
 	l := &Lexer{
 		input:  b,
 		peeked: -1,
-		tokens: tokens,
+
+		// allocate enough space to hold a token for every byte in the input
+		tokens: make([]Token, 0, len(b)),
 	}
 
 	initState(l)
