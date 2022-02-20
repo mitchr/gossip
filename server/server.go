@@ -197,14 +197,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		case <-pingTick.C:
 			fmt.Fprintf(c, ":%s PING %s", s.Name, c.Nick)
 			c.Flush()
-
-			select {
-			case <-ctx.Done():
-			case <-c.PONG:
-			case <-time.After(time.Second * 10):
-				QUIT(s, c, &msg.Message{Params: []string{"Closing Link: PING timeout (300 seconds)"}})
-				return
-			}
+			go waitForPong(clientCtx, c, errs)
 		case <-grantTick.C:
 			c.AddGrant()
 		case msg := <-msgs:
@@ -213,13 +206,13 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			switch err {
 			case ErrRegistrationTimeout:
 				s.ERROR(c, "Closing Link: Client failed to register in allotted time (10 seconds)")
-				return
+			case ErrPingTimeout:
+				QUIT(s, c, &msg.Message{Params: []string{"Closing Link: PING timeout (300 seconds)"}})
 			case client.ErrFlood:
 				// TODO: instead of kicking the client right away, maybe a
 				// timeout would be more appropriate (atleast for the first 2
 				// or 3 offenses)
 				QUIT(s, c, &msg.Message{Params: []string{"Flooding"}})
-				return
 			case msg.ErrMsgSizeOverflow:
 				// client went past the 512 message length requirement
 				// TODO: discourage client from multiple buffer overflows in a
@@ -228,21 +221,33 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				c.Flush()
 				continue
 			default:
-				err = errors.Unwrap(err)
-				if err == msg.ErrParse {
+				if errors.Unwrap(err) == msg.ErrParse {
 					// silently ignore parse errors
 					continue
 				}
 				// either client closed its own connection, or something bad happened
 				// we need to send a QUIT command for them
-				QUIT(s, c, &msg.Message{Params: []string{"Client left without saying goodbye :("}})
-				return
+				QUIT(s, c, &msg.Message{Params: []string{err.Error()}})
 			}
+			return
 		}
 	}
 }
 
-var ErrRegistrationTimeout = errors.New("failed to register in allotted time")
+var (
+	ErrPingTimeout         = errors.New(("ping timeout"))
+	ErrRegistrationTimeout = errors.New("failed to register in allotted time")
+)
+
+func waitForPong(ctx context.Context, c *client.Client, errs chan<- error) {
+	select {
+	case <-ctx.Done():
+	case <-c.PONG:
+	case <-time.After(time.Second * 10):
+		errs <- ErrPingTimeout
+		return
+	}
+}
 
 // give a small window for client to register before kicking them off
 func (s *Server) startRegistrationTimer(c *client.Client, errs chan<- error) {
