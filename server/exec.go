@@ -77,7 +77,7 @@ func PASS(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func NICK(s *Server, c *client.Client, m *msg.Message) {
-	if len(m.Params) != 1 {
+	if len(m.Params) < 1 {
 		s.writeReply(c, c.Id(), ERR_NONICKNAMEGIVEN)
 		return
 	}
@@ -120,7 +120,7 @@ func USER(s *Server, c *client.Client, m *msg.Message) {
 	if c.Is(client.Registered) {
 		s.writeReply(c, c.Id(), ERR_ALREADYREGISTRED)
 		return
-	} else if len(m.Params) != 4 {
+	} else if len(m.Params) < 4 {
 		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "USER")
 		return
 	}
@@ -137,7 +137,7 @@ func USER(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func OPER(s *Server, c *client.Client, m *msg.Message) {
-	if len(m.Params) != 2 {
+	if len(m.Params) < 2 {
 		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "OPER")
 		return
 	}
@@ -335,7 +335,7 @@ func TOPIC(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func INVITE(s *Server, c *client.Client, m *msg.Message) {
-	if len(m.Params) != 2 {
+	if len(m.Params) < 2 {
 		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "INVITE")
 		return
 	}
@@ -914,7 +914,7 @@ func REHASH(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
-	if len(m.Params) != 1 {
+	if len(m.Params) < 1 {
 		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "WALLOPS")
 		return
 	}
