@@ -260,8 +260,8 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, msgs chan<- *
 			return
 		default:
 			buff, err := c.ReadMsg()
-			if s.Debug {
-				log.Printf("Message: %s\nSent by ip: %s", string(buff), c.RemoteAddr().String())
+			if s.Debug && len(buff) != 0 {
+				log.Printf("[%s]: %s\n", c.RemoteAddr(), string(buff[:len(buff)-2]))
 			}
 
 			if err != nil {
