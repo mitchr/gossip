@@ -197,7 +197,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		case <-pingTick.C:
 			fmt.Fprintf(c, ":%s PING %s", s.Name, c.Nick)
 			c.Flush()
-			go waitForPong(clientCtx, c, errs)
+			go waitForPong(c, errs)
 		case <-grantTick.C:
 			c.AddGrant()
 		case msg := <-msgs:
@@ -239,9 +239,8 @@ var (
 	ErrRegistrationTimeout = errors.New("failed to register in allotted time")
 )
 
-func waitForPong(ctx context.Context, c *client.Client, errs chan<- error) {
+func waitForPong(c *client.Client, errs chan<- error) {
 	select {
-	case <-ctx.Done():
 	case <-c.PONG:
 	case <-time.After(time.Second * 10):
 		errs <- ErrPingTimeout
