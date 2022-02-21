@@ -99,9 +99,9 @@ func populateHostname(addr string) string {
 
 	var r net.Resolver
 	names, err := r.LookupAddr(timeoutCtx, host)
-	if err != nil {
+	if err != nil || len(names) == 0 {
 		// could not resolve hostname
-		return addr
+		return host
 	}
 
 	return names[0]
