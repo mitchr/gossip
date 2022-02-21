@@ -119,10 +119,10 @@ func (s *Scram) ParseClientFinal(m string) error {
 }
 
 func (s *Scram) GenServerFinal() ([]byte, error) {
-	authMsg := fmt.Sprintf("%s,%s,%s", s.clientFirstBare, s.serverFirst, s.clientFinalWithoutProof)
+	authMsg := []byte(fmt.Sprintf("%s,%s,%s", s.clientFirstBare, s.serverFirst, s.clientFinalWithoutProof))
 
 	mac := hmac.New(s.hash, s.cred.StoredKey)
-	mac.Write([]byte(authMsg))
+	mac.Write(authMsg)
 	clientSignature := mac.Sum(nil)
 
 	clientKey := bytewiseXOR(clientSignature, s.proof)
@@ -136,11 +136,11 @@ func (s *Scram) GenServerFinal() ([]byte, error) {
 	}
 
 	mac = hmac.New(s.hash, s.cred.ServerKey)
-	mac.Write([]byte(authMsg))
+	mac.Write(authMsg)
 	serverSignature := mac.Sum(nil)
 
 	verifier := make([]byte, base64.StdEncoding.EncodedLen(len(serverSignature)))
-	base64.StdEncoding.Encode(verifier, []byte(serverSignature))
+	base64.StdEncoding.Encode(verifier, serverSignature)
 	return append([]byte("v="), verifier...), nil
 }
 
