@@ -12,14 +12,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func TestCredential(t *testing.T) {
-	c := NewCredential(sha1.New, "username", "pass", "salt", 100)
-
-	if !c.Check("username", []byte("pass")) {
-		t.Error("check failed")
-	}
-}
-
 func TestSCRAM(t *testing.T) {
 	tests := []struct {
 		// used for creating credential
