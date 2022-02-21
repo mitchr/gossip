@@ -168,3 +168,25 @@ func constructISUPPORT() []string {
 
 	return lines
 }
+
+func whoreplyFlagsForClient(c *client.Client) string {
+	flags := "H"
+	if c.Is(client.Away) {
+		flags = "G"
+	}
+	if c.Is(client.Op) {
+		flags += "*"
+	}
+	return flags
+}
+
+func whoreplyFlagsForMember(m *channel.Member) string {
+	flags := whoreplyFlagsForClient(m.Client)
+	if m.Is(channel.Operator) {
+		flags += "@"
+	}
+	if m.Is(channel.Voice) {
+		flags += "+"
+	}
+	return flags
+}

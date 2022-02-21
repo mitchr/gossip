@@ -688,33 +688,13 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 			continue
 		}
 
-		flags := whoreplyFlagsForClient(v)
-		s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
+		if wild.Match(mask, strings.ToLower(v.Nick)) {
+			flags := whoreplyFlagsForClient(v)
+			s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
+		}
 	}
 	s.clientLock.RUnlock()
 	s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
-}
-
-func whoreplyFlagsForClient(c *client.Client) string {
-	flags := "H"
-	if c.Is(client.Away) {
-		flags = "G"
-	}
-	if c.Is(client.Op) {
-		flags += "*"
-	}
-	return flags
-}
-
-func whoreplyFlagsForMember(m *channel.Member) string {
-	flags := whoreplyFlagsForClient(m.Client)
-	if m.Is(channel.Operator) {
-		flags += "@"
-	}
-	if m.Is(channel.Voice) {
-		flags += "+"
-	}
-	return flags
 }
 
 // we only support the <mask> *( "," <mask> ) parameter, target seems
