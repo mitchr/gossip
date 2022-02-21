@@ -8,7 +8,6 @@ import (
 
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/client"
-	"github.com/mitchr/gossip/sasl"
 	"github.com/mitchr/gossip/sasl/external"
 	"github.com/mitchr/gossip/sasl/plain"
 	"github.com/mitchr/gossip/sasl/scram"
@@ -92,14 +91,15 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	challenge, err := c.SASLMech.Next(decodedResp)
-	if err == sasl.ErrDone {
+	if err != nil {
+		s.writeReply(c, c.Id(), ERR_SASLFAIL)
+		return
+	}
+	if challenge == nil {
 		c.IsAuthenticated = true
 		// TODO: what are <account> and <user>?
 		s.writeReply(c, c.Id(), RPL_LOGGEDIN, c, c.Id(), c.Id())
 		s.writeReply(c, c.Id(), RPL_SASLSUCCESS)
-		return
-	} else if err != nil {
-		s.writeReply(c, c.Id(), ERR_SASLFAIL)
 		return
 	}
 

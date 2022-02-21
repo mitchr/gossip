@@ -11,8 +11,6 @@ import (
 	"hash"
 	"math/big"
 	"strings"
-
-	"github.com/mitchr/gossip/sasl"
 )
 
 type Scram struct {
@@ -56,7 +54,7 @@ func (s *Scram) Next(clientResponse []byte) (challenge []byte, err error) {
 		return s.GenServerFinal()
 	}
 
-	return nil, sasl.ErrDone
+	return nil, nil
 }
 
 func New(db *sql.DB, h func() hash.Hash) *Scram { return &Scram{db: db, hash: h} }

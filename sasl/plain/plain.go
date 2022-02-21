@@ -52,7 +52,7 @@ func (p *Plain) Next(b []byte) (challenge []byte, err error) {
 		return nil, sasl.ErrInvalidKey
 	}
 
-	return nil, sasl.ErrDone
+	return nil, nil
 }
 
 func (p *Plain) lookup(username string) (*Credential, error) {

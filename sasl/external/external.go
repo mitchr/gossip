@@ -51,7 +51,7 @@ func (e *External) Next([]byte) (challenge []byte, err error) {
 		return nil, sasl.ErrInvalidKey
 	}
 
-	return nil, sasl.ErrDone
+	return nil, nil
 }
 
 func (e *External) lookup(username string) (*Credential, error) {
