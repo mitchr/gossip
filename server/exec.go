@@ -265,6 +265,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 				TOPIC(s, c, &msg.Message{Params: []string{ch.String()}})
 			}
 			NAMES(s, c, &msg.Message{Params: []string{ch.String()}})
+			s.awayNotify(c, ch)
 		} else { // create new channel
 			chanChar := channel.ChanType(chans[i][0])
 			chanName := chans[i][1:]
@@ -867,6 +868,8 @@ func PONG(s *Server, c *client.Client, m *msg.Message) {
 func ERROR(s *Server, c *client.Client, m *msg.Message) {}
 
 func AWAY(s *Server, c *client.Client, m *msg.Message) {
+	defer s.awayNotify(c, s.channelsOf(c)...)
+
 	// remove away
 	if len(m.Params) == 0 {
 		c.AwayMsg = ""
@@ -878,6 +881,22 @@ func AWAY(s *Server, c *client.Client, m *msg.Message) {
 	c.AwayMsg = m.Params[0]
 	c.Mode |= client.Away
 	s.writeReply(c, c.Id(), RPL_NOWAWAY)
+}
+
+func (s *Server) awayNotify(c *client.Client, chans ...*channel.Channel) {
+	for _, v := range chans {
+		v.MembersLock.RLock()
+		for _, m := range v.Members {
+			if m.Client == c {
+				continue
+			}
+			if m.Caps[cap.AwayNotify.Name] {
+				fmt.Fprintf(m, ":%s AWAY :%s", c, c.AwayMsg)
+				m.Flush()
+			}
+		}
+		v.MembersLock.RUnlock()
+	}
 }
 
 func REHASH(s *Server, c *client.Client, m *msg.Message) {

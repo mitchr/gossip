@@ -9,6 +9,7 @@ import (
 	"time"
 
 	cap "github.com/mitchr/gossip/capability"
+	"github.com/mitchr/gossip/channel"
 )
 
 func TestCAP(t *testing.T) {
@@ -238,6 +239,53 @@ func TestMessageTags(t *testing.T) {
 		c1.Write([]byte("@+testTag PRIVMSG b :hey I attached a tag\r\n"))
 		resp, _ := r2.ReadBytes('\n')
 		assertResponse(resp, "@+testTag :a!a@localhost PRIVMSG b :hey I attached a tag\r\n", t)
+	})
+}
+
+func TestAwayNotify(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("a", "A")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("b", "B")
+	defer c2.Close()
+	c1.Write([]byte("CAP REQ :away-notify\r\n"))
+	r1.ReadBytes('\n')
+
+	a, _ := s.getClient("a")
+	b, _ := s.getClient("b")
+	local := channel.New("local", channel.Remote)
+	local.SetMember(&channel.Member{Client: a})
+	local.SetMember(&channel.Member{Client: b})
+	s.setChannel(local)
+
+	t.Run("TestShouldNotifyChannel", func(t *testing.T) {
+		c2.Write([]byte("AWAY :I'm away\r\n"))
+		resp, _ := r2.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(RPL_NOWAWAY+"\r\n", s.Name, b.Nick), t)
+
+		notify, _ := r1.ReadBytes('\n')
+		assertResponse(notify, fmt.Sprintf(":%s AWAY :%s\r\n", b, b.AwayMsg), t)
+	})
+
+	t.Run("TestShouldNotifyOnJoin", func(t *testing.T) {
+		c3, r3 := connectAndRegister("d", "D")
+		defer c3.Close()
+		c3.Write([]byte("AWAY :My away msg\r\nJOIN #local\r\n"))
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+		r3.ReadBytes('\n')
+
+		r1.ReadBytes('\n')
+		notify, _ := r1.ReadBytes('\n')
+		d, _ := s.getClient("d")
+		assertResponse(notify, fmt.Sprintf(":%s AWAY :%s\r\n", d, d.AwayMsg), t)
 	})
 }
 

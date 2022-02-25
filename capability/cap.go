@@ -8,6 +8,7 @@ type Cap struct {
 func (c Cap) String() string { return c.Name }
 
 var (
+	AwayNotify  = Cap{Name: "away-notify"}
 	CapNotify   = Cap{Name: "cap-notify"}
 	EchoMessage = Cap{Name: "echo-message"}
 	MessageTags = Cap{Name: "message-tags"}
@@ -18,5 +19,5 @@ var (
 )
 
 func IsRecognized(c string) bool {
-	return c == CapNotify.Name || c == EchoMessage.Name || c == MessageTags.Name || c == SASL.Name || c == ServerTime.Name || c == STS.Name
+	return c == AwayNotify.Name || c == CapNotify.Name || c == EchoMessage.Name || c == MessageTags.Name || c == SASL.Name || c == ServerTime.Name || c == STS.Name
 }
