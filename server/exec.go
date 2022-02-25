@@ -151,7 +151,7 @@ func OPER(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	c.Mode ^= client.Op
+	c.Mode |= client.Op
 	s.writeReply(c, c.Id(), RPL_YOUREOPER)
 	fmt.Fprintf(c, ":%s MODE %s +o", s.Name, c.Nick)
 }
@@ -198,7 +198,7 @@ func (s *Server) endRegistration(c *client.Client) {
 		}
 	}
 
-	c.Mode ^= client.Registered
+	c.Mode |= client.Registered
 	s.setClient(c)
 	s.unknownLock.Lock()
 	s.unknowns--
@@ -870,13 +870,13 @@ func AWAY(s *Server, c *client.Client, m *msg.Message) {
 	// remove away
 	if len(m.Params) == 0 {
 		c.AwayMsg = ""
-		c.Mode ^= client.Away
+		c.Mode &^= client.Away
 		s.writeReply(c, c.Id(), RPL_UNAWAY)
 		return
 	}
 
 	c.AwayMsg = m.Params[0]
-	c.Mode ^= client.Away
+	c.Mode |= client.Away
 	s.writeReply(c, c.Id(), RPL_NOWAWAY)
 }
 

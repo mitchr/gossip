@@ -49,8 +49,10 @@ func (c *Client) ApplyMode(m mode.Mode) bool {
 			if mask == Op || mask == LocalOp {
 				return false
 			}
+			c.Mode |= mask
+		} else {
+			c.Mode &^= mask
 		}
-		c.Mode ^= mask
 	}
 	return ok
 }
