@@ -251,7 +251,7 @@ const timeFormat string = "2006-01-02T15:04:05.999Z"
 func (c *Client) PrepareMessage(b []byte) []byte {
 	temp := b
 	if c.Caps[capability.ServerTime.Name] {
-		serverTime := "@time=" + time.Now().Format(timeFormat) + " "
+		serverTime := "@time=" + time.Now().UTC().Format(timeFormat) + " "
 		temp = append([]byte(serverTime), temp...)
 	}
 	temp = append(temp, '\r', '\n')
