@@ -27,11 +27,11 @@ var capHandlers = map[string]capHandler{
 	cap.EchoMessage.Name: doNothing,
 	cap.MessageTags.Name: messageTags,
 	cap.SASL.Name:        doNothing,
-	cap.ServerTime.Name:  doNothing,
+	cap.ServerTime.Name:  implictlyRequireMessageTags, // server-time implicitly requires message-tags
 }
 
 // used to capabilities that are just basically advertisements, like cap-notify
-func doNothing(c *Client, r bool) {}
+func doNothing(*Client, bool) {}
 
 func messageTags(c *Client, remove bool) {
 	if !remove {
@@ -39,5 +39,14 @@ func messageTags(c *Client, remove bool) {
 		c.msgSizeChange <- 8191 + 512
 	} else {
 		c.msgSizeChange <- 512
+	}
+}
+
+func implictlyRequireMessageTags(c *Client, remove bool) {
+	messageTags(c, remove)
+	if remove {
+		delete(c.Caps, cap.MessageTags.Name)
+	} else {
+		c.Caps[cap.MessageTags.Name] = true
 	}
 }
