@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"database/sql"
@@ -265,7 +266,7 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, msgs chan<- *
 		default:
 			buff, err := c.ReadMsg()
 			if s.Debug && len(buff) != 0 {
-				log.Printf("[%s]: %s\n", c.RemoteAddr(), string(buff[:len(buff)-2]))
+				log.Printf("[%s]: %s\n", c.RemoteAddr(), string(bytes.TrimRight(buff, "\r\n")))
 			}
 
 			if err != nil {
