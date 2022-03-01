@@ -15,9 +15,10 @@ import (
 func TestSCRAM(t *testing.T) {
 	tests := []struct {
 		// used for creating credential
-		hash       func() hash.Hash
-		pass, salt string
-		iter       int
+		hash func() hash.Hash
+		pass string
+		salt []byte
+		iter int
 
 		sNonce string
 
@@ -62,11 +63,11 @@ func TestSCRAM(t *testing.T) {
 		s.ParseClientFinal(v.clientFinal)
 		serverFinal, err := s.GenServerFinal()
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 
 		if v.serverFinal != string(serverFinal) {
-			t.Error("something went wrong")
+			t.Fatal("something went wrong")
 		}
 
 		DB.Exec("DELETE FROM sasl_scram")
@@ -79,7 +80,7 @@ func TestSCRAMLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c := NewCredential(sha1.New, "username", "pass", "salt", 100)
+	c := NewCredential(sha1.New, "username", "pass", []byte("salt"), 100)
 	DB.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", c.Username, c.ServerKey, c.StoredKey, c.Salt, c.Iteration)
 
 	s := &Scram{db: DB}
@@ -112,8 +113,8 @@ func initTable() (*sql.DB, error) {
 	return DB, nil
 }
 
-func decodeBase64(s string) string {
-	decoded := make([]byte, base64.StdEncoding.Strict().DecodedLen(len(s)))
-	n, _ := base64.StdEncoding.Strict().Decode(decoded, []byte(s))
-	return string(decoded[:n])
+func decodeBase64(s string) []byte {
+	decoded := make([]byte, base64.StdEncoding.DecodedLen(len(s)))
+	n, _ := base64.StdEncoding.Decode(decoded, []byte(s))
+	return decoded[:n]
 }

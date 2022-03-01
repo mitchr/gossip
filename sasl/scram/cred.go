@@ -19,10 +19,10 @@ type Credential struct {
 	Iteration int
 }
 
-func NewCredential(hash func() hash.Hash, uname, pass, salt string, iter int) *Credential {
-	c := &Credential{hash: hash, Username: uname, Salt: []byte(salt), Iteration: iter}
+func NewCredential(hash func() hash.Hash, uname, pass string, salt []byte, iter int) *Credential {
+	c := &Credential{hash: hash, Username: uname, Salt: salt, Iteration: iter}
 
-	saltedPass := pbkdf2.Key([]byte(pass), []byte(salt), iter, hash().Size(), hash)
+	saltedPass := pbkdf2.Key([]byte(pass), salt, iter, hash().Size(), hash)
 
 	mac := hmac.New(hash, saltedPass)
 	mac.Write([]byte("Server Key"))

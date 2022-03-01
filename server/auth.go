@@ -131,7 +131,7 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 
 		salt := make([]byte, 16)
 		rand.Read(salt)
-		scramCred := scram.NewCredential(sha256.New, c.Id(), pass, base64.StdEncoding.EncodeToString(salt), 4096)
+		scramCred := scram.NewCredential(sha256.New, c.Id(), pass, salt, 4096)
 		s.db.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", scramCred.Username, scramCred.ServerKey, scramCred.StoredKey, scramCred.Salt, scramCred.Iteration)
 
 	case "CERT":
