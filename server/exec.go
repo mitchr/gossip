@@ -242,6 +242,9 @@ func SETNAME(s *Server, c *client.Client, m *msg.Message) {
 	for _, v := range chans {
 		v.MembersLock.RLock()
 		for _, m := range v.Members {
+			if m.Client == c {
+				continue
+			}
 			if !m.Caps[cap.Setname.Name] {
 				continue
 			}
