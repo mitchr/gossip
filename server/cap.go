@@ -77,7 +77,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 			v = v[1:]
 			remove = true
 		}
-		if cap.IsRecognized(v) {
+		if s.hasCap(v) {
 			todo[i] = func() { c.ApplyCap(v, remove) }
 		} else { // capability not recognized
 			s.writeReply(c, c.Id(), ":%s CAP %s NAK :%s", strings.Join(params, " "))

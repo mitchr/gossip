@@ -18,7 +18,3 @@ var (
 	STS         = Cap{Name: "sts", Value: "port=%s,duration=%.f"}
 	// MultiPrefix = Capability{"multi-prefix", ""}
 )
-
-func IsRecognized(c string) bool {
-	return c == AwayNotify.Name || c == CapNotify.Name || c == EchoMessage.Name || c == MessageTags.Name || c == SASL.Name || c == ServerTime.Name || c == Setname.Name || c == STS.Name
-}

@@ -82,6 +82,15 @@ func New(c *Config) (*Server, error) {
 	return s, nil
 }
 
+func (s *Server) hasCap(cap string) bool {
+	for _, v := range s.supportedCaps {
+		if v.Name == cap {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) loadDatabase(datasource string) error {
 	var err error
 	s.db, err = sql.Open("sqlite", datasource)
