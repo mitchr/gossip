@@ -28,6 +28,7 @@ var capHandlers = map[string]capHandler{
 	cap.MessageTags.Name: messageTags,
 	cap.SASL.Name:        doNothing,
 	cap.ServerTime.Name:  implictlyRequireMessageTags, // server-time implicitly requires message-tags
+	cap.Setname.Name:     doNothing,
 }
 
 // used to capabilities that are just basically advertisements, like cap-notify

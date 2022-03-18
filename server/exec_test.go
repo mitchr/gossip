@@ -216,6 +216,57 @@ func TestQUIT(t *testing.T) {
 	})
 }
 
+func TestSETNAME(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("alice", "Alice Smith")
+	defer c.Close()
+
+	t.Run("EmptyRealname", func(t *testing.T) {
+		c.Write([]byte("SETNAME\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, "FAIL SETNAME INVALID_REALNAME :Realname cannot be empty\r\n", t)
+	})
+
+	t.Run("Success", func(t *testing.T) {
+		c.Write([]byte("CAP REQ setname\r\nSETNAME :myName\r\n"))
+		r.ReadBytes('\n')
+		resp, _ := r.ReadBytes('\n')
+
+		alice, _ := s.getClient("alice")
+		assertResponse(resp, fmt.Sprintf(":%s SETNAME :myName\r\n", alice), t)
+		if alice.Realname != "myName" {
+			t.Error("did not change real name")
+		}
+	})
+
+	t.Run("ChannelNotify", func(t *testing.T) {
+		c2, r2 := connectAndRegister("bob", "Bob Smith")
+		defer c2.Close()
+
+		local := channel.New("local", channel.Remote)
+		alice, _ := s.getClient("alice")
+		bob, _ := s.getClient("bob")
+		local.SetMember(&channel.Member{Client: alice, Prefix: string(channel.Operator)})
+		local.SetMember(&channel.Member{Client: bob})
+		s.setChannel(local)
+
+		c2.Write([]byte("CAP REQ setname\r\nSETNAME :bobSmith\r\n"))
+		r2.ReadBytes('\n')
+		resp, _ := r2.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s SETNAME :bobSmith\r\n", bob), t)
+
+		bobsChange, _ := r.ReadBytes('\n')
+		assertResponse(bobsChange, fmt.Sprintf(":%s SETNAME :bobSmith\r\n", bob), t)
+	})
+
+}
+
 func TestChannelCreation(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {

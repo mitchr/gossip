@@ -56,7 +56,7 @@ func New(c *Config) (*Server, error) {
 		created:       time.Now(),
 		clients:       make(map[string]*client.Client),
 		channels:      make(map[string]*channel.Channel),
-		supportedCaps: []cap.Cap{cap.AwayNotify, cap.CapNotify, cap.EchoMessage, cap.MessageTags, cap.SASL, cap.ServerTime},
+		supportedCaps: []cap.Cap{cap.AwayNotify, cap.CapNotify, cap.EchoMessage, cap.MessageTags, cap.SASL, cap.ServerTime, cap.Setname},
 	}
 
 	err := s.loadDatabase(s.Datasource)

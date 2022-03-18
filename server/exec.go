@@ -29,6 +29,7 @@ var commands = map[string]executor{
 	"CAP":          CAP,
 	"AUTHENTICATE": AUTHENTICATE,
 	"REGISTER":     REGISTER,
+	"SETNAME":      SETNAME,
 
 	// chanOps
 	"JOIN":   JOIN,
@@ -219,6 +220,37 @@ func (s *Server) endRegistration(c *client.Client) {
 
 	// after registration burst, give clients max grants
 	c.FillGrants()
+}
+
+func SETNAME(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) < 1 {
+		s.stdReply(c, FAIL, "SETNAME", "INVALID_REALNAME", "", "Realname cannot be empty")
+		return
+	}
+
+	// TODO: should validate here (check for length/unicode garbage etc)
+	c.Realname = m.Params[0]
+
+	// "If a client sends a SETNAME command without having negotiated the
+	// capability, the server SHOULD handle it silently (with no
+	// response), as historic implementations did."
+	if _, verbose := c.Caps[cap.Setname.Name]; !verbose {
+		return
+	}
+
+	chans := s.channelsOf(c)
+	for _, v := range chans {
+		v.MembersLock.RLock()
+		for _, m := range v.Members {
+			if !m.Caps[cap.Setname.Name] {
+				continue
+			}
+			fmt.Fprintf(m, ":%s SETNAME :%s", c, c.Realname)
+			m.Flush()
+		}
+		v.MembersLock.RUnlock()
+	}
+	fmt.Fprintf(c, ":%s SETNAME :%s", c, c.Realname)
 }
 
 func JOIN(s *Server, c *client.Client, m *msg.Message) {
