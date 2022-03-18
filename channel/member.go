@@ -35,6 +35,24 @@ func (m Member) HighestPrefix() prefix {
 	return -1
 }
 
+// Reconstruct this member's prefix string as a string of each prefix
+// matched to its corresponding mode letter
+func (m Member) ModeLetters() string {
+	prefixToLetter := make(map[prefix]rune)
+	for k, v := range memberLetter {
+		prefixToLetter[v] = k
+	}
+
+	s := ""
+	for _, l := range m.Prefix {
+		letter, ok := prefixToLetter[prefix(l)]
+		if ok {
+			s += string(letter)
+		}
+	}
+	return s
+}
+
 func (c *Member) ApplyMode(m mode.Mode) bool {
 	r, ok := memberLetter[m.ModeChar]
 	if ok {

@@ -24,6 +24,7 @@ type capHandler func(*Client, bool)
 var capHandlers = map[string]capHandler{
 	cap.AwayNotify.Name:  doNothing,
 	cap.CapNotify.Name:   doNothing,
+	cap.Chghost.Name:     doNothing,
 	cap.EchoMessage.Name: doNothing,
 	cap.MessageTags.Name: messageTags,
 	cap.SASL.Name:        doNothing,

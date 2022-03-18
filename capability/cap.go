@@ -10,6 +10,7 @@ func (c Cap) String() string { return c.Name }
 var (
 	AwayNotify  = Cap{Name: "away-notify"}
 	CapNotify   = Cap{Name: "cap-notify"}
+	Chghost     = Cap{Name: "chghost"}
 	EchoMessage = Cap{Name: "echo-message"}
 	MessageTags = Cap{Name: "message-tags"}
 	SASL        = Cap{Name: "sasl", Value: "PLAIN,EXTERNAL,SCRAM"}

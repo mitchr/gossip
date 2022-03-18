@@ -264,7 +264,65 @@ func TestSETNAME(t *testing.T) {
 		bobsChange, _ := r.ReadBytes('\n')
 		assertResponse(bobsChange, fmt.Sprintf(":%s SETNAME :bobSmith\r\n", bob), t)
 	})
+}
 
+func TestCHGHOST(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("alice", "Alice Smith")
+	defer c.Close()
+
+	t.Run("NotEnoughParams", func(t *testing.T) {
+		c.Write([]byte("CHGHOST\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(ERR_NEEDMOREPARAMS+"\r\n", s.Name, "alice", "CHGHOST"), t)
+	})
+
+	t.Run("Success", func(t *testing.T) {
+		alice, _ := s.getClient("alice")
+		oldPrefix := alice.String()
+
+		c.Write([]byte("CAP REQ chghost\r\nCHGHOST newUser newHost\r\n"))
+		r.ReadBytes('\n')
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s CHGHOST newUser newHost\r\n", oldPrefix), t)
+		if alice.User != "newUser" {
+			t.Error("did not change user")
+		}
+		if alice.Host != "newHost" {
+			t.Error("did not change host")
+		}
+	})
+
+	t.Run("ChannelNotifyNoCapSupported", func(t *testing.T) {
+		c2, r2 := connectAndRegister("bob", "Bob Smith")
+		defer c2.Close()
+
+		local := channel.New("local", channel.Remote)
+		alice, _ := s.getClient("alice")
+		bob, _ := s.getClient("bob")
+		local.SetMember(&channel.Member{Client: alice, Prefix: string(channel.Operator)})
+		local.SetMember(&channel.Member{Client: bob})
+		s.setChannel(local)
+
+		oldPrefix := alice.String()
+		c.Write([]byte("CHGHOST user1 host1\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s CHGHOST user1 host1\r\n", oldPrefix), t)
+
+		quit, _ := r2.ReadBytes('\n')
+		join, _ := r2.ReadBytes('\n')
+		modes, _ := r2.ReadBytes('\n')
+		assertResponse(quit, fmt.Sprintf(":%s QUIT :Changing hostname\r\n", oldPrefix), t)
+		assertResponse(join, fmt.Sprintf(":%s JOIN #local\r\n", alice), t)
+		assertResponse(modes, fmt.Sprintf(":%s MODE #local +o alice\r\n", s.Name), t)
+	})
 }
 
 func TestChannelCreation(t *testing.T) {

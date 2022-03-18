@@ -30,6 +30,7 @@ var commands = map[string]executor{
 	"AUTHENTICATE": AUTHENTICATE,
 	"REGISTER":     REGISTER,
 	"SETNAME":      SETNAME,
+	"CHGHOST":      CHGHOST,
 
 	// chanOps
 	"JOIN":   JOIN,
@@ -254,6 +255,47 @@ func SETNAME(s *Server, c *client.Client, m *msg.Message) {
 		v.MembersLock.RUnlock()
 	}
 	fmt.Fprintf(c, ":%s SETNAME :%s", c, c.Realname)
+}
+
+func CHGHOST(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) < 2 {
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "CHGHOST")
+		return
+	}
+
+	oldPrefix := c.String()
+
+	c.User = m.Params[0]
+	c.Host = m.Params[1]
+
+	chans := s.channelsOf(c)
+	for _, v := range chans {
+		member, _ := v.GetMember(c.Nick)
+		modes := member.ModeLetters()
+		v.MembersLock.RLock()
+		for _, m := range v.Members {
+			if m.Client == c {
+				continue
+			}
+			if m.Caps[cap.Chghost.Name] {
+				fmt.Fprintf(m, ":%s CHGHOST %s %s", oldPrefix, c.User, c.Host)
+			} else {
+				fmt.Fprintf(m, ":%s QUIT :Changing hostname", oldPrefix)
+				fmt.Fprintf(m, ":%s JOIN %s", c, v)
+				if modes != "" {
+					fmt.Fprintf(m, ":%s MODE %s +%s %s", s.Name, v, modes, c.Nick)
+				}
+			}
+			m.Flush()
+		}
+		v.MembersLock.RUnlock()
+	}
+
+	// "send the CHGHOST message to the client whose own username or host
+	// changed, if that client also supports the chghost capability"
+	if _, verbose := c.Caps[cap.Chghost.Name]; verbose {
+		fmt.Fprintf(c, ":%s CHGHOST %s %s", oldPrefix, c.User, c.Host)
+	}
 }
 
 func JOIN(s *Server, c *client.Client, m *msg.Message) {
