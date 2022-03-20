@@ -963,6 +963,24 @@ func TestWHOClient(t *testing.T) {
 	})
 }
 
+func TestWHOXClient(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, _ := connectAndRegister("bob", "Bob Smith")
+	defer c2.Close()
+
+	c1.Write([]byte("WHO bob %%tcuihsnfdlaor,10\r\n"))
+	resp, _ := r1.ReadBytes('\n')
+	assertResponse(resp, fmt.Sprintf(":%s 354 alice 10 * bob 127.0.0.1 localhost gossip H 0 0 :Bob Smith\r\n", s.Name), t)
+}
+
 func TestWHOChannel(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {

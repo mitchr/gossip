@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -727,6 +728,12 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 
+	whox := len(m.Params) > 1
+	var fields string
+	if whox {
+		fields = m.Params[1]
+	}
+
 	// first, try to match channels exactly against the mask. if exists,
 	// returns WHOREPLY for every member in channel. else, we will match
 	// exactly against the client name.
@@ -734,8 +741,13 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 	if ok {
 		ch.MembersLock.RLock()
 		for _, member := range ch.Members {
-			flags := whoreplyFlagsForMember(member)
-			s.writeReply(c, c.Id(), RPL_WHOREPLY, ch, member.User, member.Host, s.Name, member.Nick, flags, member.Realname)
+			if whox {
+				resp := constructSpcrplResponse(fields, member.Client, s)
+				s.writeReply(c, c.Id(), RPL_WHOSPCRPL, resp)
+			} else {
+				flags := whoreplyFlagsForMember(member)
+				s.writeReply(c, c.Id(), RPL_WHOREPLY, ch, member.User, member.Host, s.Name, member.Nick, flags, member.Realname)
+			}
 		}
 		ch.MembersLock.RUnlock()
 		s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
@@ -745,8 +757,13 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 	// no channel results found, match against a single client
 	whoClient, ok := s.getClient(mask)
 	if ok {
-		flags := whoreplyFlagsForClient(whoClient)
-		s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", whoClient.User, whoClient.Host, s.Name, whoClient.Nick, flags, whoClient.Realname)
+		if whox {
+			resp := constructSpcrplResponse(fields, whoClient, s)
+			s.writeReply(c, c.Id(), RPL_WHOSPCRPL, resp)
+		} else {
+			flags := whoreplyFlagsForClient(whoClient)
+			s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", whoClient.User, whoClient.Host, s.Name, whoClient.Nick, flags, whoClient.Realname)
+		}
 		s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
 		return
 	}
@@ -767,12 +784,70 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 		}
 
 		if wild.Match(mask, strings.ToLower(v.Nick)) {
-			flags := whoreplyFlagsForClient(v)
-			s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
+			if whox {
+				resp := constructSpcrplResponse(fields, v, s)
+				s.writeReply(c, c.Id(), RPL_WHOSPCRPL, resp)
+			} else {
+				flags := whoreplyFlagsForClient(v)
+				s.writeReply(c, c.Id(), RPL_WHOREPLY, "*", v.User, v.Host, s.Name, v.Nick, flags, v.Realname)
+			}
 		}
 	}
 	s.clientLock.RUnlock()
 	s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
+}
+
+// construct params used in whox reply
+func constructSpcrplResponse(fields string, c *client.Client, s *Server) string {
+	resp := make([]string, 0, len(fields))
+
+	if strings.ContainsRune(fields, 't') {
+		f := strings.Split(fields, ",")
+		if len(f) > 1 {
+			resp = append(resp, f[1])
+		}
+	}
+	if strings.ContainsRune(fields, 'c') {
+		channel := "*"
+		chans := s.channelsOf(c)
+		if len(chans) > 0 {
+			channel = chans[0].String()
+		}
+		resp = append(resp, channel)
+	}
+	if strings.ContainsRune(fields, 'u') {
+		resp = append(resp, c.User)
+	}
+	if strings.ContainsRune(fields, 'i') {
+		// TODO: will this assertion fail if we add support for websockets?
+		resp = append(resp, c.Conn.RemoteAddr().(*net.TCPAddr).IP.String())
+	}
+	if strings.ContainsRune(fields, 'h') {
+		resp = append(resp, c.Host)
+	}
+	if strings.ContainsRune(fields, 's') {
+		resp = append(resp, s.Name)
+	}
+	if strings.ContainsRune(fields, 'f') {
+		flags := whoreplyFlagsForClient(c)
+		resp = append(resp, flags)
+	}
+	if strings.ContainsRune(fields, 'd') {
+		resp = append(resp, "0")
+	}
+	if strings.ContainsRune(fields, 'l') {
+		resp = append(resp, fmt.Sprintf("%v", time.Since(c.Idle).Round(time.Second).Seconds()))
+	}
+	if strings.ContainsRune(fields, 'a') {
+		// TODO: add account name
+	}
+	if strings.ContainsRune(fields, 'o') {
+		// TODO: add channel op level
+	}
+	if strings.ContainsRune(fields, 'r') {
+		resp = append(resp, ":"+c.Realname)
+	}
+	return strings.Join(resp, " ")
 }
 
 // we only support the <mask> *( "," <mask> ) parameter, target seems
