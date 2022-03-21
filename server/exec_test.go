@@ -978,7 +978,7 @@ func TestWHOXClient(t *testing.T) {
 
 	c1.Write([]byte("WHO bob %%tcuihsnfdlaor,10\r\n"))
 	resp, _ := r1.ReadBytes('\n')
-	assertResponse(resp, fmt.Sprintf(":%s 354 alice 10 * bob 127.0.0.1 localhost gossip H 0 0 :Bob Smith\r\n", s.Name), t)
+	assertResponse(resp, fmt.Sprintf(":%s 354 alice 10 * bob 127.0.0.1 localhost gossip H 0 0 0 :Bob Smith\r\n", s.Name), t)
 }
 
 func TestWHOChannel(t *testing.T) {

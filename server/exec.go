@@ -839,7 +839,11 @@ func constructSpcrplResponse(fields string, c *client.Client, s *Server) string 
 		resp = append(resp, fmt.Sprintf("%v", time.Since(c.Idle).Round(time.Second).Seconds()))
 	}
 	if strings.ContainsRune(fields, 'a') {
-		// TODO: add account name
+		a := "0"
+		if c.IsAuthenticated {
+			a = c.Nick
+		}
+		resp = append(resp, a)
 	}
 	if strings.ContainsRune(fields, 'o') {
 		// TODO: add channel op level
