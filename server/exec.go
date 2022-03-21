@@ -1088,7 +1088,7 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	upper := strings.ToUpper(m.Command)
 	// ignore unregistered user commands until registration completes
-	if !c.Is(client.Registered) && (upper != "CAP" && upper != "NICK" && upper != "USER" && upper != "PASS" && upper != "AUTHENTICATE") {
+	if !c.Is(client.Registered) && (upper != "CAP" && upper != "NICK" && upper != "USER" && upper != "PASS" && upper != "AUTHENTICATE" && upper != "QUIT") {
 		return
 	}
 
