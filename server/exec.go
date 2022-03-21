@@ -1012,7 +1012,11 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 }
 
 func PING(s *Server, c *client.Client, m *msg.Message) {
-	fmt.Fprintf(c, ":%s PONG", s.Name)
+	token := ""
+	if len(m.Params) > 0 {
+		token = " " + m.Params[0]
+	}
+	fmt.Fprintf(c, ":%s PONG%s", s.Name, token)
 }
 
 func PONG(s *Server, c *client.Client, m *msg.Message) {

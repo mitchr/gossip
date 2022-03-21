@@ -1345,6 +1345,12 @@ func TestPING(t *testing.T) {
 	resp, _ := r.ReadBytes('\n')
 
 	assertResponse(resp, ":gossip PONG\r\n", t)
+
+	t.Run("PingWithToken", func(t *testing.T) {
+		c.Write([]byte("PING 1\r\n"))
+		resp, _ = r.ReadBytes('\n')
+		assertResponse(resp, ":gossip PONG 1\r\n", t)
+	})
 }
 
 func TestPONG(t *testing.T) {
