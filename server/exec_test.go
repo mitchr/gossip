@@ -1414,9 +1414,11 @@ func TestWALLOPS(t *testing.T) {
 	c2.Write([]byte("MODE bob +w\r\n"))
 	r2.ReadBytes('\n')
 
+	alice, _ := s.getClient("alice")
+
 	c1.Write([]byte("WALLOPS test\r\n"))
 	resp, _ := r2.ReadBytes('\n')
-	assertResponse(resp, "WALLOPS test\r\n", t)
+	assertResponse(resp, fmt.Sprintf(":%s WALLOPS test\r\n", alice), t)
 
 	t.Run("TestMissingParam", func(t *testing.T) {
 		c1.Write([]byte("WALLOPS\r\n"))

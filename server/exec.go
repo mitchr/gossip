@@ -1081,7 +1081,9 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 	s.clientLock.RLock()
 	for _, v := range s.clients {
 		if v.Is(client.Wallops) {
-			// TODO: enforce source if it is not given
+			m.Nick = c.Nick
+			m.User = c.User
+			m.Host = c.Host
 			fmt.Fprint(v, m)
 			v.Flush()
 		}
