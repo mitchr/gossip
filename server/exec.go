@@ -708,6 +708,8 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 					s.writeReply(c, c.Id(), ERR_UNKNOWNMODE, err, ch)
 				} else if errors.Is(err, channel.ErrNotInChan) {
 					s.writeReply(c, c.Id(), ERR_USERNOTINCHANNEL, err, ch)
+				} else if errors.Is(err, channel.ErrInvalidKey) {
+					s.writeReply(c, c.Id(), ERR_INVALIDKEY, ch)
 				}
 			}
 			// only write final MODE to channel if any mode was actually altered

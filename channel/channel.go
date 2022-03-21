@@ -205,6 +205,7 @@ var (
 	ErrNeedMoreParams = errors.New("")
 	ErrNotInChan      = errors.New("")
 	ErrUnknownMode    = errors.New("")
+	ErrInvalidKey     = errors.New("")
 )
 
 // ApplyMode applies the given mode to the channel. It does not
@@ -220,6 +221,13 @@ func (c *Channel) ApplyMode(m mode.Mode) (string, error) {
 
 	if p, ok := channelLetter[m.ModeChar]; ok {
 		applied += string(m.ModeChar)
+
+		// special branch for key validation
+		if m.ModeChar == 'k' && m.Type == mode.Add {
+			if !keyIsValid(m.Param) {
+				return "", fmt.Errorf("%w%s", ErrInvalidKey, applied)
+			}
+		}
 
 		if (p.addConsumes && m.Type == mode.Add) || (p.remConsumes && m.Type == mode.Remove) {
 			if m.Param == "" { // mode should have a param but doesn't
@@ -249,6 +257,10 @@ func (c *Channel) ApplyMode(m mode.Mode) (string, error) {
 	}
 
 	return applied, nil
+}
+
+func keyIsValid(key string) bool {
+	return key != "" && !strings.ContainsAny(key, "\000\r\n\t\v ") && len(key) < 23
 }
 
 // PopulateModeParams associates the given params with the Params field

@@ -755,6 +755,24 @@ func TestMODEChannel(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s 472 alice w :is unknown mode char to me for #local\r\n", s.Name), t)
 	})
 
+	t.Run("TestIllFormedKey", func(t *testing.T) {
+		c1.Write([]byte("MODE #local +k :ill-formed key\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 525 alice #local :Key is not well-formed\r\n", s.Name), t)
+	})
+
+	t.Run("TestEmptyKey", func(t *testing.T) {
+		c1.Write([]byte("MODE #local +k :\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 525 alice #local :Key is not well-formed\r\n", s.Name), t)
+	})
+
+	t.Run("TestTooLongKey", func(t *testing.T) {
+		c1.Write([]byte("MODE #local +k 123456789012345678901234\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 525 alice #local :Key is not well-formed\r\n", s.Name), t)
+	})
+
 	t.Run("TestRPLBANLIST", func(t *testing.T) {
 		s.clients["alice"].FillGrants()
 

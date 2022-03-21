@@ -80,6 +80,7 @@ const (
 	ERR_CHANOPRIVSNEEDED = ":%s 482 %s %s :You're not a channel operator"
 	ERR_UMODEUNKNOWNFLAG = ":%s 501 %s :Unknown MODE flag"
 	ERR_USERSDONTMATCH   = ":%s 502 %s :Can't change mode for other users"
+	ERR_INVALIDKEY       = ":%s 525 %s %s :Key is not well-formed"
 
 	RPL_LOGGEDIN    = ":%s 900 %s %s %s :You are now logged in as %s"
 	RPL_LOGGEDOUT   = ":%s 901 %s %s :You are not logged out"
