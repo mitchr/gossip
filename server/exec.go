@@ -109,15 +109,17 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 			fmt.Fprintf(v, ":%s NICK :%s", c, nick)
 
 			// update member map entry
-			m, _ := v.GetMember(c.Nick)
-			v.DeleteMember(c.Nick)
-			v.SetMember(m)
+			defer func(v *channel.Channel, oldNick string) {
+				m, _ := v.GetMember(oldNick)
+				v.DeleteMember(oldNick)
+				v.SetMember(m)
+			}(v, c.Nick)
 		}
 
 		// update client map entry
 		s.deleteClient(c.Nick)
-		s.setClient(c)
 		c.Nick = nick
+		s.setClient(c)
 	} else { // nick is being set for first time
 		c.Nick = nick
 		s.endRegistration(c)
