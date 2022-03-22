@@ -106,7 +106,15 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 		// user is part of that their nick changed
 		fmt.Fprintf(c, ":%s NICK :%s", c, nick)
 		for _, v := range s.channelsOf(c) {
-			fmt.Fprintf(v, ":%s NICK :%s", c, nick)
+			v.MembersLock.RLock()
+			for _, m := range v.Members {
+				if m.Client == c {
+					continue
+				}
+				fmt.Fprintf(m, ":%s NICK :%s", c, nick)
+				m.Flush()
+			}
+			v.MembersLock.RUnlock()
 
 			// update member map entry
 			defer func(v *channel.Channel, oldNick string) {
