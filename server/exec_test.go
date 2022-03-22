@@ -72,6 +72,19 @@ func TestRegistration(t *testing.T) {
 
 		assertResponse(resp, ":gossip 461 * USER :Not enough parameters\r\n", t)
 	})
+
+	t.Run("TestNickCaseChange", func(t *testing.T) {
+		conn, r := connectAndRegister("alice", "a")
+		defer conn.Close()
+
+		alice, _ := s.getClient("alice")
+		prefixBeforeChange := alice.String()
+
+		conn.Write([]byte("NICK Alice\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s NICK :Alice\r\n", prefixBeforeChange), t)
+	})
 }
 
 func TestOPER(t *testing.T) {
