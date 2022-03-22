@@ -1080,12 +1080,13 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
+	m.Nick = c.Nick
+	m.User = c.User
+	m.Host = c.Host
+
 	s.clientLock.RLock()
 	for _, v := range s.clients {
 		if v.Is(client.Wallops) {
-			m.Nick = c.Nick
-			m.User = c.User
-			m.Host = c.Host
 			fmt.Fprint(v, m)
 			v.Flush()
 		}
