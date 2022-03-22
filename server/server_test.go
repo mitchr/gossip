@@ -139,7 +139,7 @@ func TestFlooding(t *testing.T) {
 	c, r := connectAndRegister("alice", "Alice Smith")
 	defer c.Close()
 
-	for i := 0; i < 11; i++ {
+	for i := 0; i < 16; i++ {
 		c.Write([]byte("NICK\r\n"))
 		r.ReadString('\n')
 	}
