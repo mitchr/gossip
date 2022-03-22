@@ -729,8 +729,8 @@ func TestMODEChannel(t *testing.T) {
 	opApplied, _ := r1.ReadBytes('\n')
 	getModeResp, _ := r1.ReadBytes('\n')
 
-	assertResponse(passApplied, fmt.Sprintf(":%s MODE +k pass\r\n", s.Name), t)
-	assertResponse(opApplied, fmt.Sprintf(":%s MODE +o bob\r\n", s.Name), t)
+	assertResponse(passApplied, fmt.Sprintf(":%s MODE #local +k pass\r\n", s.Name), t)
+	assertResponse(opApplied, fmt.Sprintf(":%s MODE #local +o bob\r\n", s.Name), t)
 	assertResponse(getModeResp, fmt.Sprintf(":%s 324 alice #local k\r\n", s.Name), t)
 
 	if bob.Prefix != "@" {
@@ -847,8 +847,8 @@ func TestMODEChannel(t *testing.T) {
 
 		opRemoved, _ := r1.ReadBytes('\n')
 		keyRemoved, _ := r1.ReadBytes('\n')
-		assertResponse(opRemoved, fmt.Sprintf(":%s MODE -o bob\r\n", s.Name), t)
-		assertResponse(keyRemoved, fmt.Sprintf(":%s MODE -k\r\n", s.Name), t)
+		assertResponse(opRemoved, fmt.Sprintf(":%s MODE #local -o bob\r\n", s.Name), t)
+		assertResponse(keyRemoved, fmt.Sprintf(":%s MODE #local -k\r\n", s.Name), t)
 	})
 }
 

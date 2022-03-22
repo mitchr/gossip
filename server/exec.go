@@ -714,7 +714,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 			}
 			// only write final MODE to channel if any mode was actually altered
 			if applied != "" {
-				fmt.Fprintf(ch, ":%s MODE %s", s.Name, applied)
+				s.writeReply(ch, ch.String(), ":%s MODE %s %s", applied)
 			}
 		}
 	}
