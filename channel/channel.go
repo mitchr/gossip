@@ -88,6 +88,17 @@ func (c *Channel) DeleteMember(m string) {
 	delete(c.Members, strings.ToLower(m))
 }
 
+func (ch *Channel) ForAllMembersExcept(c *client.Client, f func(m *Member)) {
+	ch.MembersLock.RLock()
+	defer ch.MembersLock.RUnlock()
+	for _, v := range ch.Members {
+		if v.Client == c {
+			continue
+		}
+		f(v)
+	}
+}
+
 func (c *Channel) Modes() (modestr string, params []string) {
 	if len(c.Ban) != 0 {
 		modestr += "b"

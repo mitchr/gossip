@@ -106,15 +106,10 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 		// user is part of that their nick changed
 		fmt.Fprintf(c, ":%s NICK :%s", c, nick)
 		for _, v := range s.channelsOf(c) {
-			v.MembersLock.RLock()
-			for _, m := range v.Members {
-				if m.Client == c {
-					continue
-				}
+			v.ForAllMembersExcept(c, func(m *channel.Member) {
 				fmt.Fprintf(m, ":%s NICK :%s", c, nick)
 				m.Flush()
-			}
-			v.MembersLock.RUnlock()
+			})
 
 			// update member map entry
 			defer func(v *channel.Channel, oldNick string) {
@@ -259,18 +254,13 @@ func SETNAME(s *Server, c *client.Client, m *msg.Message) {
 
 	chans := s.channelsOf(c)
 	for _, v := range chans {
-		v.MembersLock.RLock()
-		for _, m := range v.Members {
-			if m.Client == c {
-				continue
-			}
+		v.ForAllMembersExcept(c, func(m *channel.Member) {
 			if !m.Caps[cap.Setname.Name] {
-				continue
+				return
 			}
 			fmt.Fprintf(m, ":%s SETNAME :%s", c, c.Realname)
 			m.Flush()
-		}
-		v.MembersLock.RUnlock()
+		})
 	}
 	fmt.Fprintf(c, ":%s SETNAME :%s", c, c.Realname)
 }
@@ -290,11 +280,8 @@ func CHGHOST(s *Server, c *client.Client, m *msg.Message) {
 	for _, v := range chans {
 		member, _ := v.GetMember(c.Nick)
 		modes := member.ModeLetters()
-		v.MembersLock.RLock()
-		for _, m := range v.Members {
-			if m.Client == c {
-				continue
-			}
+
+		v.ForAllMembersExcept(c, func(m *channel.Member) {
 			if m.Caps[cap.Chghost.Name] {
 				fmt.Fprintf(m, ":%s CHGHOST %s %s", oldPrefix, c.User, c.Host)
 			} else {
@@ -305,8 +292,7 @@ func CHGHOST(s *Server, c *client.Client, m *msg.Message) {
 				}
 			}
 			m.Flush()
-		}
-		v.MembersLock.RUnlock()
+		})
 	}
 
 	// "send the CHGHOST message to the client whose own username or host
@@ -538,13 +524,10 @@ func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick st
 	}
 
 	// send KICK to all channel members but self
-	for _, v := range ch.Members {
-		if v.Client == c {
-			continue
-		}
-		fmt.Fprintf(v, ":%s KICK %s %s :%s", c, ch, u.Nick, comment)
-		v.Flush()
-	}
+	ch.ForAllMembersExcept(c, func(m *channel.Member) {
+		fmt.Fprintf(m, ":%s KICK %s %s :%s", c, ch, u.Nick, comment)
+		m.Flush()
+	})
 
 	ch.DeleteMember(u.Nick)
 }
@@ -988,22 +971,17 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			}
 
 			// write to everybody else in the chan besides self
-			ch.MembersLock.RLock()
-			for _, member := range ch.Members {
-				if member.Client == c {
-					continue
+			ch.ForAllMembersExcept(c, func(m *channel.Member) {
+				if msg.Command == "TAGMSG" && !m.Caps[cap.MessageTags.Name] {
+					return
 				}
-				if msg.Command == "TAGMSG" && !member.Caps[cap.MessageTags.Name] {
-					continue
-				}
-				if !member.Caps[cap.MessageTags.Name] {
-					fmt.Fprint(member, msg.RemoveAllTags())
+				if !m.Caps[cap.MessageTags.Name] {
+					fmt.Fprint(m, msg.RemoveAllTags())
 				} else {
-					fmt.Fprint(member, msg)
+					fmt.Fprint(m, msg)
 				}
-				member.Flush()
-			}
-			ch.MembersLock.RUnlock()
+				m.Flush()
+			})
 		} else { // client->client
 			target, ok := s.getClient(v)
 			if !ok {
@@ -1068,17 +1046,12 @@ func AWAY(s *Server, c *client.Client, m *msg.Message) {
 
 func (s *Server) awayNotify(c *client.Client, chans ...*channel.Channel) {
 	for _, v := range chans {
-		v.MembersLock.RLock()
-		for _, m := range v.Members {
-			if m.Client == c {
-				continue
-			}
+		v.ForAllMembersExcept(c, func(m *channel.Member) {
 			if m.Caps[cap.AwayNotify.Name] {
 				fmt.Fprintf(m, ":%s AWAY :%s", c, c.AwayMsg)
 				m.Flush()
 			}
-		}
-		v.MembersLock.RUnlock()
+		})
 	}
 }
 
