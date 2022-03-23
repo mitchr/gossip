@@ -155,9 +155,9 @@ func constructISUPPORT() []string {
 
 	// try to get every line below 200 bytes, that seems like a good number
 	lines := []string{}
-	line := ""
-	for i := 0; i < len(supported); i++ {
-		line += supported[i] + " "
+	line := supported[0]
+	for i := 1; i < len(supported); i++ {
+		line += " " + supported[i]
 		if len(line) > 200 {
 			lines = append(lines, line)
 			line = ""
