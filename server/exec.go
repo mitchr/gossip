@@ -886,6 +886,10 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 	for _, m := range masks {
 		for _, v := range s.clients {
 			if wild.Match(m, v.Nick) {
+				if v.Is(client.Away) {
+					s.writeReply(c, c.Id(), RPL_AWAY, v.Nick, v.AwayMsg)
+				}
+
 				s.writeReply(c, c.Id(), RPL_WHOISUSER, v.Nick, v.User, v.Host, v.Realname)
 				s.writeReply(c, c.Id(), RPL_WHOISSERVER, v.Nick, s.Name, "wip irc server")
 				if v.Is(client.Op) {

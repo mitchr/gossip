@@ -1088,7 +1088,7 @@ func TestWHOIS(t *testing.T) {
 
 	c1, r1 := connectAndRegister("alice", "Alice Smith")
 	defer c1.Close()
-	c2, _ := connectAndRegister("bob", "Bob Smith")
+	c2, r2 := connectAndRegister("bob", "Bob Smith")
 	defer c2.Close()
 
 	c1.Write([]byte("WHOIS bob\r\n"))
@@ -1103,6 +1103,14 @@ func TestWHOIS(t *testing.T) {
 	// assertResponse(idle, fmt.Sprintf(":%s 317 alice bob %v %v :seconds idle, signon time\r\n", s.Name, time.Since(bob.Idle).Round(time.Second).Seconds(), bob.JoinTime), t)
 	assertResponse(chans, fmt.Sprintf(":%s 319 alice bob\r\n", s.Name), t)
 	assertResponse(end, fmt.Sprintf(":%s 318 alice bob :End of /WHOIS list\r\n", s.Name), t)
+
+	t.Run("TestAWAY", func(t *testing.T) {
+		c2.Write([]byte("AWAY :I'm away\r\n"))
+		r2.ReadBytes('\n')
+		c1.Write([]byte("WHOIS bob\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, ":gossip 301 alice bob :I'm away\r\n", t)
+	})
 }
 
 func TestChanFull(t *testing.T) {
