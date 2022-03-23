@@ -266,7 +266,7 @@ func (c *Client) Flush() error {
 	return c.ReadWriter.Flush()
 }
 
-const maxGrants = 15
+const maxGrants = 20
 
 var ErrFlood = errors.New("flooding the server")
 
