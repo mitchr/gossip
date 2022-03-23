@@ -914,7 +914,7 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 							continue
 						}
 					}
-					chans = append(chans, string(member.HighestPrefix())+k.Name)
+					chans = append(chans, string(member.HighestPrefix())+k.String())
 				}
 				s.chanLock.RUnlock()
 
