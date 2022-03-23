@@ -28,7 +28,7 @@ func (m Member) Is(p prefix) bool {
 func (m Member) HighestPrefix() prefix {
 	modes := []prefix{Founder, Protected, Operator, Halfop, Voice}
 	for _, v := range modes {
-		if strings.ContainsRune(m.Prefix, rune(v)) {
+		if m.Is(v) {
 			return v
 		}
 	}
