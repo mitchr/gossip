@@ -923,11 +923,11 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 					chanParam = " :" + strings.Join(chans, " ")
 				}
 				s.writeReply(c, c.Id(), RPL_WHOISCHANNELS, v.Nick, chanParam)
+				s.writeReply(c, c.Id(), RPL_ENDOFWHOIS, m)
 			}
 		}
 	}
 	s.clientLock.RUnlock()
-	s.writeReply(c, c.Id(), RPL_ENDOFWHOIS)
 }
 
 func PRIVMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }

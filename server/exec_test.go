@@ -1102,7 +1102,7 @@ func TestWHOIS(t *testing.T) {
 	assertResponse(server, fmt.Sprintf(":%s 312 alice bob %s :wip irc server\r\n", s.Name, s.Name), t)
 	// assertResponse(idle, fmt.Sprintf(":%s 317 alice bob %v %v :seconds idle, signon time\r\n", s.Name, time.Since(bob.Idle).Round(time.Second).Seconds(), bob.JoinTime), t)
 	assertResponse(chans, fmt.Sprintf(":%s 319 alice bob\r\n", s.Name), t)
-	assertResponse(end, fmt.Sprintf(":%s 318 alice :End of /WHOIS list\r\n", s.Name), t)
+	assertResponse(end, fmt.Sprintf(":%s 318 alice bob :End of /WHOIS list\r\n", s.Name), t)
 }
 
 func TestChanFull(t *testing.T) {
