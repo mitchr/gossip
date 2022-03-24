@@ -63,8 +63,9 @@ var commands = map[string]executor{
 	"WALLOPS": WALLOPS,
 	"ERROR":   ERROR,
 
-	"AWAY":   AWAY,
-	"REHASH": REHASH,
+	"AWAY":     AWAY,
+	"REHASH":   REHASH,
+	"USERHOST": USERHOST,
 }
 
 func PASS(s *Server, c *client.Client, m *msg.Message) {
@@ -1066,6 +1067,38 @@ func REHASH(s *Server, c *client.Client, m *msg.Message) {
 
 	fileName := s.configSource.(*os.File).Name()
 	s.writeReply(c, c.Id(), RPL_REHASHING, fileName)
+}
+
+func USERHOST(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) < 1 {
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "USERHOST")
+		return
+	}
+
+	replies := make([]string, 0, len(m.Params))
+	for _, nick := range m.Params {
+		client, ok := s.getClient(nick)
+		if ok {
+			replies = append(replies, constructUserhostReply(client))
+		}
+	}
+	s.writeReply(c, c.Id(), RPL_USERHOST, strings.Join(replies, " "))
+
+}
+
+func constructUserhostReply(c *client.Client) string {
+	s := c.Nick
+	if c.Is(client.Op) {
+		s += "*"
+	}
+	s += "="
+	if c.AwayMsg != "" {
+		s += "-"
+	} else {
+		s += "+"
+	}
+	s += c.Host
+	return s
 }
 
 func WALLOPS(s *Server, c *client.Client, m *msg.Message) {

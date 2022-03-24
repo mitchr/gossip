@@ -1437,6 +1437,34 @@ func TestAWAY(t *testing.T) {
 	assertResponse(unAway, fmt.Sprintf(":%s 305 alice :You are no longer marked as being away\r\n", s.Name), t)
 }
 
+func TestUSERHOST(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	defer c2.Close()
+
+	t.Run("TestNotAway", func(t *testing.T) {
+		c1.Write([]byte("USERHOST bob\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(RPL_USERHOST+"\r\n", s.Name, "alice", "bob=+localhost"), t)
+	})
+	t.Run("TestAway", func(t *testing.T) {
+		c2.Write([]byte("AWAY :I'm away\r\n"))
+		r2.ReadBytes('\n')
+
+		c1.Write([]byte("USERHOST bob\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(RPL_USERHOST+"\r\n", s.Name, "alice", "bob=-localhost"), t)
+	})
+}
+
 func TestWALLOPS(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {

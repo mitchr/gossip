@@ -22,6 +22,7 @@ const (
 	RPL_LUSERME       = ":%s 255 %s :I have %d clients and %d servers"
 	RPL_WHOISCERTFP   = ":%s 276 %s %s :has client certificate fingerprint %s"
 	RPL_AWAY          = ":%s 301 %s %s :%s"
+	RPL_USERHOST      = ":%s 302 %s :%s"
 	RPL_UNAWAY        = ":%s 305 %s :You are no longer marked as being away"
 	RPL_NOWAWAY       = ":%s 306 %s :You have been marked as being away"
 	RPL_WHOISUSER     = ":%s 311 %s %s %s %s * :%s"
