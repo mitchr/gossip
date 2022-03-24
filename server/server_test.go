@@ -313,6 +313,8 @@ func connect(s *Server) (net.Conn, *bufio.Reader, context.CancelFunc) {
 }
 
 func assertResponse(resp []byte, eq string, t *testing.T) {
+	t.Helper()
+
 	if string(resp) != eq {
 		t.Error("expected", eq, "got", string(resp))
 	}
