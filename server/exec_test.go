@@ -1369,6 +1369,43 @@ func TestPRIVMSG(t *testing.T) {
 	})
 }
 
+func TestChannelPRIVMSGTags(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	defer c1.Close()
+	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	defer c2.Close()
+	c3, r3 := connectAndRegister("carl", "carl")
+	defer c3.Close()
+
+	c1.Write([]byte("CAP REQ message-tags\r\n"))
+	r1.ReadBytes('\n')
+	c2.Write([]byte("CAP REQ :message-tags echo-message\r\n"))
+	r2.ReadBytes('\n')
+
+	alice, _ := s.getClient("alice")
+	bob, _ := s.getClient("bob")
+	carl, _ := s.getClient("carl")
+	local := channel.New("local", channel.Remote)
+	local.SetMember(&channel.Member{Client: alice, Prefix: string(channel.Founder)})
+	local.SetMember(&channel.Member{Client: bob})
+	local.SetMember(&channel.Member{Client: carl})
+	s.setChannel(local)
+
+	c1.Write([]byte("@+foo=bar;shouldBe=skipped PRIVMSG #local :hey\r\n"))
+	resp, _ := r2.ReadBytes('\n')
+	assertResponse(resp, fmt.Sprintf("@+foo=bar :%s PRIVMSG #local :hey\r\n", alice), t)
+
+	resp, _ = r3.ReadBytes('\n')
+	assertResponse(resp, fmt.Sprintf(":%s PRIVMSG #local :hey\r\n", alice), t)
+}
+
 func TestPING(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {

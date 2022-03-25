@@ -70,7 +70,10 @@ func REQ(s *Server, c *client.Client, params ...string) {
 	// "The capability identifier set must be accepted as a whole, or
 	// rejected entirely."
 	// todo queues up the acceptance of the cap idents
-	todo := make([]func(), len(params))
+	todo := make([]struct {
+		cap    string
+		remove bool
+	}, len(params))
 	for i, v := range params {
 		remove := false
 		if v[0] == '-' {
@@ -78,7 +81,8 @@ func REQ(s *Server, c *client.Client, params ...string) {
 			remove = true
 		}
 		if s.hasCap(v) {
-			todo[i] = func() { c.ApplyCap(v, remove) }
+			todo[i].cap = v
+			todo[i].remove = remove
 		} else { // capability not recognized
 			s.writeReply(c, c.Id(), ":%s CAP %s NAK :%s", strings.Join(params, " "))
 			return
@@ -87,7 +91,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 
 	// apply all changes
 	for _, v := range todo {
-		v()
+		c.ApplyCap(v.cap, v.remove)
 	}
 	s.writeReply(c, c.Id(), ":%s CAP %s ACK :%s", strings.Join(params, " "))
 }
