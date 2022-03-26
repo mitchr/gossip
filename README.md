@@ -16,6 +16,8 @@ You can register an account using `REGISTER PASS <pass>`. By default, `REGISTER`
 - [RFC 2812](https://datatracker.ietf.org/doc/html/rfc2812)
 - [IRCv3](https://ircv3.net/irc/)
 - [Modern IRC Client Protocol](https://modern.ircdocs.horse/)
+- [irctest](https://github.com/progval/irctest)
+   - [This branch](https://github.com/mitchr/irctest) has been modified to support gossip, and is how a lot of bugs have been found :)
 
 ## External Licenses
 `golang.org/x/crypto` and `golang.org/x/term` are licensed under the BSD-3-Clause, reproduced below
