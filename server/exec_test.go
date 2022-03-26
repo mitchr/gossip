@@ -674,6 +674,27 @@ func TestLIST(t *testing.T) {
 		assertResponse(listReply, fmt.Sprintf(":%s 322 alice &params 1 :\r\n", s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.Name), t)
 	})
+
+	// if a client is a member of a secret channel, they should get an RPL_LIST reply for it
+	t.Run("TestSecretBelongs", func(t *testing.T) {
+		params, _ := s.getChannel("&params")
+		params.Secret = true
+
+		c.Write([]byte("LIST &params\r\n"))
+		listReply, _ := r.ReadBytes('\n')
+		end, _ := r.ReadBytes('\n')
+		assertResponse(listReply, fmt.Sprintf(":%s 322 alice &params 1 :\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.Name), t)
+	})
+
+	t.Run("TestSecretNotBelongs", func(t *testing.T) {
+		params, _ := s.getChannel("&params")
+		params.DeleteMember("alice")
+
+		c.Write([]byte("LIST &params\r\n"))
+		end, _ := r.ReadBytes('\n')
+		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.Name), t)
+	})
 }
 
 func TestMOTD(t *testing.T) {

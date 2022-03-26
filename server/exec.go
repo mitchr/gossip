@@ -563,19 +563,27 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 		// reply with all channels that aren't secret
 		s.chanLock.RLock()
 		for _, v := range s.channels {
-			if !v.Secret {
-				s.writeReply(c, c.Id(), RPL_LIST, v, v.Len(), v.Topic)
-			}
+			s.sendListReply(v, c)
 		}
 		s.chanLock.RUnlock()
 	} else {
 		for _, v := range strings.Split(m.Params[0], ",") {
 			if ch, ok := s.getChannel(v); ok {
-				s.writeReply(c, c.Id(), RPL_LIST, ch, ch.Len(), ch.Topic)
+				s.sendListReply(ch, c)
 			}
 		}
 	}
 	s.writeReply(c, c.Id(), RPL_LISTEND)
+}
+
+func (s *Server) sendListReply(ch *channel.Channel, c *client.Client) {
+	_, ok := ch.GetMember(c.Nick)
+	// skip sending reply for secret channel unless this client is a
+	// member of that channel
+	if ch.Secret && !ok {
+		return
+	}
+	s.writeReply(c, c.Id(), RPL_LIST, ch, ch.Len(), ch.Topic)
 }
 
 func MOTD(s *Server, c *client.Client, m *msg.Message) {
