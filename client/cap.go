@@ -28,7 +28,7 @@ var capHandlers = map[string]capHandler{
 	cap.EchoMessage.Name: doNothing,
 	cap.MessageTags.Name: messageTags,
 	cap.SASL.Name:        doNothing,
-	cap.ServerTime.Name:  implictlyRequireMessageTags, // server-time implicitly requires message-tags
+	cap.ServerTime.Name:  messageTags,
 	cap.Setname.Name:     doNothing,
 }
 
@@ -36,19 +36,25 @@ var capHandlers = map[string]capHandler{
 func doNothing(*Client, bool) {}
 
 func messageTags(c *Client, remove bool) {
-	if !remove {
-		// space for tags and message
+	hasMessageTags := c.hasMessageTagRequirement()
+
+	if !remove && !hasMessageTags {
 		c.msgSizeChange <- 8191 + 512
-	} else {
+	}
+
+	// request to remove, and client has no other caps that require message-tags
+	if remove && !hasMessageTags {
 		c.msgSizeChange <- 512
 	}
 }
 
-func implictlyRequireMessageTags(c *Client, remove bool) {
-	messageTags(c, remove)
-	if remove {
-		delete(c.Caps, cap.MessageTags.Name)
-	} else {
-		c.Caps[cap.MessageTags.Name] = true
+var capsDependentOnMessageTags = []cap.Cap{cap.MessageTags, cap.ServerTime}
+
+func (c *Client) hasMessageTagRequirement() bool {
+	for _, v := range capsDependentOnMessageTags {
+		if c.Caps[v.Name] {
+			return true
+		}
 	}
+	return false
 }
