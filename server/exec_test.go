@@ -74,16 +74,16 @@ func TestRegistration(t *testing.T) {
 	})
 
 	t.Run("TestNickCaseChange", func(t *testing.T) {
-		conn, r := connectAndRegister("alice", "a")
+		conn, r := connectAndRegister("carl", "c")
 		defer conn.Close()
 
-		alice, _ := s.getClient("alice")
-		prefixBeforeChange := alice.String()
+		carl, _ := s.getClient("carl")
+		prefixBeforeChange := carl.String()
 
-		conn.Write([]byte("NICK Alice\r\n"))
+		conn.Write([]byte("NICK Carl\r\n"))
 		resp, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(":%s NICK :Alice\r\n", prefixBeforeChange), t)
+		assertResponse(resp, fmt.Sprintf(":%s NICK :Carl\r\n", prefixBeforeChange), t)
 	})
 }
 
