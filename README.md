@@ -2,7 +2,7 @@
 `gossip` is an IRC server.
 
 ## Install
-`go get github.com/mitchr/gossip`
+`go install github.com/mitchr/gossip@latest`
 
 ## Usage
 `gossip` by default looks for a file in the same directory as it called [config.json](config.json). You can change this location by using `gossip -conf=<path>` This defines things like the name of the server and the port. To use TLS, you have to specify paths to `pubkey` and `privkey`.
