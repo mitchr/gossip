@@ -206,6 +206,14 @@ func (s *Server) endRegistration(c *client.Client) {
 		return
 	}
 
+	// we need this check here for the following situation: 1->NICK n;
+	// 2->NICK n; 1-> USER u s e r; and then 2 tries to send USER, we
+	// should reject 2's registration for having the same nick
+	if _, ok := s.getClient(c.Nick); ok {
+		s.writeReply(c, c.Id(), ERR_NICKNAMEINUSE, c.Nick)
+		return
+	}
+
 	if s.Password != nil {
 		if bcrypt.CompareHashAndPassword(s.Password, c.ServerPassAttempt) != nil {
 			s.writeReply(c, c.Id(), ERR_PASSWDMISMATCH)
