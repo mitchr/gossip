@@ -13,7 +13,7 @@ var (
 	Chghost     = Cap{Name: "chghost"}
 	EchoMessage = Cap{Name: "echo-message"}
 	MessageTags = Cap{Name: "message-tags"}
-	SASL        = Cap{Name: "sasl", Value: "PLAIN,EXTERNAL,SCRAM"}
+	SASL        = Cap{Name: "sasl", Value: "PLAIN,EXTERNAL,SCRAM-SHA-256"}
 	ServerTime  = Cap{Name: "server-time"}
 	Setname     = Cap{Name: "setname"}
 	STS         = Cap{Name: "sts", Value: "port=%s,duration=%.f"}

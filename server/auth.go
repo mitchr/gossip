@@ -58,10 +58,11 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 			c.SASLMech = plain.New(s.db)
 		case "EXTERNAL":
 			c.SASLMech = external.New(s.db, c)
-		case "SCRAM":
+		case "SCRAM-SHA-256":
 			c.SASLMech = scram.New(s.db, sha256.New)
 		default:
 			s.writeReply(c, c.Id(), RPL_SASLMECHS, cap.SASL.Value)
+			s.writeReply(c, c.Id(), ERR_SASLFAIL)
 			return
 		}
 

@@ -116,9 +116,11 @@ func TestAUTHENTICATE(t *testing.T) {
 
 		c.Write([]byte("CAP REQ sasl\r\nAUTHENTICATE fakeMech\r\n"))
 		r.ReadBytes('\n')
-		resp, _ := r.ReadBytes('\n')
+		mechList, _ := r.ReadBytes('\n')
+		fail, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, ":gossip 908 * PLAIN,EXTERNAL,SCRAM :are available SASL mechanisms\r\n", t)
+		assertResponse(mechList, fmt.Sprintf(RPL_SASLMECHS+"\r\n", s.Name, "*", "PLAIN,EXTERNAL,SCRAM-SHA-256"), t)
+		assertResponse(fail, fmt.Sprintf(ERR_SASLFAIL+"\r\n", s.Name, "*"), t)
 	})
 }
 
@@ -199,7 +201,7 @@ func TestAUTHENTICATESCRAM(t *testing.T) {
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
 	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
 
-	c.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE SCRAM\r\n"))
+	c.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE SCRAM-SHA-256\r\n"))
 	r.ReadBytes('\n')
 	resp, _ := r.ReadBytes('\n')
 	assertResponse(resp, ":gossip AUTHENTICATE +\r\n", t)
