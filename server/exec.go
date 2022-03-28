@@ -919,6 +919,10 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 					chanParam = " :" + strings.Join(chans, " ")
 				}
 				s.writeReply(c, c.Id(), RPL_WHOISCHANNELS, v.Nick, chanParam)
+
+				if v.IsAuthenticated {
+					s.writeReply(c, c.Id(), RPL_WHOISACCOUNT, c.Nick, c.Nick)
+				}
 				s.writeReply(c, c.Id(), RPL_ENDOFWHOIS, m)
 			}
 		}
