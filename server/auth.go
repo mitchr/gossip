@@ -105,7 +105,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	encodedChallenge := base64.StdEncoding.EncodeToString(challenge)
-	s.writeReply(c, c.Id(), "AUTHENTICATE %s", encodedChallenge)
+	fmt.Fprintf(c, ":%s AUTHENTICATE %s", s.Name, encodedChallenge)
 }
 
 // REGISTER is nonstandard
