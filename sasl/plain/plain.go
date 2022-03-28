@@ -33,6 +33,8 @@ type Plain struct {
 
 func New(db *sql.DB) *Plain { return &Plain{db: db} }
 
+func (p *Plain) Authn() string { return string(p.authcid) }
+
 func (p *Plain) Next(b []byte) (challenge []byte, err error) {
 	out := bytes.Split(b, []byte{0})
 	if len(out) == 2 {

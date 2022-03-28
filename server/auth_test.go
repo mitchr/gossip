@@ -146,7 +146,7 @@ func TestAUTHENTICATEPLAIN(t *testing.T) {
 
 	c.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\n"))
 	serverFirst, _ := r.ReadBytes('\n')
-	assertResponse(serverFirst, ":gossip 900 a a!a@pipe a :You are now logged in as a\r\n", t)
+	assertResponse(serverFirst, ":gossip 900 a a!a@pipe tim :You are now logged in as a\r\n", t)
 
 	authenticationSuccess, _ := r.ReadBytes('\n')
 	assertResponse(authenticationSuccess, ":gossip 903 a :SASL authentication successful\r\n", t)

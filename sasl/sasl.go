@@ -16,4 +16,9 @@ type Mechanism interface {
 	// challenge and err are nil, it is assumed that the authentication is
 	// completed and successful.
 	Next(clientResponse []byte) (challenge []byte, err error)
+
+	// Authn returns the authentication string associate with this
+	// specific mechanism instance. It may be unsafe to call Authn before
+	// the mechanism has completed.
+	Authn() string
 }

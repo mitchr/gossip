@@ -31,6 +31,8 @@ type Scram struct {
 	hash func() hash.Hash
 }
 
+func (s *Scram) Authn() string { return s.cred.Username }
+
 func (s *Scram) Next(clientResponse []byte) (challenge []byte, err error) {
 	// always increment step
 	defer func() {

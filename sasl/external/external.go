@@ -35,6 +35,8 @@ type External struct {
 
 func New(db *sql.DB, client *client.Client) *External { return &External{db, client} }
 
+func (e *External) Authn() string { return e.client.Nick }
+
 func (e *External) Next([]byte) (challenge []byte, err error) {
 	// grab client cert if it exists
 	certfp, err := e.client.CertificateSha()
