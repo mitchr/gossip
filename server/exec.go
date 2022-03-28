@@ -136,7 +136,7 @@ func USER(s *Server, c *client.Client, m *msg.Message) {
 	if c.Is(client.Registered) {
 		s.writeReply(c, c.Id(), ERR_ALREADYREGISTRED)
 		return
-	} else if len(m.Params) < 4 {
+	} else if len(m.Params) < 4 || m.Params[3] == "" {
 		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "USER")
 		return
 	}

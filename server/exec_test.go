@@ -73,6 +73,16 @@ func TestRegistration(t *testing.T) {
 		assertResponse(resp, ":gossip 461 * USER :Not enough parameters\r\n", t)
 	})
 
+	t.Run("TestUserMissingParams2", func(t *testing.T) {
+		c, r, p := connect(s)
+		defer p()
+
+		c.Write([]byte("USER username * * :\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 461 * USER :Not enough parameters\r\n", t)
+	})
+
 	t.Run("TestNickCaseChange", func(t *testing.T) {
 		conn, r := connectAndRegister("carl", "c")
 		defer conn.Close()
