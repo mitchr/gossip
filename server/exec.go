@@ -921,7 +921,7 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 				s.writeReply(c, c.Id(), RPL_WHOISCHANNELS, v.Nick, chanParam)
 
 				if v.IsAuthenticated {
-					s.writeReply(c, c.Id(), RPL_WHOISACCOUNT, c.Nick, c.Nick)
+					s.writeReply(c, c.Id(), RPL_WHOISACCOUNT, v.Nick, v.SASLMech.Authn())
 				}
 				s.writeReply(c, c.Id(), RPL_ENDOFWHOIS, m)
 			}
