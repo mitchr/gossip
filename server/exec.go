@@ -47,6 +47,7 @@ var commands = map[string]executor{
 	"LUSERS": LUSERS,
 	"TIME":   TIME,
 	"MODE":   MODE,
+	"INFO":   INFO,
 
 	// user queries
 	"WHO":   WHO,
@@ -735,6 +736,11 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 			}
 		}
 	}
+}
+
+func INFO(s *Server, c *client.Client, m *msg.Message) {
+	s.writeReply(c, c.Id(), RPL_INFO, "gossip is licensed under GPLv3")
+	s.writeReply(c, c.Id(), RPL_ENDOFINFO)
 }
 
 func WHO(s *Server, c *client.Client, m *msg.Message) {
