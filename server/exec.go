@@ -50,8 +50,9 @@ var commands = map[string]executor{
 	"INFO":   INFO,
 
 	// user queries
-	"WHO":   WHO,
-	"WHOIS": WHOIS,
+	"WHO":    WHO,
+	"WHOIS":  WHOIS,
+	"WHOWAS": WHOWAS,
 
 	// communication
 	"PRIVMSG": PRIVMSG,
@@ -942,6 +943,37 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 		}
 	}
 	s.clientLock.RUnlock()
+}
+
+func WHOWAS(s *Server, c *client.Client, m *msg.Message) {
+	if len(m.Params) < 1 {
+		s.writeReply(c, c.Id(), ERR_NONICKNAMEGIVEN)
+		return
+	}
+
+	count := s.whowasHistory.size
+	if len(m.Params) > 1 {
+		givenCount, _ := strconv.Atoi(m.Params[1])
+		// negative counts should be treated as wanting to traverse the entire history
+		if givenCount > 0 {
+			count = givenCount
+		}
+	}
+
+	nicks := strings.Split(m.Params[0], ",")
+	for _, nick := range nicks {
+		info := s.whowasHistory.search(nick, count)
+		if len(info) == 0 {
+			s.writeReply(c, c.Id(), ERR_WASNOSUCHNICK, nick)
+			s.writeReply(c, c.Id(), RPL_ENDOFWHOWAS, nick)
+			continue
+		}
+
+		for _, v := range info {
+			s.writeReply(c, c.Id(), RPL_WHOWASUSER, v.nick, v.user, v.host, v.realname)
+		}
+		s.writeReply(c, c.Id(), RPL_ENDOFWHOWAS, nick)
+	}
 }
 
 func PRIVMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }

@@ -1144,6 +1144,57 @@ func TestWHOIS(t *testing.T) {
 	})
 }
 
+func TestWHOWAS(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	t.Run("TestMultipleEntries", func(t *testing.T) {
+		c1, r1 := connectAndRegister("alice", "Alice Smith")
+		c1.Write([]byte("QUIT\r\n"))
+		r1.ReadBytes('\n')
+		defer c1.Close()
+		c2, r2 := connectAndRegister("alice", "A")
+		c2.Write([]byte("QUIT\r\n"))
+		r2.ReadBytes('\n')
+		defer c2.Close()
+
+		c3, r3 := connectAndRegister("bob", "b")
+		defer c3.Close()
+
+		c3.Write([]byte("WHOWAS alice\r\n"))
+		resp1, _ := r3.ReadBytes('\n')
+		assertResponse(resp1, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "A"), t)
+		resp2, _ := r3.ReadBytes('\n')
+		assertResponse(resp2, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "Alice Smith"), t)
+		end, _ := r3.ReadBytes('\n')
+		assertResponse(end, fmt.Sprintf(RPL_ENDOFWHOWAS+"\r\n", s.Name, "bob", "alice"), t)
+	})
+
+	t.Run("TestCount1", func(t *testing.T) {
+		c1, r1 := connectAndRegister("alice", "Alice Smith")
+		c1.Write([]byte("QUIT\r\n"))
+		r1.ReadBytes('\n')
+		defer c1.Close()
+		c2, r2 := connectAndRegister("alice", "A")
+		c2.Write([]byte("QUIT\r\n"))
+		r2.ReadBytes('\n')
+		defer c2.Close()
+
+		c3, r3 := connectAndRegister("bob", "b")
+		defer c3.Close()
+
+		c3.Write([]byte("WHOWAS alice 1\r\n"))
+		resp, _ := r3.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "A"), t)
+		end, _ := r3.ReadBytes('\n')
+		assertResponse(end, fmt.Sprintf(RPL_ENDOFWHOWAS+"\r\n", s.Name, "bob", "alice"), t)
+	})
+}
+
 func TestChanFull(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {

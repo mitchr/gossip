@@ -44,6 +44,7 @@ type Server struct {
 	unknowns    int
 
 	supportedCaps []cap.Cap
+	whowasHistory *whowasStack
 
 	// calling this cancel also cancels all the child client's contexts
 	cancel context.CancelFunc
@@ -57,6 +58,7 @@ func New(c *Config) (*Server, error) {
 		clients:       make(map[string]*client.Client),
 		channels:      make(map[string]*channel.Channel),
 		supportedCaps: []cap.Cap{cap.AwayNotify, cap.CapNotify, cap.Chghost, cap.EchoMessage, cap.MessageTags, cap.SASL, cap.ServerTime, cap.Setname},
+		whowasHistory: new(whowasStack),
 	}
 
 	err := s.loadDatabase(s.Datasource)
@@ -183,6 +185,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			c.Close()
 			return
 		}
+		s.whowasHistory.push(c.Nick, c.User, c.Host, c.Realname)
 	}()
 
 	s.unknownLock.Lock()
