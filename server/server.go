@@ -46,9 +46,7 @@ type Server struct {
 	supportedCaps []cap.Cap
 	whowasHistory *whowasStack
 
-	// calling this cancel also cancels all the child client's contexts
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	wg sync.WaitGroup
 }
 
 func New(c *Config) (*Server, error) {
@@ -124,10 +122,11 @@ func (s *Server) loadDatabase(datasource string) error {
 	return err
 }
 
-func (s *Server) startAccept(ctx context.Context, l net.Listener) {
+func (s *Server) startAccept(ctx context.Context, cancel context.CancelFunc, l net.Listener) {
 	for {
 		conn, err := l.Accept()
 		if errors.Is(err, net.ErrClosed) {
+			cancel()
 			return
 		}
 		s.wg.Add(1)
@@ -137,20 +136,18 @@ func (s *Server) startAccept(ctx context.Context, l net.Listener) {
 
 func (s *Server) Serve() {
 	ctx, cancel := context.WithCancel(context.Background())
-	s.cancel = cancel
 
-	go s.startAccept(ctx, s.listener)
+	go s.startAccept(ctx, cancel, s.listener)
 	if s.tlsListener != nil {
-		go s.startAccept(ctx, s.tlsListener)
+		go s.startAccept(ctx, cancel, s.tlsListener)
 	}
 
 	<-ctx.Done()
 	s.wg.Wait()
 }
 
-// gracefully shutdown server:
-// 1. close listener so that we stop accepting more connections
-// 2. s.cancel to exit serve loop
+// close listeners so that we stop accepting more connections
+// this will implicitly cancel the server's context
 // graceful shutdown from https://blog.golang.org/context
 func (s *Server) Close() error {
 	err := s.listener.Close()
@@ -158,15 +155,7 @@ func (s *Server) Close() error {
 		return err
 	}
 	if s.tlsListener != nil {
-		err = s.tlsListener.Close()
-		if err != nil {
-			return err
-		}
-	}
-	if s.cancel == nil {
-		return errors.New("server context is nil; did you call Serve?")
-	} else {
-		s.cancel()
+		return s.tlsListener.Close()
 	}
 	return nil
 }
