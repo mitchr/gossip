@@ -27,6 +27,7 @@ var capHandlers = map[string]capHandler{
 	cap.Chghost.Name:     doNothing,
 	cap.EchoMessage.Name: doNothing,
 	cap.MessageTags.Name: messageTags,
+	cap.MultiPrefix.Name: doNothing,
 	cap.SASL.Name:        doNothing,
 	cap.ServerTime.Name:  messageTags,
 	cap.Setname.Name:     doNothing,

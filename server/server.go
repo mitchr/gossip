@@ -55,7 +55,7 @@ func New(c *Config) (*Server, error) {
 		created:       time.Now(),
 		clients:       make(map[string]*client.Client),
 		channels:      make(map[string]*channel.Channel),
-		supportedCaps: []cap.Cap{cap.AwayNotify, cap.CapNotify, cap.Chghost, cap.EchoMessage, cap.MessageTags, cap.SASL, cap.ServerTime, cap.Setname},
+		supportedCaps: []cap.Cap{cap.AwayNotify, cap.CapNotify, cap.Chghost, cap.EchoMessage, cap.MessageTags, cap.MultiPrefix, cap.SASL, cap.ServerTime, cap.Setname},
 		whowasHistory: new(whowasStack),
 	}
 

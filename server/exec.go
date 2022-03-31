@@ -559,7 +559,7 @@ func NAMES(s *Server, c *client.Client, m *msg.Message) {
 			if ch.Secret && !ok { // chan is secret and client does not belong
 				s.writeReply(c, c.Id(), RPL_ENDOFNAMES, v)
 			} else {
-				sym, members := constructNAMREPLY(ch, ok)
+				sym, members := constructNAMREPLY(ch, ok, c.Caps[cap.MultiPrefix.Name])
 				s.writeReply(c, c.Id(), RPL_NAMREPLY, sym, ch, members)
 				s.writeReply(c, c.Id(), RPL_ENDOFNAMES, v)
 			}
@@ -771,7 +771,7 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 				resp := constructSpcrplResponse(fields, member.Client, s)
 				s.writeReply(c, c.Id(), RPL_WHOSPCRPL, resp)
 			} else {
-				flags := whoreplyFlagsForMember(member)
+				flags := whoreplyFlagsForMember(member, c.Caps[cap.MultiPrefix.Name])
 				s.writeReply(c, c.Id(), RPL_WHOREPLY, ch, member.User, member.Host, s.Name, member.Nick, flags, member.Realname)
 			}
 		}
@@ -925,7 +925,8 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 							continue
 						}
 					}
-					chans = append(chans, string(member.HighestPrefix())+k.String())
+					hasMultiPrefix := c.Caps[cap.MultiPrefix.Name]
+					chans = append(chans, string(member.HighestPrefix(hasMultiPrefix))+k.String())
 				}
 				s.chanLock.RUnlock()
 

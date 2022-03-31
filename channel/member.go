@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/mitchr/gossip/client"
@@ -23,16 +24,28 @@ func (m Member) Is(p prefix) bool {
 	}
 }
 
-// Returns the highest prefix that the member has. If this member does
-// not have any prefix, return -1.
-func (m Member) HighestPrefix() prefix {
-	modes := []prefix{Founder, Protected, Operator, Halfop, Voice}
-	for _, v := range modes {
-		if m.Is(v) {
-			return v
-		}
+// Returns the highest prefix that the member has. If multiPrefix is
+// true, returns all the modes that this member has in order of rank.
+func (m Member) HighestPrefix(multiPrefix bool) string {
+	modes := map[rune]uint8{
+		rune(Founder):   4,
+		rune(Protected): 3,
+		rune(Operator):  2,
+		rune(Halfop):    1,
+		rune(Voice):     0,
 	}
-	return -1
+	prefix := []rune(m.Prefix)
+	sort.Slice(prefix, func(i, j int) bool {
+		return modes[prefix[i]] > modes[prefix[j]]
+	})
+
+	if multiPrefix {
+		return string(prefix)
+	}
+	if len(prefix) > 0 {
+		return string(prefix[0])
+	}
+	return ""
 }
 
 // Reconstruct this member's prefix string as a string of each prefix

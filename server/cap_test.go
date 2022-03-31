@@ -242,6 +242,49 @@ func TestMessageTags(t *testing.T) {
 	})
 }
 
+func TestMultiPrefix(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("a", "A")
+	defer c1.Close()
+	c2, _ := connectAndRegister("b", "B")
+	defer c2.Close()
+
+	c1.Write([]byte("CAP REQ :multi-prefix\r\n"))
+	r1.ReadBytes('\n')
+
+	local := channel.New("local", channel.Remote)
+	// a, _ := s.getClient("a")
+	b, _ := s.getClient("b")
+	local.SetMember(&channel.Member{Client: b, Prefix: "~&@%+"})
+	s.setChannel(local)
+
+	c1.Write([]byte("NAMES #local\r\n"))
+	namreply, _ := r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
+	assertResponse(namreply, fmt.Sprintf(RPL_NAMREPLY+"\r\n", s.Name, "a", "=", "#local", "~&@%+b"), t)
+
+	// local.SetMember(&channel.Member{Client: a})
+
+	c1.Write([]byte("WHO #local\r\n"))
+	whoreply, _ := r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
+	assertResponse(whoreply, fmt.Sprintf(RPL_WHOREPLY+"\r\n", s.Name, "a", "#local", "b", "localhost", s.Name, "b", "H~&@%+", "B"), t)
+
+	c1.Write([]byte("WHOIS b\r\n"))
+	r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
+	whoisreply, _ := r1.ReadBytes('\n')
+	assertResponse(whoisreply, fmt.Sprintf(RPL_WHOISCHANNELS+"\r\n", s.Name, "a", "b ", ":~&@%+#local"), t)
+
+}
+
 func TestAwayNotify(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
