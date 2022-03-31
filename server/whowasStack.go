@@ -7,7 +7,7 @@ type whowasStack struct {
 	head *node
 	size int
 
-	sync.Mutex
+	sync.RWMutex
 }
 
 type whowasInfo struct{ nick, user, host, realname string }
@@ -29,6 +29,9 @@ func (l *whowasStack) push(nick, user, host, realname string) {
 // most recent entries first. If count > 1, up to a count number of
 // entries will be returned.
 func (l *whowasStack) search(nick string, count int) []*whowasInfo {
+	l.RLock()
+	defer l.RUnlock()
+
 	matches := make([]*whowasInfo, 0, count)
 
 	i := 1
