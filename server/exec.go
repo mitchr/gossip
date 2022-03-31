@@ -146,7 +146,7 @@ func USER(s *Server, c *client.Client, m *msg.Message) {
 	modeBits, err := strconv.Atoi(m.Params[1])
 	if err == nil {
 		// only allow user to make themselves invis or wallops
-		c.Mode = client.Mode(modeBits) & (client.Invisible | client.Wallops)
+		c.SetMode(client.Mode(modeBits) & (client.Invisible | client.Wallops))
 	}
 
 	c.User = m.Params[0]
@@ -169,7 +169,7 @@ func OPER(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	c.Mode |= client.Op
+	c.SetMode(client.Op)
 	s.writeReply(c, c.Id(), RPL_YOUREOPER)
 	fmt.Fprintf(c, ":%s MODE %s +o", s.Name, c.Nick)
 }
@@ -224,7 +224,7 @@ func (s *Server) endRegistration(c *client.Client) {
 		}
 	}
 
-	c.Mode |= client.Registered
+	c.SetMode(client.Registered)
 	s.setClient(c)
 	s.unknownLock.Lock()
 	s.unknowns--
@@ -1093,13 +1093,13 @@ func AWAY(s *Server, c *client.Client, m *msg.Message) {
 	// remove away
 	if len(m.Params) == 0 {
 		c.AwayMsg = ""
-		c.Mode &^= client.Away
+		c.UnsetMode(client.Away)
 		s.writeReply(c, c.Id(), RPL_UNAWAY)
 		return
 	}
 
 	c.AwayMsg = m.Params[0]
-	c.Mode |= client.Away
+	c.SetMode(client.Away)
 	s.writeReply(c, c.Id(), RPL_NOWAWAY)
 }
 

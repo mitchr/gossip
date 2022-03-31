@@ -37,7 +37,26 @@ func (m Mode) String() string {
 	return s
 }
 
-func (c *Client) Is(m Mode) bool { return c.Mode&m == m }
+func (c *Client) Is(m Mode) bool {
+	c.modeLock.Lock()
+	defer c.modeLock.Unlock()
+
+	return c.Mode&m == m
+}
+
+func (c *Client) SetMode(m Mode) {
+	c.modeLock.Lock()
+	defer c.modeLock.Unlock()
+
+	c.Mode |= m
+}
+
+func (c *Client) UnsetMode(m Mode) {
+	c.modeLock.Lock()
+	defer c.modeLock.Unlock()
+
+	c.Mode &^= m
+}
 
 // given a modeStr, apply the modes to c. If one of the runes does not
 // correspond to a user mode, return it
@@ -49,9 +68,9 @@ func (c *Client) ApplyMode(m mode.Mode) bool {
 			if mask == Op || mask == LocalOp {
 				return false
 			}
-			c.Mode |= mask
+			c.SetMode(mask)
 		} else {
-			c.Mode &^= mask
+			c.UnsetMode(mask)
 		}
 	}
 	return ok

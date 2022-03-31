@@ -37,6 +37,7 @@ type Client struct {
 	msgSizeChange chan int
 	msgBuf        []byte
 
+	modeLock          sync.Mutex
 	Mode              Mode
 	AwayMsg           string
 	ServerPassAttempt []byte
