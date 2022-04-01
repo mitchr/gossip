@@ -4,7 +4,10 @@
 
 package scan
 
-import "unicode/utf8"
+import (
+	"errors"
+	"unicode/utf8"
+)
 
 type TokenType int8
 
@@ -20,7 +23,7 @@ type Token struct {
 
 func (t Token) String() string { return string(t.Value) }
 
-type State func(*Lexer)
+type State func(*Lexer) error
 
 type Lexer struct {
 	tokens   []Token
@@ -31,6 +34,8 @@ type Lexer struct {
 	peeked  rune
 	width   int
 }
+
+var ErrUtf8Only error = errors.New("Messages must be encoded using UTF-8")
 
 func (l *Lexer) Next() rune {
 	// check peek cache
@@ -71,7 +76,7 @@ func (l *Lexer) Push(t TokenType) {
 }
 
 // Lex creates a slice of tokens using the given initial state
-func Lex(b []byte, initState State) []Token {
+func Lex(b []byte, initState State) ([]Token, error) {
 	l := &Lexer{
 		input:  b,
 		peeked: -1,
@@ -80,7 +85,10 @@ func Lex(b []byte, initState State) []Token {
 		tokens: make([]Token, 0, len(b)),
 	}
 
-	initState(l)
+	err := initState(l)
+	if err != nil {
+		return nil, err
+	}
 
-	return l.tokens
+	return l.tokens, nil
 }

@@ -17,6 +17,7 @@ import (
 	"net"
 	"testing"
 	"time"
+	"unicode/utf16"
 
 	"github.com/mitchr/gossip/channel"
 )
@@ -255,6 +256,35 @@ func TestUnknownCount(t *testing.T) {
 		t.Error("did not decrement unknown count")
 	}
 	s.unknownLock.Unlock()
+}
+
+func TestUTF8ONLY(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r, p := connect(s)
+	defer p()
+
+	utf16Encoded := utf16.Encode([]rune("NICK 🎉\r\n"))
+	utf16EncodedToUtf8 := func(s []uint16) []byte {
+		b := make([]byte, 0, len(s)*2)
+
+		for _, v := range s {
+			high := byte(v >> 8)
+			low := byte(0x00ff & v)
+
+			b = append(b, high, low)
+		}
+		return b
+	}(utf16Encoded)
+
+	c.Write(utf16EncodedToUtf8)
+	errResp, _ := r.ReadBytes('\n')
+	assertResponse(errResp, "ERROR :Messages must be encoded using UTF-8\r\n", t)
 }
 
 func BenchmarkRegistrationSurge(b *testing.B) {

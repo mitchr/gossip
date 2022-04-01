@@ -156,6 +156,7 @@ func constructISUPPORT() []string {
 		"TOPICLEN=307",
 		"USERLEN=18",
 		"WHOX",
+		"UTF8ONLY",
 	}
 
 	// try to get every line below 200 bytes, that seems like a good number

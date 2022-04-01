@@ -1,6 +1,8 @@
 package msg
 
 import (
+	"unicode/utf8"
+
 	"github.com/mitchr/gossip/scan"
 )
 
@@ -20,13 +22,15 @@ const (
 	clientPrefix
 )
 
-func Lex(b []byte) []scan.Token { return scan.Lex(b, lexMessage) }
+func Lex(b []byte) ([]scan.Token, error) { return scan.Lex(b, lexMessage) }
 
-func lexMessage(l *scan.Lexer) {
+func lexMessage(l *scan.Lexer) error {
 	for {
 		switch l.Next() {
+		case utf8.RuneError:
+			return scan.ErrUtf8Only
 		case scan.EOF:
-			return
+			return nil
 		case '\r':
 			l.Push(cr)
 		case '\n':

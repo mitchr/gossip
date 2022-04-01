@@ -16,6 +16,7 @@ import (
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/scan"
 	"github.com/mitchr/gossip/scan/msg"
 	_ "modernc.org/sqlite"
 )
@@ -210,6 +211,8 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 				s.ERROR(c, "Closing Link: Client failed to register in allotted time (10 seconds)")
 			case ErrPingTimeout:
 				QUIT(s, c, &msg.Message{Params: []string{"Closing Link: PING timeout (300 seconds)"}})
+			case scan.ErrUtf8Only:
+				s.ERROR(c, scan.ErrUtf8Only.Error())
 			case client.ErrFlood:
 				// TODO: instead of kicking the client right away, maybe a
 				// timeout would be more appropriate (atleast for the first 2
@@ -275,7 +278,12 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, msgs chan<- *
 				continue
 			}
 
-			tokens := msg.Lex(buff)
+			tokens, err := msg.Lex(buff)
+			if err != nil {
+				errs <- err
+				continue
+			}
+
 			msg, err := msg.Parse(tokens)
 			if err != nil {
 				errs <- err

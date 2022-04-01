@@ -34,7 +34,7 @@ func TestLexParams(t *testing.T) {
 
 	for k, v := range tests {
 		t.Run(k, func(t *testing.T) {
-			out := scan.Lex([]byte(k), lexMessage)
+			out, _ := scan.Lex([]byte(k), lexMessage)
 			if !reflect.DeepEqual(out, v) {
 				t.Error("lex error:", out, v)
 			}
@@ -145,7 +145,8 @@ func TestParseMessage(t *testing.T) {
 
 	for _, v := range tests {
 		t.Run(v.s, func(t *testing.T) {
-			out, _ := Parse(scan.Lex([]byte(v.s), lexMessage))
+			toks, _ := scan.Lex([]byte(v.s), lexMessage)
+			out, _ := Parse(toks)
 			if !reflect.DeepEqual(out, v.m) {
 				t.Error("parse error", out, v.m)
 			}
@@ -184,7 +185,8 @@ func TestParseTags(t *testing.T) {
 
 	for _, v := range tests {
 		t.Run(v.input, func(t *testing.T) {
-			out, err := Parse(scan.Lex([]byte(v.input), lexMessage))
+			toks, _ := scan.Lex([]byte(v.input), lexMessage)
+			out, err := Parse(toks)
 			if err != nil {
 				t.Error(err)
 			}
@@ -221,7 +223,7 @@ func BenchmarkLex(b *testing.B) {
 }
 
 func BenchmarkParse(b *testing.B) {
-	tokens := Lex(testInput)
+	tokens, _ := Lex(testInput)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {

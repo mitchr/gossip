@@ -12,11 +12,11 @@ const (
 )
 
 // mode lexing
-func lexMode(l *scan.Lexer) {
+func lexMode(l *scan.Lexer) error {
 	for {
 		switch k := l.Next(); {
 		case k == scan.EOF:
-			return
+			return nil
 		case k == '+':
 			l.Push(plus)
 		case k == '-':
@@ -44,7 +44,8 @@ type Mode struct {
 
 // modestring  =  1*( modeset )
 func Parse(b []byte) []Mode {
-	p := &scan.Parser{Tokens: scan.Lex(b, lexMode)}
+	tokens, _ := scan.Lex(b, lexMode)
+	p := &scan.Parser{Tokens: tokens}
 	m := []Mode{}
 
 	// must have atleast one modeset
