@@ -22,15 +22,16 @@ func (c *Client) ApplyCap(cap string, remove bool) {
 type capHandler func(*Client, bool)
 
 var capHandlers = map[string]capHandler{
-	cap.AwayNotify.Name:  doNothing,
-	cap.CapNotify.Name:   doNothing,
-	cap.Chghost.Name:     doNothing,
-	cap.EchoMessage.Name: doNothing,
-	cap.MessageTags.Name: messageTags,
-	cap.MultiPrefix.Name: doNothing,
-	cap.SASL.Name:        doNothing,
-	cap.ServerTime.Name:  messageTags,
-	cap.Setname.Name:     doNothing,
+	cap.AwayNotify.Name:      doNothing,
+	cap.CapNotify.Name:       doNothing,
+	cap.Chghost.Name:         doNothing,
+	cap.EchoMessage.Name:     doNothing,
+	cap.MessageTags.Name:     messageTags,
+	cap.MultiPrefix.Name:     doNothing,
+	cap.SASL.Name:            doNothing,
+	cap.ServerTime.Name:      messageTags,
+	cap.Setname.Name:         doNothing,
+	cap.UserhostInNames.Name: doNothing,
 }
 
 // used to capabilities that are just basically advertisements, like cap-notify

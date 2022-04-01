@@ -117,7 +117,7 @@ func (s *Server) ERROR(c *client.Client, msg string) {
 // invisibles is true, include invisible members in the response; this
 // should only be done if the requesting client is also a member of the
 // channel
-func constructNAMREPLY(c *channel.Channel, invisibles bool, multiPrefix bool) (symbol string, members string) {
+func constructNAMREPLY(c *channel.Channel, invisibles bool, multiPrefix bool, userhostInNames bool) (symbol string, members string) {
 	symbol = "="
 	if c.Secret {
 		symbol = "@"
@@ -135,7 +135,12 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool, multiPrefix bool) (s
 		if highest != "" {
 			members += highest
 		}
-		members += v.Nick + " "
+
+		identifier := v.Nick
+		if userhostInNames {
+			identifier = v.String()
+		}
+		members += identifier + " "
 	}
 	return symbol, members[:len(members)-1]
 }

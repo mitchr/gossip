@@ -396,3 +396,27 @@ func TestSTSConfig(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestUserhostInNames(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("a", "A")
+	defer c1.Close()
+	c2, _ := connectAndRegister("b", "B")
+	defer c2.Close()
+
+	b, _ := s.getClient("b")
+	local := channel.New("local", channel.Remote)
+	local.SetMember(&channel.Member{Client: b})
+	s.setChannel(local)
+
+	c1.Write([]byte("CAP REQ userhost-in-names\r\nNAMES #local\r\n"))
+	r1.ReadBytes('\n')
+	names, _ := r1.ReadBytes('\n')
+	assertResponse(names, fmt.Sprintf(RPL_NAMREPLY+"\r\n", s.Name, "a", "=", "#local", b.String()), t)
+}

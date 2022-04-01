@@ -559,7 +559,7 @@ func NAMES(s *Server, c *client.Client, m *msg.Message) {
 			if ch.Secret && !ok { // chan is secret and client does not belong
 				s.writeReply(c, c.Id(), RPL_ENDOFNAMES, v)
 			} else {
-				sym, members := constructNAMREPLY(ch, ok, c.Caps[cap.MultiPrefix.Name])
+				sym, members := constructNAMREPLY(ch, ok, c.Caps[cap.MultiPrefix.Name], c.Caps[cap.UserhostInNames.Name])
 				s.writeReply(c, c.Id(), RPL_NAMREPLY, sym, ch, members)
 				s.writeReply(c, c.Id(), RPL_ENDOFNAMES, v)
 			}
