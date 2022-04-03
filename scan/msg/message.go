@@ -49,6 +49,14 @@ type Message struct {
 	trailingSet bool
 }
 
+func New(tags map[string]string, nick, user, host, command string, params []string, trailing bool) *Message {
+	cleanedTags := make(map[string]TagVal, len(tags))
+	for k, v := range tags {
+		cleanedTags[k] = TagVal{false, "", v}
+	}
+	return &Message{cleanedTags, nick, user, host, command, params, trailing}
+}
+
 func (m Message) String() string {
 	var tags string
 	var tagCount int
@@ -97,7 +105,12 @@ func (m Message) String() string {
 	return tags + prefix + m.Command + params + "\r\n"
 }
 
-func (m Message) AddTag(k, v string) { m.tags[k] = TagVal{false, "", v} }
+func (m *Message) AddTag(k, v string) {
+	if m.tags == nil {
+		m.tags = make(map[string]TagVal)
+	}
+	m.tags[k] = TagVal{false, "", v}
+}
 
 func (m Message) TrimNonClientTags() {
 	for k, v := range m.tags {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/mode"
+	"github.com/mitchr/gossip/scan/msg"
 	"github.com/mitchr/gossip/scan/wild"
 )
 
@@ -154,6 +155,26 @@ func (c *Channel) Write(b []byte) (int, error) {
 	}
 
 	return n, errors.New(strings.Join(errStrings, "\n"))
+}
+
+func (c *Channel) WriteMessage(m *msg.Message) {
+	c.MembersLock.RLock()
+	defer c.MembersLock.RUnlock()
+
+	for _, v := range c.Members {
+		v.WriteMessage(m)
+		v.Flush()
+	}
+}
+
+func (c *Channel) WriteMessageFrom(m *msg.Message, from string) {
+	c.MembersLock.RLock()
+	defer c.MembersLock.RUnlock()
+
+	for _, v := range c.Members {
+		v.WriteMessageFrom(m, from)
+		v.Flush()
+	}
 }
 
 var (

@@ -22,6 +22,7 @@ func (c *Client) ApplyCap(cap string, remove bool) {
 type capHandler func(*Client, bool)
 
 var capHandlers = map[string]capHandler{
+	cap.AccountTag.Name:      messageTags,
 	cap.AwayNotify.Name:      doNothing,
 	cap.CapNotify.Name:       doNothing,
 	cap.Chghost.Name:         doNothing,
@@ -38,7 +39,7 @@ var capHandlers = map[string]capHandler{
 func doNothing(*Client, bool) {}
 
 func messageTags(c *Client, remove bool) {
-	hasMessageTags := c.hasMessageTagRequirement()
+	hasMessageTags := c.HasMessageTags()
 
 	if !remove && !hasMessageTags {
 		c.msgSizeChange <- 8191 + 512
@@ -50,9 +51,9 @@ func messageTags(c *Client, remove bool) {
 	}
 }
 
-var capsDependentOnMessageTags = []cap.Cap{cap.MessageTags, cap.ServerTime}
+var capsDependentOnMessageTags = [3]cap.Cap{cap.AccountTag, cap.MessageTags, cap.ServerTime}
 
-func (c *Client) hasMessageTagRequirement() bool {
+func (c *Client) HasMessageTags() bool {
 	for _, v := range capsDependentOnMessageTags {
 		if c.Caps[v.Name] {
 			return true

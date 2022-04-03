@@ -460,7 +460,8 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 
 	ch.Invited = append(ch.Invited, nick)
 
-	fmt.Fprintf(recipient, ":%s INVITE %s %s", sender, nick, ch)
+	recipient.WriteMessageFrom(msg.New(nil, sender.Nick, sender.User, sender.Host, "INVITE", []string{nick, ch.String()}, false), c.SASLMech.Authn())
+	// fmt.Fprintf(recipient, ":%s INVITE %s %s", sender, nick, ch)
 	recipient.Flush()
 
 	s.writeReply(c, c.Id(), RPL_INVITING, ch, nick)
@@ -538,7 +539,7 @@ func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick st
 
 	// send KICK to all channel members but self
 	ch.ForAllMembersExcept(c, func(m *channel.Member) {
-		fmt.Fprintf(m, ":%s KICK %s %s :%s", c, ch, u.Nick, comment)
+		m.WriteMessageFrom(msg.New(nil, c.Nick, c.User, c.Host, "KICK", []string{ch.String(), u.Nick, comment}, true), c.SASLMech.Authn())
 		m.Flush()
 	})
 
@@ -735,7 +736,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 			}
 			// only write final MODE to channel if any mode was actually altered
 			if applied != "" {
-				s.writeReply(ch, ch.String(), ":%s MODE %s %s", applied)
+				ch.WriteMessageFrom(msg.New(nil, s.Name, "", "", "MODE", []string{ch.String(), applied}, false), c.SASLMech.Authn())
 			}
 		}
 	}
@@ -1034,13 +1035,13 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 
 			// write to everybody else in the chan besides self
 			ch.ForAllMembersExcept(c, func(m *channel.Member) {
-				if msg.Command == "TAGMSG" && !m.Caps[cap.MessageTags.Name] {
+				if msg.Command == "TAGMSG" && !m.HasMessageTags() {
 					return
 				}
-				if !m.Caps[cap.MessageTags.Name] {
+				if !m.HasMessageTags() {
 					m.WriteMessage(msg.RemoveAllTags())
 				} else {
-					m.WriteMessage(&msg)
+					m.WriteMessageFrom(&msg, c.SASLMech.Authn())
 				}
 				m.Flush()
 			})
@@ -1057,13 +1058,13 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				s.writeReply(c, c.Id(), RPL_AWAY, target.Nick, target.AwayMsg)
 				continue
 			}
-			if msg.Command == "TAGMSG" && !target.Caps[cap.MessageTags.Name] {
+			if msg.Command == "TAGMSG" && !target.HasMessageTags() {
 				continue
 			}
-			if !target.Caps[cap.MessageTags.Name] {
+			if !target.HasMessageTags() {
 				target.WriteMessage(msg.RemoveAllTags())
 			} else {
-				target.WriteMessage(&msg)
+				target.WriteMessageFrom(&msg, c.SASLMech.Authn())
 			}
 			target.Flush()
 		}

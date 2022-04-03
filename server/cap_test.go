@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"testing"
@@ -10,6 +11,8 @@ import (
 
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/channel"
+	"github.com/mitchr/gossip/sasl/plain"
+	"github.com/mitchr/gossip/scan/msg"
 )
 
 func TestCAP(t *testing.T) {
@@ -283,6 +286,42 @@ func TestMultiPrefix(t *testing.T) {
 	whoisreply, _ := r1.ReadBytes('\n')
 	assertResponse(whoisreply, fmt.Sprintf(RPL_WHOISCHANNELS+"\r\n", s.Name, "a", "b ", ":~&@%+#local"), t)
 
+}
+
+func TestAccountTag(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	a, r, p := connect(s)
+	defer p()
+
+	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
+	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+
+	a.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE PLAIN\r\n"))
+	r.ReadBytes('\n')
+	r.ReadBytes('\n')
+	clientFirst := []byte("\000tim\000tanstaaftanstaaf")
+	firstEncoded := base64.StdEncoding.EncodeToString(clientFirst)
+	a.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\n" + "CAP END\r\n"))
+	for i := 0; i < 13; i++ {
+		r.ReadBytes('\n')
+	}
+
+	b, r2, p2 := connect(s)
+	defer p2()
+	b.Write([]byte("CAP REQ account-tag\r\nNICK b\r\nUSER u s e r\r\nCAP END\r\n"))
+	for i := 0; i < 12; i++ {
+		r2.ReadBytes('\n')
+	}
+
+	a.Write([]byte("PRIVMSG b :hey\r\n"))
+	resp, _ := r2.ReadBytes('\n')
+	assertResponse(resp, msg.New(map[string]string{"account": "tim"}, "a", "a", "pipe", "PRIVMSG", []string{"b", "hey"}, true).String(), t)
 }
 
 func TestAwayNotify(t *testing.T) {
