@@ -238,7 +238,7 @@ func (s *Server) endRegistration(c *client.Client) {
 	s.writeReply(c, c.Id(), RPL_CREATED, s.created)
 	// serverName, version, userModes, chanModes
 	s.writeReply(c, c.Id(), RPL_MYINFO, s.Name, "0", "ioOrw", "beliIkmstn")
-	for _, support := range constructISUPPORT() {
+	for _, support := range isupportTokens {
 		s.writeReply(c, c.Id(), RPL_ISUPPORT, support)
 	}
 

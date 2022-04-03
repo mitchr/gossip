@@ -145,8 +145,8 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool, multiPrefix bool, us
 	return symbol, members[:len(members)-1]
 }
 
-// TODO: actually honor these values
-func constructISUPPORT() []string {
+var isupportTokens = func() []string {
+	// TODO: actually honor these values
 	supported := []string{
 		"AWAYLEN=200",
 		"CASEMAPPING=ascii",
@@ -181,7 +181,7 @@ func constructISUPPORT() []string {
 	}
 
 	return lines
-}
+}()
 
 func whoreplyFlagsForClient(c *client.Client) string {
 	flags := "H"
