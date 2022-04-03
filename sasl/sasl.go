@@ -22,3 +22,11 @@ type Mechanism interface {
 	// the mechanism has completed.
 	Authn() string
 }
+
+// None is a placeholder mechanism for clients that are not
+// authenticated with SASL.
+type None struct{}
+
+func (n None) Next([]byte) ([]byte, error) { return nil, nil }
+
+func (n None) Authn() string { return "*" }

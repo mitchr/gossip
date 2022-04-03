@@ -8,6 +8,7 @@ import (
 
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/sasl"
 	"github.com/mitchr/gossip/sasl/external"
 	"github.com/mitchr/gossip/sasl/plain"
 	"github.com/mitchr/gossip/sasl/scram"
@@ -15,11 +16,12 @@ import (
 )
 
 func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
+	_, saslNone := c.SASLMech.(sasl.None)
 	// "If the client completes registration (with CAP END, NICK, USER and
 	// any other necessary messages) while the SASL authentication is
 	// still in progress, the server SHOULD abort it and send a 906
 	// numeric, then register the client without authentication"
-	if c.Is(client.Registered) && c.SASLMech != nil && !c.IsAuthenticated {
+	if c.Is(client.Registered) && !saslNone && !c.IsAuthenticated {
 		c.SASLMech = nil
 		s.writeReply(c, c.Id(), ERR_SASLABORTED)
 		return
@@ -52,7 +54,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	// this client has no mechanism yet
-	if c.SASLMech == nil {
+	if saslNone {
 		switch m.Params[0] {
 		case "PLAIN":
 			c.SASLMech = plain.New(s.db)

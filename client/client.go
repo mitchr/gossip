@@ -75,6 +75,8 @@ func New(conn net.Conn) *Client {
 
 		PONG: make(chan struct{}, 1),
 		Caps: make(map[string]bool),
+
+		SASLMech: sasl.None{},
 	}
 
 	c.FillGrants()
