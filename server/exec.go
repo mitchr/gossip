@@ -1036,9 +1036,9 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 					return
 				}
 				if !m.Caps[cap.MessageTags.Name] {
-					fmt.Fprint(m, msg.RemoveAllTags())
+					m.WriteMessage(msg.RemoveAllTags())
 				} else {
-					fmt.Fprint(m, msg)
+					m.WriteMessage(&msg)
 				}
 				m.Flush()
 			})
@@ -1059,16 +1059,16 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				continue
 			}
 			if !target.Caps[cap.MessageTags.Name] {
-				fmt.Fprint(target, msg.RemoveAllTags())
+				target.WriteMessage(msg.RemoveAllTags())
 			} else {
-				fmt.Fprint(target, msg)
+				target.WriteMessage(&msg)
 			}
 			target.Flush()
 		}
 	}
 
 	if c.Caps[cap.EchoMessage.Name] {
-		fmt.Fprint(c, msg)
+		c.WriteMessage(&msg)
 	}
 }
 
@@ -1173,7 +1173,7 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 	s.clientLock.RLock()
 	for _, v := range s.clients {
 		if v.Is(client.Wallops) {
-			fmt.Fprint(v, m)
+			v.WriteMessage(m)
 			v.Flush()
 		}
 	}

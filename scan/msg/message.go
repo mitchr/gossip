@@ -94,8 +94,10 @@ func (m Message) String() string {
 		params += " " + v
 	}
 
-	return tags + prefix + m.Command + params
+	return tags + prefix + m.Command + params + "\r\n"
 }
+
+func (m Message) AddTag(k, v string) { m.tags[k] = TagVal{false, "", v} }
 
 func (m Message) TrimNonClientTags() {
 	for k, v := range m.tags {
@@ -107,7 +109,7 @@ func (m Message) TrimNonClientTags() {
 
 // Return a copy of the message with the tags removed. Used for sending
 // messages to clients that do not support message-tags
-func (m Message) RemoveAllTags() Message {
+func (m Message) RemoveAllTags() *Message {
 	m.tags = nil
-	return m
+	return &m
 }

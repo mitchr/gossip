@@ -47,22 +47,22 @@ func TestMessageString(t *testing.T) {
 		s string
 		m *Message
 	}{
-		{"CAP LS :302", &Message{
+		{"CAP LS :302\r\n", &Message{
 			Command:     "CAP",
 			Params:      []string{"LS", "302"},
 			trailingSet: true,
 		}},
-		{"CAP LS 302", &Message{
+		{"CAP LS 302\r\n", &Message{
 			Command: "CAP",
 			Params:  []string{"LS", "302"},
 		}},
-		{":gossip ERROR :Closing link", &Message{
+		{":gossip ERROR :Closing link\r\n", &Message{
 			Nick:        "gossip",
 			Command:     "ERROR",
 			Params:      []string{"Closing link"},
 			trailingSet: true,
 		}},
-		{":alice REHASH", &Message{
+		{":alice REHASH\r\n", &Message{
 			Nick:    "alice",
 			Command: "REHASH",
 		}},

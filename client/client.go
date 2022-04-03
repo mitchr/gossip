@@ -260,6 +260,17 @@ func (c *Client) PrepareMessage(b []byte) []byte {
 	return temp
 }
 
+func (c *Client) WriteMessage(m *msg.Message) {
+	c.writeLock.Lock()
+	defer c.writeLock.Unlock()
+
+	if c.Caps[capability.ServerTime.Name] {
+		m.AddTag("time", time.Now().UTC().Format(timeFormat))
+	}
+
+	c.ReadWriter.Write([]byte(m.String()))
+}
+
 func (c *Client) Flush() error {
 	c.writeLock.Lock()
 	defer c.writeLock.Unlock()
