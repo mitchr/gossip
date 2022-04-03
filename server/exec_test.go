@@ -83,6 +83,20 @@ func TestRegistration(t *testing.T) {
 		assertResponse(resp, ":gossip 461 * USER :Not enough parameters\r\n", t)
 	})
 
+	// should not get back a failure numeric when changing nick to itself
+	t.Run("TestNickSame", func(t *testing.T) {
+		c, r, p := connect(s)
+		defer p()
+
+		c.Write([]byte("CAP LS 302\r\nNICK foo\r\nUSER u s e r\r\nNICK foo\r\nCAP END\r\n"))
+
+		r.ReadBytes('\n') // read CAP LS response
+		resp, _ := r.ReadBytes('\n')
+
+		foo, _ := s.getClient("foo")
+		assertResponse(resp, fmt.Sprintf(RPL_WELCOME+"\r\n", s.Name, foo.Nick, s.Network, foo), t)
+	})
+
 	t.Run("TestNickCaseChange", func(t *testing.T) {
 		conn, r := connectAndRegister("carl", "c")
 		defer conn.Close()

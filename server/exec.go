@@ -90,12 +90,14 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 
 	nick := m.Params[0]
 
+	if nick == c.Nick {
+		// trying to change nick to what it already is; a no-op
+		return
+	}
+
 	// if nickname is already in use, send back error
 	if _, ok := s.getClient(nick); ok {
-		if nick == c.Nick {
-			// trying to change nick to what it already is; a no-op
-			return
-		} else if strings.ToLower(nick) == strings.ToLower(c.Nick) {
+		if strings.ToLower(nick) == strings.ToLower(c.Nick) {
 			// client could just be changing the case of their nick, which is ok
 		} else {
 			s.writeReply(c, c.Id(), ERR_NICKNAMEINUSE, nick)
