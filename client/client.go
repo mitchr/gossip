@@ -273,10 +273,14 @@ func (c *Client) WriteMessage(m *msg.Message) {
 	c.ReadWriter.Write([]byte(m.String()))
 }
 
-func (c *Client) WriteMessageFrom(m *msg.Message, from string) {
+func (c *Client) WriteMessageFrom(m *msg.Message, from *Client) {
 	// if from == "*", then we assume that the sender has no authn
-	if from != "*" && c.Caps[capability.AccountTag.Name] {
-		m.AddTag("account", from)
+	if from.SASLMech.Authn() != "*" && c.Caps[capability.AccountTag.Name] {
+		m.AddTag("account", from.SASLMech.Authn())
+	}
+
+	if c.Caps[capability.ExtendedJoin.Name] && m.Command == "JOIN" {
+		m.Params = append(m.Params, from.SASLMech.Authn(), from.Realname)
 	}
 
 	c.WriteMessage(m)

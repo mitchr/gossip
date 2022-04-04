@@ -353,7 +353,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 				return
 			}
 			// send JOIN to all participants of channel
-			fmt.Fprintf(ch, ":%s JOIN %s", c, ch)
+			ch.WriteMessageFrom(msg.New(nil, c.Nick, c.User, c.Host, "JOIN", []string{ch.String()}, false), c)
 			if ch.Topic != "" {
 				// only send topic if it exists
 				TOPIC(s, c, &msg.Message{Params: []string{ch.String()}})
@@ -460,7 +460,7 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 
 	ch.Invited = append(ch.Invited, nick)
 
-	recipient.WriteMessageFrom(msg.New(nil, sender.Nick, sender.User, sender.Host, "INVITE", []string{nick, ch.String()}, false), c.SASLMech.Authn())
+	recipient.WriteMessageFrom(msg.New(nil, sender.Nick, sender.User, sender.Host, "INVITE", []string{nick, ch.String()}, false), c)
 	// fmt.Fprintf(recipient, ":%s INVITE %s %s", sender, nick, ch)
 	recipient.Flush()
 
@@ -539,7 +539,7 @@ func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick st
 
 	// send KICK to all channel members but self
 	ch.ForAllMembersExcept(c, func(m *channel.Member) {
-		m.WriteMessageFrom(msg.New(nil, c.Nick, c.User, c.Host, "KICK", []string{ch.String(), u.Nick, comment}, true), c.SASLMech.Authn())
+		m.WriteMessageFrom(msg.New(nil, c.Nick, c.User, c.Host, "KICK", []string{ch.String(), u.Nick, comment}, true), c)
 		m.Flush()
 	})
 
@@ -736,7 +736,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 			}
 			// only write final MODE to channel if any mode was actually altered
 			if applied != "" {
-				ch.WriteMessageFrom(msg.New(nil, s.Name, "", "", "MODE", []string{ch.String(), applied}, false), c.SASLMech.Authn())
+				ch.WriteMessageFrom(msg.New(nil, s.Name, "", "", "MODE", []string{ch.String(), applied}, false), c)
 			}
 		}
 	}
@@ -1041,7 +1041,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				if !m.HasMessageTags() {
 					m.WriteMessage(msg.RemoveAllTags())
 				} else {
-					m.WriteMessageFrom(&msg, c.SASLMech.Authn())
+					m.WriteMessageFrom(&msg, c)
 				}
 				m.Flush()
 			})
@@ -1064,7 +1064,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			if !target.HasMessageTags() {
 				target.WriteMessage(msg.RemoveAllTags())
 			} else {
-				target.WriteMessageFrom(&msg, c.SASLMech.Authn())
+				target.WriteMessageFrom(&msg, c)
 			}
 			target.Flush()
 		}

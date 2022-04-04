@@ -167,7 +167,7 @@ func (c *Channel) WriteMessage(m *msg.Message) {
 	}
 }
 
-func (c *Channel) WriteMessageFrom(m *msg.Message, from string) {
+func (c *Channel) WriteMessageFrom(m *msg.Message, from *client.Client) {
 	c.MembersLock.RLock()
 	defer c.MembersLock.RUnlock()
 

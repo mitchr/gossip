@@ -371,6 +371,47 @@ func TestAwayNotify(t *testing.T) {
 	})
 }
 
+func TestExtendedJoin(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	a, r, p := connect(s)
+	defer p()
+
+	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
+	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+
+	a.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE PLAIN\r\n"))
+	r.ReadBytes('\n')
+	r.ReadBytes('\n')
+	clientFirst := []byte("\000tim\000tanstaaftanstaaf")
+	firstEncoded := base64.StdEncoding.EncodeToString(clientFirst)
+	a.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\n" + "CAP END\r\n"))
+	for i := 0; i < 13; i++ {
+		r.ReadBytes('\n')
+	}
+
+	b, r2 := connectAndRegister("b", "b")
+	defer b.Close()
+
+	b.Write([]byte("CAP REQ extended-join\r\nCAP END\r\nJOIN #test\r\n"))
+	r2.ReadBytes('\n')
+	r2.ReadBytes('\n')
+	r2.ReadBytes('\n')
+	r2.ReadBytes('\n')
+
+	a.Write([]byte("JOIN #test\r\n"))
+	r.ReadBytes('\n')
+	resp, _ := r2.ReadBytes('\n')
+
+	aClient, _ := s.getClient("a")
+	assertResponse(resp, msg.New(nil, aClient.Nick, aClient.User, aClient.Host, "JOIN", []string{"#test", "tim", "A"}, false).String(), t)
+}
+
 func TestServerTime(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {

@@ -13,6 +13,7 @@ var (
 	CapNotify       = Cap{Name: "cap-notify"}
 	Chghost         = Cap{Name: "chghost"}
 	EchoMessage     = Cap{Name: "echo-message"}
+	ExtendedJoin    = Cap{Name: "extended-join"}
 	MessageTags     = Cap{Name: "message-tags"}
 	MultiPrefix     = Cap{Name: "multi-prefix"}
 	SASL            = Cap{Name: "sasl", Value: "PLAIN,EXTERNAL,SCRAM-SHA-256"}
