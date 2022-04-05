@@ -1339,7 +1339,7 @@ func TestINVITE(t *testing.T) {
 	t.Run("JoinInviteModedChannelAfterInvite", func(t *testing.T) {
 		c1.Write([]byte("INVITE bob #local\r\n"))
 		inviteResp, _ := r1.ReadBytes('\n')
-		assertResponse(inviteResp, ":gossip 341 alice #local bob\r\n", t)
+		assertResponse(inviteResp, ":gossip 341 alice bob #local\r\n", t)
 
 		receivedInvite, _ := r2.ReadBytes('\n')
 		assertResponse(receivedInvite, ":alice!alice@localhost INVITE bob #local\r\n", t)

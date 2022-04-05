@@ -464,7 +464,7 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 	// fmt.Fprintf(recipient, ":%s INVITE %s %s", sender, nick, ch)
 	recipient.Flush()
 
-	s.writeReply(c, c.Id(), RPL_INVITING, ch, nick)
+	s.writeReply(c, c.Id(), RPL_INVITING, nick, ch)
 }
 
 // if c belongs to the channel associated with chanName, return that
