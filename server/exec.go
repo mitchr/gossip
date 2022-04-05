@@ -906,61 +906,71 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	masks := strings.Split(strings.ToLower(m.Params[0]), ",")
-	s.clientLock.RLock()
 	for _, m := range masks {
+		if v, ok := s.getClient(m); ok {
+			s.sendWHOIS(c, v)
+			continue
+		}
+
+		s.clientLock.RLock()
 		for _, v := range s.clients {
 			if wild.Match(m, v.Nick) {
-				if v.Is(client.Away) {
-					s.writeReply(c, c.Id(), RPL_AWAY, v.Nick, v.AwayMsg)
-				}
+				s.sendWHOIS(c, v)
+			}
+		}
+		s.clientLock.RUnlock()
+	}
 
-				s.writeReply(c, c.Id(), RPL_WHOISUSER, v.Nick, v.User, v.Host, v.Realname)
-				s.writeReply(c, c.Id(), RPL_WHOISSERVER, v.Nick, s.Name, "wip irc server")
-				if v.Is(client.Op) {
-					s.writeReply(c, c.Id(), RPL_WHOISOPERATOR, v.Nick)
-				}
-				if v == c || c.Is(client.Op) { // querying whois on self or self is an op
-					if v.IsSecure() {
-						certPrint, err := v.CertificateFingerprint()
-						if err == nil {
-							s.writeReply(c, c.Id(), RPL_WHOISCERTFP, v.Nick, certPrint)
-						}
-					}
-				}
-				s.writeReply(c, c.Id(), RPL_WHOISIDLE, v.Nick, time.Since(v.Idle).Round(time.Second).Seconds(), v.JoinTime)
+	s.writeReply(c, c.Id(), RPL_ENDOFWHOIS, m.Params[0])
+}
 
-				chans := []string{}
-				s.chanLock.RLock()
-				for _, k := range s.channels {
-					_, senderBelongs := k.GetMember(c.Nick)
-					member, clientBelongs := k.GetMember(v.Nick)
+func (s *Server) sendWHOIS(c *client.Client, v *client.Client) {
+	if v.Is(client.Away) {
+		s.writeReply(c, c.Id(), RPL_AWAY, v.Nick, v.AwayMsg)
+	}
 
-					// if client is invisible or this channel is secret, only send
-					// a response if the sender shares a channel with this client
-					if k.Secret || v.Is(client.Invisible) {
-						if !(senderBelongs && clientBelongs) {
-							continue
-						}
-					}
-					hasMultiPrefix := c.Caps[cap.MultiPrefix.Name]
-					chans = append(chans, string(member.HighestPrefix(hasMultiPrefix))+k.String())
-				}
-				s.chanLock.RUnlock()
-
-				chanParam := ""
-				if len(chans) > 0 {
-					chanParam = " :" + strings.Join(chans, " ")
-				}
-				s.writeReply(c, c.Id(), RPL_WHOISCHANNELS, v.Nick, chanParam)
-
-				if v.IsAuthenticated {
-					s.writeReply(c, c.Id(), RPL_WHOISACCOUNT, v.Nick, v.SASLMech.Authn())
-				}
-				s.writeReply(c, c.Id(), RPL_ENDOFWHOIS, m)
+	s.writeReply(c, c.Id(), RPL_WHOISUSER, v.Nick, v.User, v.Host, v.Realname)
+	s.writeReply(c, c.Id(), RPL_WHOISSERVER, v.Nick, s.Name, "wip irc server")
+	if v.Is(client.Op) {
+		s.writeReply(c, c.Id(), RPL_WHOISOPERATOR, v.Nick)
+	}
+	if v == c || c.Is(client.Op) { // querying whois on self or self is an op
+		if v.IsSecure() {
+			certPrint, err := v.CertificateFingerprint()
+			if err == nil {
+				s.writeReply(c, c.Id(), RPL_WHOISCERTFP, v.Nick, certPrint)
 			}
 		}
 	}
-	s.clientLock.RUnlock()
+	s.writeReply(c, c.Id(), RPL_WHOISIDLE, v.Nick, time.Since(v.Idle).Round(time.Second).Seconds(), v.JoinTime)
+
+	chans := []string{}
+	s.chanLock.RLock()
+	for _, k := range s.channels {
+		_, senderBelongs := k.GetMember(c.Nick)
+		member, clientBelongs := k.GetMember(v.Nick)
+
+		// if client is invisible or this channel is secret, only send
+		// a response if the sender shares a channel with this client
+		if k.Secret || v.Is(client.Invisible) {
+			if !(senderBelongs && clientBelongs) {
+				continue
+			}
+		}
+		hasMultiPrefix := c.Caps[cap.MultiPrefix.Name]
+		chans = append(chans, string(member.HighestPrefix(hasMultiPrefix))+k.String())
+	}
+	s.chanLock.RUnlock()
+
+	chanParam := ""
+	if len(chans) > 0 {
+		chanParam = " :" + strings.Join(chans, " ")
+	}
+	s.writeReply(c, c.Id(), RPL_WHOISCHANNELS, v.Nick, chanParam)
+
+	if v.IsAuthenticated {
+		s.writeReply(c, c.Id(), RPL_WHOISACCOUNT, v.Nick, v.SASLMech.Authn())
+	}
 }
 
 func WHOWAS(s *Server, c *client.Client, m *msg.Message) {
