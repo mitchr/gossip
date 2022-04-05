@@ -31,10 +31,10 @@ func TestRegistration(t *testing.T) {
 	})
 
 	t.Run("NICKChange", func(t *testing.T) {
-		c1, r1 := connectAndRegister("bob", "Bob Smith")
+		c1, r1 := connectAndRegister("bob")
 		defer c1.Close()
 
-		c2, r2 := connectAndRegister("c", "C")
+		c2, r2 := connectAndRegister("c")
 		defer c2.Close()
 
 		bob, _ := s.getClient("bob")
@@ -54,7 +54,7 @@ func TestRegistration(t *testing.T) {
 	})
 
 	t.Run("TestUserWhenRegistered", func(t *testing.T) {
-		conn, r := connectAndRegister("alice", "Alice Smith")
+		conn, r := connectAndRegister("alice")
 		defer conn.Close()
 
 		conn.Write([]byte("USER dan\r\n"))
@@ -98,7 +98,7 @@ func TestRegistration(t *testing.T) {
 	})
 
 	t.Run("TestNickCaseChange", func(t *testing.T) {
-		conn, r := connectAndRegister("carl", "c")
+		conn, r := connectAndRegister("carl")
 		defer conn.Close()
 
 		carl, _ := s.getClient("carl")
@@ -122,7 +122,7 @@ func TestOPER(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("a", "Alice")
+	c, r := connectAndRegister("a")
 	defer c.Close()
 
 	t.Run("TestMissingParams", func(t *testing.T) {
@@ -223,7 +223,7 @@ func TestQUIT(t *testing.T) {
 	go s.Serve()
 
 	t.Run("TestNoReason", func(t *testing.T) {
-		c, r := connectAndRegister("alice", "Alice Smith")
+		c, r := connectAndRegister("alice")
 		defer c.Close()
 		c.Write([]byte("QUIT\r\n"))
 
@@ -232,9 +232,9 @@ func TestQUIT(t *testing.T) {
 	})
 
 	t.Run("TestReasonInChannel", func(t *testing.T) {
-		c1, r1 := connectAndRegister("bob", "Bob Smith")
+		c1, r1 := connectAndRegister("bob")
 		defer c1.Close()
-		c2, r2 := connectAndRegister("dan", "Dan Jones")
+		c2, r2 := connectAndRegister("dan")
 		defer c2.Close()
 
 		s.channels["#l"] = channel.New("l", '#')
@@ -261,7 +261,7 @@ func TestSETNAME(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice", "Alice Smith")
+	c, r := connectAndRegister("alice")
 	defer c.Close()
 
 	t.Run("EmptyRealname", func(t *testing.T) {
@@ -283,7 +283,7 @@ func TestSETNAME(t *testing.T) {
 	})
 
 	t.Run("ChannelNotify", func(t *testing.T) {
-		c2, r2 := connectAndRegister("bob", "Bob Smith")
+		c2, r2 := connectAndRegister("bob")
 		defer c2.Close()
 
 		local := channel.New("local", channel.Remote)
@@ -311,7 +311,7 @@ func TestCHGHOST(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice", "Alice Smith")
+	c, r := connectAndRegister("alice")
 	defer c.Close()
 
 	t.Run("NotEnoughParams", func(t *testing.T) {
@@ -338,7 +338,7 @@ func TestCHGHOST(t *testing.T) {
 	})
 
 	t.Run("ChannelNotifyNoCapSupported", func(t *testing.T) {
-		c2, r2 := connectAndRegister("bob", "Bob Smith")
+		c2, r2 := connectAndRegister("bob")
 		defer c2.Close()
 
 		local := channel.New("local", channel.Remote)
@@ -370,9 +370,9 @@ func TestChannelCreation(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 	c1.Write([]byte("JOIN #local\r\n"))
 	joinResp, _ := r1.ReadBytes('\n')
@@ -423,7 +423,7 @@ func TestChannelCreation(t *testing.T) {
 	})
 
 	t.Run("TestJOIN0", func(t *testing.T) {
-		c3, r3 := connectAndRegister("c", "c")
+		c3, r3 := connectAndRegister("c")
 		c3.Write([]byte("JOIN #chan1\r\nJOIN #chan2\r\nJOIN #chan3\r\n"))
 		r3.ReadBytes('\n')
 		r3.ReadBytes('\n')
@@ -460,7 +460,7 @@ func TestChannelKeys(t *testing.T) {
 	s.channels["#2"].Key = "Key2"
 	s.channels["#3"] = channel.New("3", channel.Remote)
 
-	c, r := connectAndRegister("alice", "Alice Smith")
+	c, r := connectAndRegister("alice")
 	defer c.Close()
 
 	c.Write([]byte("JOIN #1,#2,#3 Key1,Key2\r\n"))
@@ -477,7 +477,7 @@ func TestChannelKeys(t *testing.T) {
 	assertResponse(join3, ":alice!alice@localhost JOIN #3\r\n", t)
 
 	t.Run("TestBadChannelKey", func(t *testing.T) {
-		c2, r2 := connectAndRegister("dan", "Dan Smith")
+		c2, r2 := connectAndRegister("dan")
 		defer c2.Close()
 		c2.Write([]byte("JOIN #1\r\n"))
 		resp, _ := r2.ReadBytes('\n')
@@ -494,7 +494,7 @@ func TestTOPIC(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice", "Alice Smith")
+	c, r := connectAndRegister("alice")
 	defer c.Close()
 
 	s.channels["&test"] = channel.New("test", '&')
@@ -525,7 +525,7 @@ func TestTOPIC(t *testing.T) {
 	})
 
 	t.Run("TestNoPrivileges", func(t *testing.T) {
-		c2, r2 := connectAndRegister("b", "B")
+		c2, r2 := connectAndRegister("b")
 		defer c2.Close()
 		c2.Write([]byte("JOIN &test\r\nTOPIC &test :I have no privileges\r\n"))
 		r2.ReadBytes('\n')
@@ -544,9 +544,9 @@ func TestKICK(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	local := channel.New("local", '#')
@@ -614,7 +614,7 @@ func TestNAMES(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice", "Alice Smith")
+	c, r := connectAndRegister("alice")
 	defer c.Close()
 
 	c.Write([]byte("JOIN &test\r\n"))
@@ -671,7 +671,7 @@ func TestLIST(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice", "Alice Smith")
+	c, r := connectAndRegister("alice")
 	defer c.Close()
 
 	t.Run("TestNoParams", func(t *testing.T) {
@@ -731,7 +731,7 @@ func TestMOTD(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice", "Alice Smith")
+	c, r := connectAndRegister("alice")
 	defer c.Close()
 
 	t.Run("NoFile", func(t *testing.T) {
@@ -763,9 +763,9 @@ func TestMODEChannel(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	local := channel.New("local", '#')
@@ -919,7 +919,7 @@ func TestMODEClient(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice", "Alice Smith")
+	c, r := connectAndRegister("alice")
 	defer c.Close()
 
 	alice, _ := s.getClient("alice")
@@ -937,7 +937,7 @@ func TestMODEClient(t *testing.T) {
 	})
 
 	t.Run("TestModifyOtherUser", func(t *testing.T) {
-		d, _ := connectAndRegister("bob", "Bob")
+		d, _ := connectAndRegister("bob")
 		defer d.Close()
 
 		c.Write([]byte("MODE bob +o\r\n"))
@@ -1007,14 +1007,14 @@ func TestWHOClient(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
 
 	t.Run("NoArgument", func(t *testing.T) {
 		c1.Write([]byte("WHO\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice localhost %s alice H :0 Alice Smith\r\n", s.Name, s.Name), t)
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice localhost %s alice H :0 alice\r\n", s.Name, s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.Name), t)
 	})
 
@@ -1025,18 +1025,18 @@ func TestWHOClient(t *testing.T) {
 		c1.Write([]byte("WHO\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice localhost %s alice G* :0 Alice Smith\r\n", s.Name, s.Name), t)
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice localhost %s alice G* :0 alice\r\n", s.Name, s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.Name), t)
 	})
 
 	t.Run("WHObob", func(t *testing.T) {
-		c2, _ := connectAndRegister("bob", "Bob")
+		c2, _ := connectAndRegister("bob")
 		defer c2.Close()
 
 		c1.Write([]byte("WHO bob\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		r1.ReadBytes('\n') // end
-		assertResponse(resp, fmt.Sprintf(":%s 352 alice * bob localhost %s bob H :0 Bob\r\n", s.Name, s.Name), t)
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice * bob localhost %s bob H :0 bob\r\n", s.Name, s.Name), t)
 	})
 }
 
@@ -1048,14 +1048,14 @@ func TestWHOXClient(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, _ := connectAndRegister("bob", "Bob Smith")
+	c2, _ := connectAndRegister("bob")
 	defer c2.Close()
 
 	c1.Write([]byte("WHO bob %%tcuihsnfdlaor,10\r\n"))
 	resp, _ := r1.ReadBytes('\n')
-	assertResponse(resp, fmt.Sprintf(":%s 354 alice 10 * bob 127.0.0.1 localhost gossip H 0 0 0 :Bob Smith\r\n", s.Name), t)
+	assertResponse(resp, fmt.Sprintf(":%s 354 alice 10 * bob 127.0.0.1 localhost gossip H 0 0 0 :bob\r\n", s.Name), t)
 }
 
 func TestWHOChannel(t *testing.T) {
@@ -1066,7 +1066,7 @@ func TestWHOChannel(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
 
 	local := channel.New("local", channel.Remote)
@@ -1079,7 +1079,7 @@ func TestWHOChannel(t *testing.T) {
 		c1.Write([]byte("WHO #local\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 352 alice #local alice localhost %s alice H :0 Alice Smith\r\n", s.Name, s.Name), t)
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice #local alice localhost %s alice H :0 alice\r\n", s.Name, s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 315 alice #local :End of WHO list\r\n", s.Name), t)
 	})
 
@@ -1089,11 +1089,11 @@ func TestWHOChannel(t *testing.T) {
 		c1.Write([]byte("WHO #local\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 352 alice #local alice localhost %s alice G*@+ :0 Alice Smith\r\n", s.Name, s.Name), t)
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice #local alice localhost %s alice G*@+ :0 alice\r\n", s.Name, s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 315 alice #local :End of WHO list\r\n", s.Name), t)
 	})
 
-	c2, _ := connectAndRegister("bob", "Bob")
+	c2, _ := connectAndRegister("bob")
 	defer c2.Close()
 
 	// bob is invisible, so he should not show up in the general WHO list
@@ -1104,7 +1104,7 @@ func TestWHOChannel(t *testing.T) {
 		c1.Write([]byte("WHO\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice localhost %s alice G* :0 Alice Smith\r\n", s.Name, s.Name), t)
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice * alice localhost %s alice G* :0 alice\r\n", s.Name, s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 315 alice * :End of WHO list\r\n", s.Name), t)
 	})
 
@@ -1132,9 +1132,9 @@ func TestWHOIS(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	c1.Write([]byte("WHOIS bob\r\n"))
@@ -1144,7 +1144,7 @@ func TestWHOIS(t *testing.T) {
 	chans, _ := r1.ReadBytes('\n')
 	end, _ := r1.ReadBytes('\n')
 
-	assertResponse(whois, fmt.Sprintf(":%s 311 alice bob bob %s * :Bob Smith\r\n", s.Name, "localhost"), t)
+	assertResponse(whois, fmt.Sprintf(":%s 311 alice bob bob %s * :bob\r\n", s.Name, "localhost"), t)
 	assertResponse(server, fmt.Sprintf(":%s 312 alice bob %s :wip irc server\r\n", s.Name, s.Name), t)
 	// assertResponse(idle, fmt.Sprintf(":%s 317 alice bob %v %v :seconds idle, signon time\r\n", s.Name, time.Since(bob.Idle).Round(time.Second).Seconds(), bob.JoinTime), t)
 	assertResponse(chans, fmt.Sprintf(":%s 319 alice bob\r\n", s.Name), t)
@@ -1168,43 +1168,43 @@ func TestWHOWAS(t *testing.T) {
 	go s.Serve()
 
 	t.Run("TestMultipleEntries", func(t *testing.T) {
-		c1, r1 := connectAndRegister("alice", "Alice Smith")
+		c1, r1 := connectAndRegister("alice")
 		c1.Write([]byte("QUIT\r\n"))
 		r1.ReadBytes('\n')
 		defer c1.Close()
-		c2, r2 := connectAndRegister("alice", "A")
+		c2, r2 := connectAndRegister("alice")
 		c2.Write([]byte("QUIT\r\n"))
 		r2.ReadBytes('\n')
 		defer c2.Close()
 
-		c3, r3 := connectAndRegister("bob", "b")
+		c3, r3 := connectAndRegister("bob")
 		defer c3.Close()
 
 		c3.Write([]byte("WHOWAS alice\r\n"))
 		resp1, _ := r3.ReadBytes('\n')
-		assertResponse(resp1, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "A"), t)
+		assertResponse(resp1, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "alice"), t)
 		resp2, _ := r3.ReadBytes('\n')
-		assertResponse(resp2, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "Alice Smith"), t)
+		assertResponse(resp2, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "alice"), t)
 		end, _ := r3.ReadBytes('\n')
 		assertResponse(end, fmt.Sprintf(RPL_ENDOFWHOWAS+"\r\n", s.Name, "bob", "alice"), t)
 	})
 
 	t.Run("TestCount1", func(t *testing.T) {
-		c1, r1 := connectAndRegister("alice", "Alice Smith")
+		c1, r1 := connectAndRegister("alice")
 		c1.Write([]byte("QUIT\r\n"))
 		r1.ReadBytes('\n')
 		defer c1.Close()
-		c2, r2 := connectAndRegister("alice", "A")
+		c2, r2 := connectAndRegister("alice")
 		c2.Write([]byte("QUIT\r\n"))
 		r2.ReadBytes('\n')
 		defer c2.Close()
 
-		c3, r3 := connectAndRegister("bob", "b")
+		c3, r3 := connectAndRegister("bob")
 		defer c3.Close()
 
 		c3.Write([]byte("WHOWAS alice 1\r\n"))
 		resp, _ := r3.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "A"), t)
+		assertResponse(resp, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "alice"), t)
 		end, _ := r3.ReadBytes('\n')
 		assertResponse(end, fmt.Sprintf(RPL_ENDOFWHOWAS+"\r\n", s.Name, "bob", "alice"), t)
 	})
@@ -1218,9 +1218,9 @@ func TestChanFull(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	c1.Write([]byte("JOIN #l\r\n"))
@@ -1243,9 +1243,9 @@ func TestModerated(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	c1.Write([]byte("JOIN #l\r\n"))
@@ -1273,9 +1273,9 @@ func TestNoExternal(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	c1.Write([]byte("JOIN #l\r\n"))
@@ -1298,9 +1298,9 @@ func TestINVITE(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	c1.Write([]byte("JOIN #local\r\n"))
@@ -1383,9 +1383,9 @@ func TestBan(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	c1.Write([]byte("JOIN #local\r\n"))
@@ -1408,9 +1408,9 @@ func TestPRIVMSG(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	local := channel.New("local", '#')
@@ -1451,7 +1451,7 @@ func TestPRIVMSG(t *testing.T) {
 	})
 
 	t.Run("TestMultipleTargets", func(t *testing.T) {
-		c3, _ := connectAndRegister("c", "c")
+		c3, _ := connectAndRegister("c")
 		defer c3.Close()
 
 		local.SetMember(&channel.Member{Client: s.clients["c"]})
@@ -1474,11 +1474,11 @@ func TestChannelPRIVMSGTags(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
-	c3, r3 := connectAndRegister("carl", "carl")
+	c3, r3 := connectAndRegister("carl")
 	defer c3.Close()
 
 	c1.Write([]byte("CAP REQ message-tags\r\n"))
@@ -1511,7 +1511,7 @@ func TestPING(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("a", "A")
+	c, r := connectAndRegister("a")
 	defer c.Close()
 
 	c.Write([]byte("PING\r\n"))
@@ -1553,9 +1553,9 @@ func TestAWAY(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	c1.Write([]byte("AWAY :I'm away\r\n"))
@@ -1579,9 +1579,9 @@ func TestUSERHOST(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	t.Run("TestNotAway", func(t *testing.T) {
@@ -1607,9 +1607,9 @@ func TestWALLOPS(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	c2.Write([]byte("MODE bob +w\r\n"))
@@ -1638,7 +1638,7 @@ func TestREHASH(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("a", "A")
+	c, r := connectAndRegister("a")
 	defer c.Close()
 
 	t.Run("NoPriviliges", func(t *testing.T) {
@@ -1657,7 +1657,7 @@ func TestUnknownCommand(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("a", "A")
+	c, r := connectAndRegister("a")
 	defer c.Close()
 
 	c.Write([]byte("UnknownCommand\r\n"))

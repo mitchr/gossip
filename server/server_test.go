@@ -70,7 +70,7 @@ func TestTLS(t *testing.T) {
 	})
 
 	t.Run("TestPRIVMSGFromInsecureToSecure", func(t *testing.T) {
-		c2, r2 := connectAndRegister("bob", "Bob Smith")
+		c2, r2 := connectAndRegister("bob")
 		defer c2.Close()
 
 		c.Write([]byte("PRIVMSG bob :hey\r\n"))
@@ -107,7 +107,7 @@ func TestMessageSize(t *testing.T) {
 	})
 
 	t.Run("HugeTags", func(t *testing.T) {
-		d, r2 := connectAndRegister("d", "d")
+		d, r2 := connectAndRegister("d")
 		d.Write([]byte("CAP REQ message-tags\r\n"))
 		r2.ReadBytes('\n')
 
@@ -137,7 +137,7 @@ func TestFlooding(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice", "Alice Smith")
+	c, r := connectAndRegister("alice")
 	defer c.Close()
 
 	for i := 0; i < 21; i++ {
@@ -174,9 +174,9 @@ func TestCaseInsensitivity(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice", "Alice Smith")
+	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob", "Bob Smith")
+	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
 	t.Run("TestNickCaseInsensitive", func(t *testing.T) {
@@ -295,7 +295,7 @@ func BenchmarkRegistrationSurge(b *testing.B) {
 	b.ResetTimer()
 	name := []byte{'a'}
 	for i := 0; i < b.N; i++ {
-		c, _ := connectAndRegister(string(name), string(name))
+		c, _ := connectAndRegister(string(name))
 		defer c.Close()
 		if name[len(name)-1] == 'z' {
 			name[len(name)-1] = 'a'
@@ -309,11 +309,11 @@ func BenchmarkRegistrationSurge(b *testing.B) {
 // given a nick and a realname, return a connection that is already
 // registered and a bufio.Reader that has already read past all the
 // initial connection rigamarole (RPL's, MOTD, etc.)
-func connectAndRegister(nick, realname string) (net.Conn, *bufio.Reader) {
+func connectAndRegister(nick string) (net.Conn, *bufio.Reader) {
 	c, _ := net.Dial("tcp", ":6667")
 
 	c.Write([]byte("NICK " + nick + "\r\n"))
-	c.Write([]byte("USER " + nick + " 0 0 :" + realname + "\r\n"))
+	c.Write([]byte("USER " + nick + " 0 0 :" + nick + "\r\n"))
 
 	r := bufio.NewReader(c)
 	for i := 0; i < 11; i++ {

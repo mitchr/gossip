@@ -19,7 +19,7 @@ func TestREGISTER(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	conn, r := connectAndRegister("alice", "Alice Smith")
+	conn, r := connectAndRegister("alice")
 	defer conn.Close()
 
 	conn.Write([]byte("REGISTER PASS pass1\r\n"))
@@ -40,7 +40,7 @@ func TestAUTHENTICATE(t *testing.T) {
 	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
 
 	t.Run("TestAUTHENTICATEAfterRegister", func(t *testing.T) {
-		c, r := connectAndRegister("a", "A")
+		c, r := connectAndRegister("a")
 		defer c.Close()
 
 		c.Write([]byte("AUTHENTICATE PLAIN\r\n"))

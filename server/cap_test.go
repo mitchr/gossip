@@ -24,7 +24,7 @@ func TestCAP(t *testing.T) {
 	go s.Serve()
 
 	t.Run("TestInvalid", func(t *testing.T) {
-		c, r := connectAndRegister("a", "A")
+		c, r := connectAndRegister("a")
 		defer c.Close()
 
 		c.Write([]byte("CAP\r\nCAP fakesubcom\r\n"))
@@ -60,7 +60,7 @@ func TestCAP(t *testing.T) {
 	})
 
 	t.Run("TestLIST", func(t *testing.T) {
-		c, r := connectAndRegister("c", "C")
+		c, r := connectAndRegister("c")
 		defer c.Close()
 
 		c.Write([]byte("CAP REQ sasl message-tags\r\n"))
@@ -83,7 +83,7 @@ func TestREQ(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("bob", "Bob")
+	c, r := connectAndRegister("bob")
 	defer c.Close()
 
 	t.Run("REQEmptyParam", func(t *testing.T) {
@@ -138,7 +138,7 @@ func TestCAP302(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("bob", "Bob")
+	c, r := connectAndRegister("bob")
 	defer c.Close()
 
 	c.Write([]byte("CAP LS 302\r\n"))
@@ -176,9 +176,9 @@ func TestTAGMSG(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a", "A")
+	c1, r1 := connectAndRegister("a")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("b", "B")
+	c2, r2 := connectAndRegister("b")
 	defer c2.Close()
 
 	c1.Write([]byte("CAP REQ :message-tags\r\n"))
@@ -199,9 +199,9 @@ func TestEchoMessage(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a", "A")
+	c1, r1 := connectAndRegister("a")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("b", "B")
+	c2, r2 := connectAndRegister("b")
 	defer c2.Close()
 
 	c1.Write([]byte("CAP REQ :echo-message\r\nPRIVMSG b test\r\n"))
@@ -222,9 +222,9 @@ func TestMessageTags(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a", "A")
+	c1, r1 := connectAndRegister("a")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("b", "B")
+	c2, r2 := connectAndRegister("b")
 	defer c2.Close()
 	c1.Write([]byte("CAP REQ :message-tags\r\n"))
 	r1.ReadBytes('\n')
@@ -253,9 +253,9 @@ func TestMultiPrefix(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a", "A")
+	c1, r1 := connectAndRegister("a")
 	defer c1.Close()
-	c2, _ := connectAndRegister("b", "B")
+	c2, _ := connectAndRegister("b")
 	defer c2.Close()
 
 	c1.Write([]byte("CAP REQ :multi-prefix\r\n"))
@@ -277,7 +277,7 @@ func TestMultiPrefix(t *testing.T) {
 	c1.Write([]byte("WHO #local\r\n"))
 	whoreply, _ := r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
-	assertResponse(whoreply, fmt.Sprintf(RPL_WHOREPLY+"\r\n", s.Name, "a", "#local", "b", "localhost", s.Name, "b", "H~&@%+", "B"), t)
+	assertResponse(whoreply, fmt.Sprintf(RPL_WHOREPLY+"\r\n", s.Name, "a", "#local", "b", "localhost", s.Name, "b", "H~&@%+", "b"), t)
 
 	c1.Write([]byte("WHOIS b\r\n"))
 	r1.ReadBytes('\n')
@@ -332,9 +332,9 @@ func TestAwayNotify(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a", "A")
+	c1, r1 := connectAndRegister("a")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("b", "B")
+	c2, r2 := connectAndRegister("b")
 	defer c2.Close()
 	c1.Write([]byte("CAP REQ :away-notify\r\n"))
 	r1.ReadBytes('\n')
@@ -356,7 +356,7 @@ func TestAwayNotify(t *testing.T) {
 	})
 
 	t.Run("TestShouldNotifyOnJoin", func(t *testing.T) {
-		c3, r3 := connectAndRegister("d", "D")
+		c3, r3 := connectAndRegister("d")
 		defer c3.Close()
 		c3.Write([]byte("AWAY :My away msg\r\nJOIN #local\r\n"))
 		r3.ReadBytes('\n')
@@ -395,7 +395,7 @@ func TestExtendedJoin(t *testing.T) {
 		r.ReadBytes('\n')
 	}
 
-	b, r2 := connectAndRegister("b", "b")
+	b, r2 := connectAndRegister("b")
 	defer b.Close()
 
 	b.Write([]byte("CAP REQ extended-join\r\nCAP END\r\nJOIN #test\r\n"))
@@ -420,7 +420,7 @@ func TestServerTime(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a", "A")
+	c1, r1 := connectAndRegister("a")
 	defer c1.Close()
 
 	c1.Write([]byte("CAP REQ :server-time\r\n"))
@@ -485,9 +485,9 @@ func TestUserhostInNames(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a", "A")
+	c1, r1 := connectAndRegister("a")
 	defer c1.Close()
-	c2, _ := connectAndRegister("b", "B")
+	c2, _ := connectAndRegister("b")
 	defer c2.Close()
 
 	b, _ := s.getClient("b")
