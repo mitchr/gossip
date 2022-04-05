@@ -616,6 +616,7 @@ func MOTD(s *Server, c *client.Client, m *msg.Message) {
 func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 	invis := 0
 	ops := 0
+	clientSize := s.clientLen()
 
 	s.clientLock.RLock()
 	for _, v := range s.clients {
@@ -627,16 +628,15 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 			ops++
 		}
 	}
+	s.clientLock.RUnlock()
 
-	s.writeReply(c, c.Id(), RPL_LUSERCLIENT, s.clientLen(), invis, 1)
+	s.writeReply(c, c.Id(), RPL_LUSERCLIENT, clientSize, invis, 1)
 	s.writeReply(c, c.Id(), RPL_LUSEROP, ops)
 	s.unknownLock.Lock()
 	s.writeReply(c, c.Id(), RPL_LUSERUNKNOWN, s.unknowns)
 	s.unknownLock.Unlock()
 	s.writeReply(c, c.Id(), RPL_LUSERCHANNELS, s.channelLen())
-	s.writeReply(c, c.Id(), RPL_LUSERME, s.clientLen(), 1)
-
-	s.clientLock.RUnlock()
+	s.writeReply(c, c.Id(), RPL_LUSERME, clientSize, 1)
 }
 
 func TIME(s *Server, c *client.Client, m *msg.Message) {
