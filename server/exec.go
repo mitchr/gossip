@@ -870,7 +870,7 @@ func constructSpcrplResponse(fields string, c *client.Client, s *Server) string 
 	if strings.ContainsRune(fields, 'a') {
 		a := "0"
 		if c.IsAuthenticated {
-			a = c.Nick
+			a = c.SASLMech.Authn()
 		}
 		resp = append(resp, a)
 	}
