@@ -830,6 +830,8 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 func constructSpcrplResponse(fields string, c *client.Client, s *Server) string {
 	resp := make([]string, 0, len(fields))
 
+	var chanRef *channel.Channel
+
 	if strings.ContainsRune(fields, 't') {
 		f := strings.Split(fields, ",")
 		if len(f) > 1 {
@@ -840,6 +842,7 @@ func constructSpcrplResponse(fields string, c *client.Client, s *Server) string 
 		channel := "*"
 		chans := s.channelsOf(c)
 		if len(chans) > 0 {
+			chanRef = chans[0]
 			channel = chans[0].String()
 		}
 		resp = append(resp, channel)
@@ -875,7 +878,18 @@ func constructSpcrplResponse(fields string, c *client.Client, s *Server) string 
 		resp = append(resp, a)
 	}
 	if strings.ContainsRune(fields, 'o') {
-		// TODO: add channel op level
+		prefix := "n/a"
+		if chanRef != nil {
+			m, _ := chanRef.GetMember(c.Nick)
+			if m.Is(channel.Operator) {
+				prefix = string(channel.Operator)
+			} else if m.Is(channel.Halfop) {
+				prefix = string(channel.Halfop)
+			} else if m.Is(channel.Founder) {
+				prefix = string(channel.Founder)
+			}
+		}
+		resp = append(resp, prefix)
 	}
 	if strings.ContainsRune(fields, 'r') {
 		resp = append(resp, ":"+c.Realname)
