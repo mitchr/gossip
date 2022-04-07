@@ -1059,14 +1059,10 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 
 			// write to everybody else in the chan besides self
 			ch.ForAllMembersExcept(c, func(m *channel.Member) {
-				if msg.Command == "TAGMSG" && !m.HasMessageTags() {
+				if msg.Command == "TAGMSG" && !m.Caps[cap.MessageTags.Name] {
 					return
 				}
-				if !m.HasMessageTags() {
-					m.WriteMessage(msg.RemoveAllTags())
-				} else {
-					m.WriteMessageFrom(&msg, c)
-				}
+				m.WriteMessageFrom(&msg, c)
 				m.Flush()
 			})
 		} else { // client->client
@@ -1082,14 +1078,10 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				s.writeReply(c, c.Id(), RPL_AWAY, target.Nick, target.AwayMsg)
 				continue
 			}
-			if msg.Command == "TAGMSG" && !target.HasMessageTags() {
+			if msg.Command == "TAGMSG" && !target.Caps[cap.MessageTags.Name] {
 				continue
 			}
-			if !target.HasMessageTags() {
-				target.WriteMessage(msg.RemoveAllTags())
-			} else {
-				target.WriteMessageFrom(&msg, c)
-			}
+			target.WriteMessageFrom(&msg, c)
 			target.Flush()
 		}
 	}

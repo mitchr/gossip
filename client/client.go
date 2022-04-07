@@ -270,10 +270,18 @@ func (c *Client) WriteMessage(m *msg.Message) {
 		m.AddTag("time", time.Now().UTC().Format(timeFormat))
 	}
 
+	if (m.Command == "PRIVMSG" || m.Command == "NOTICE" || m.Command == "TAGMSG") && c.Caps[capability.MessageTags.Name] {
+		m.SetMsgid()
+	}
+
 	c.ReadWriter.Write([]byte(m.String()))
 }
 
 func (c *Client) WriteMessageFrom(m *msg.Message, from *Client) {
+	if !c.Caps[capability.MessageTags.Name] {
+		m = m.RemoveAllTags()
+	}
+
 	// if from == "*", then we assume that the sender has no authn
 	if from.SASLMech.Authn() != "*" && c.Caps[capability.AccountTag.Name] {
 		m.AddTag("account", from.SASLMech.Authn())

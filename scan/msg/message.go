@@ -2,6 +2,8 @@ package msg
 
 import (
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 // A TagVal represents the value associated with a message tag
@@ -110,6 +112,15 @@ func (m *Message) AddTag(k, v string) {
 		m.tags = make(map[string]TagVal)
 	}
 	m.tags[k] = TagVal{false, "", v}
+}
+
+// Generate a unique uuid for this message. Subsequent calls to SetMsgid
+// do not change the id.
+func (m *Message) SetMsgid() {
+	if _, ok := m.tags["msgid"]; ok {
+		return
+	}
+	m.AddTag("msgid", uuid.NewString())
 }
 
 func (m Message) TrimNonClientTags() {
