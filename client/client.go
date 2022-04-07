@@ -207,7 +207,7 @@ func (c *Client) ReadMsg() ([]byte, error) {
 		// on Read before the buffer has been increased.
 		select {
 		case size := <-c.msgSizeChange:
-			resizeBuffer(c.msgBuf, size)
+			c.msgBuf = resizeBuffer(c.msgBuf, size)
 		default:
 			b, err := c.ReadByte()
 			if err != nil {
@@ -233,7 +233,7 @@ func (c *Client) Write(b []byte) (int, error) {
 	return c.ReadWriter.Write(prepared)
 }
 
-func resizeBuffer(b []byte, size int) {
+func resizeBuffer(b []byte, size int) []byte {
 	// requesting a smaller capacity
 	if size < cap(b) {
 		length := len(b)
@@ -246,7 +246,7 @@ func resizeBuffer(b []byte, size int) {
 	}
 	temp := make([]byte, len(b), size)
 	copy(temp, b)
-	b = temp
+	return temp
 }
 
 const timeFormat string = "2006-01-02T15:04:05.999Z"
