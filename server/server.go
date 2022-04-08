@@ -284,13 +284,17 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, msgs chan<- *
 				continue
 			}
 
-			msg, err := msg.Parse(tokens)
+			m, err := msg.Parse(tokens)
 			if err != nil {
 				errs <- err
 				continue
 			}
-			if msg != nil {
-				msgs <- msg
+			if m != nil {
+				if m.SizeOfTags() > 4096 {
+					errs <- msg.ErrMsgSizeOverflow
+					continue
+				}
+				msgs <- m
 			}
 		}
 	}

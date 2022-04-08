@@ -123,6 +123,38 @@ func (m *Message) SetMsgid() {
 	m.AddTag("msgid", uuid.NewString())
 }
 
+func (m *Message) SizeOfTags() int {
+	if len(m.tags) == 0 {
+		return 0
+	}
+
+	// acocunt for leading '@' and trailing ' '
+	size := 2
+
+	tagCount := 0
+	for k, v := range m.tags {
+		size += len(k)
+
+		if v.ClientPrefix {
+			size++ // acocunt for '+'
+		}
+		if v.Vendor != "" {
+			size += len(v.Vendor) + 1 // account for '/'
+		}
+		if v.Value != "" {
+			size += len(v.Value) + 1 // account for '='
+		}
+
+		// this is not the last tag, so account for ';' between tags
+		if tagCount != len(m.tags)-1 {
+			size++
+		}
+		tagCount++
+	}
+
+	return size
+}
+
 func (m Message) TrimNonClientTags() {
 	for k, v := range m.tags {
 		if !v.ClientPrefix {
