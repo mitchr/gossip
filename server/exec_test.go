@@ -30,6 +30,16 @@ func TestRegistration(t *testing.T) {
 		assertResponse(resp, ":gossip 431 * :No nickname given\r\n", t)
 	})
 
+	t.Run("ErroneousNick", func(t *testing.T) {
+		c, r, p := connect(s)
+		defer p()
+
+		c.Write([]byte("NICK *\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 432 * :Erroneous nickname\r\n", t)
+	})
+
 	t.Run("NICKChange", func(t *testing.T) {
 		c1, r1 := connectAndRegister("bob")
 		defer c1.Close()

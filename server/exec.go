@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/channel"
@@ -89,6 +90,10 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	nick := m.Params[0]
+	if !validateNick(nick) {
+		s.writeReply(c, c.Id(), ERR_ERRONEUSNICKNAME)
+		return
+	}
 
 	if nick == c.Nick {
 		// trying to change nick to what it already is; a no-op
@@ -132,6 +137,27 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 		c.Nick = nick
 		s.endRegistration(c)
 	}
+}
+
+func validateNick(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+
+	if !unicode.IsLetter(rune(s[0])) {
+		return false
+	}
+
+	for _, v := range s[1:] {
+		if !isAllowedNickChar(v) {
+			return false
+		}
+	}
+	return true
+}
+
+func isAllowedNickChar(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsNumber(r) || r == '-' || r == '[' || r == ']' || r == '\\' || r == '`' || r == '_' || r == '^' || r == '{' || r == '|' || r == '}'
 }
 
 func USER(s *Server, c *client.Client, m *msg.Message) {

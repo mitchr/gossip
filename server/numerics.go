@@ -70,6 +70,7 @@ const (
 	ERR_UNKNOWNCOMMAND   = ":%s 421 %s %s :Unknown command"
 	ERR_NOMOTD           = ":%s 422 %s :MOTD file is missing"
 	ERR_NONICKNAMEGIVEN  = ":%s 431 %s :No nickname given"
+	ERR_ERRONEUSNICKNAME = ":%s 432 %s :Erroneous nickname"
 	ERR_NICKNAMEINUSE    = ":%s 433 %s %s :Nickname is already in use"
 	ERR_USERNOTINCHANNEL = ":%s 441 %s %s %s :They aren't on that channel"
 	ERR_NOTONCHANNEL     = ":%s 442 %s %s :You're not on that channel"

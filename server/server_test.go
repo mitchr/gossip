@@ -208,24 +208,6 @@ func TestCaseInsensitivity(t *testing.T) {
 	})
 }
 
-func TestUnicodeNICK(t *testing.T) {
-	s, err := New(&Config{Name: "gossip", Port: ":6667", Network: "cafe"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer s.Close()
-	go s.Serve()
-
-	c, r, p := connect(s)
-	defer p()
-
-	c.Write([]byte("NICK 🛩️\r\nUSER airplane 0 0 :A\r\n"))
-	resp, _ := r.ReadBytes('\n')
-
-	airplane := s.clients["🛩️"].String()
-	assertResponse(resp, fmt.Sprintf(":%s 001 🛩️ :Welcome to the cafe IRC Network %s\r\n", s.Name, airplane), t)
-}
-
 func TestUnknownCount(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
@@ -240,7 +222,7 @@ func TestUnknownCount(t *testing.T) {
 	// we send NICK and USER in separate parts here to ensure that that
 	// getMessage has been started and therefore unknownCount was
 	// incremented
-	c.Write([]byte("NICK 1\r\n"))
+	c.Write([]byte("NICK one\r\n"))
 
 	s.unknownLock.Lock()
 	if s.unknowns != 1 {
