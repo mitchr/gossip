@@ -312,14 +312,14 @@ func TestAccountTag(t *testing.T) {
 	clientFirst := []byte("\000tim\000tanstaaftanstaaf")
 	firstEncoded := base64.StdEncoding.EncodeToString(clientFirst)
 	a.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\n" + "CAP END\r\n"))
-	for i := 0; i < 13; i++ {
+	for i := 0; i < 15; i++ {
 		r.ReadBytes('\n')
 	}
 
 	b, r2, p2 := connect(s)
 	defer p2()
 	b.Write([]byte("CAP REQ account-tag\r\nNICK b\r\nUSER u s e r\r\nCAP END\r\n"))
-	for i := 0; i < 12; i++ {
+	for i := 0; i < 14; i++ {
 		r2.ReadBytes('\n')
 	}
 
@@ -457,7 +457,7 @@ func TestSTS(t *testing.T) {
 
 	c.Write([]byte("NICK test\r\nUSER test 0 0 :realname\r\n"))
 	c.Write([]byte("CAP LS 302\r\n"))
-	for i := 0; i < 11; i++ {
+	for i := 0; i < 13; i++ {
 		r.ReadBytes('\n')
 	}
 

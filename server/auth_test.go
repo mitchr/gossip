@@ -78,7 +78,7 @@ func TestAUTHENTICATE(t *testing.T) {
 		r.ReadBytes('\n') // cap ack
 		r.ReadBytes('\n') // authenticate +
 
-		for i := 0; i < 11; i++ {
+		for i := 0; i < 13; i++ {
 			r.ReadBytes('\n')
 		}
 

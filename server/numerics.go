@@ -20,6 +20,8 @@ const (
 	RPL_LUSERUNKNOWN     = ":%s 253 %s %d :unknown connection(s)"
 	RPL_LUSERCHANNELS    = ":%s 254 %s %d :channels formed"
 	RPL_LUSERME          = ":%s 255 %s :I have %d clients and %d servers"
+	RPL_LOCALUSERS       = ":%s 265 %s %v %v :Current local users %v, max %v"
+	RPL_GLOBALUSERS      = ":%s 266 %s %v %v :Current global users %v, max %v"
 	RPL_WHOISCERTFP      = ":%s 276 %s %s :has client certificate fingerprint %s"
 	RPL_AWAY             = ":%s 301 %s %s :%s"
 	RPL_USERHOST         = ":%s 302 %s :%s"

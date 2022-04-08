@@ -254,9 +254,8 @@ func (s *Server) endRegistration(c *client.Client) {
 
 	c.SetMode(client.Registered)
 	s.setClient(c)
-	s.unknownLock.Lock()
-	s.unknowns--
-	s.unknownLock.Unlock()
+	s.unknowns.Dec()
+	s.max.KeepMax(uint(s.clientLen()))
 
 	// send RPL_WELCOME and friends in acceptance
 	s.writeReply(c, c.Id(), RPL_WELCOME, s.Network, c)
@@ -643,6 +642,7 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 	invis := 0
 	ops := 0
 	clientSize := s.clientLen()
+	max := s.max.Get()
 
 	s.clientLock.RLock()
 	for _, v := range s.clients {
@@ -658,11 +658,11 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) {
 
 	s.writeReply(c, c.Id(), RPL_LUSERCLIENT, clientSize, invis, 1)
 	s.writeReply(c, c.Id(), RPL_LUSEROP, ops)
-	s.unknownLock.Lock()
-	s.writeReply(c, c.Id(), RPL_LUSERUNKNOWN, s.unknowns)
-	s.unknownLock.Unlock()
+	s.writeReply(c, c.Id(), RPL_LUSERUNKNOWN, s.unknowns.Get())
 	s.writeReply(c, c.Id(), RPL_LUSERCHANNELS, s.channelLen())
 	s.writeReply(c, c.Id(), RPL_LUSERME, clientSize, 1)
+	s.writeReply(c, c.Id(), RPL_LOCALUSERS, clientSize, max, clientSize, max)
+	s.writeReply(c, c.Id(), RPL_GLOBALUSERS, clientSize, max, clientSize, max)
 }
 
 func TIME(s *Server, c *client.Client, m *msg.Message) {

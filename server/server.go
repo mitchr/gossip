@@ -40,9 +40,10 @@ type Server struct {
 	chanLock sync.RWMutex
 
 	// a running count of connected users who are unregistered
-	// (used for LUSER replies)
-	unknownLock sync.Mutex
-	unknowns    int
+	unknowns statistic
+
+	// the largest number of clients ever connected to this server
+	max statistic
 
 	supportedCaps []cap.Cap
 	whowasHistory *whowasStack
@@ -169,18 +170,14 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	defer cancel()
 	defer func() {
 		if !c.Is(client.Registered) {
-			s.unknownLock.Lock()
-			s.unknowns--
-			s.unknownLock.Unlock()
+			s.unknowns.Dec()
 			c.Close()
 			return
 		}
 		s.whowasHistory.push(c.Nick, c.User, c.Host, c.Realname)
 	}()
 
-	s.unknownLock.Lock()
-	s.unknowns++
-	s.unknownLock.Unlock()
+	s.unknowns.Inc()
 
 	msgs := make(chan *msg.Message, 1)
 	errs := make(chan error)

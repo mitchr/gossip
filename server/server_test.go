@@ -50,18 +50,9 @@ func TestTLS(t *testing.T) {
 
 	t.Run("TestWHOISCERTFP", func(t *testing.T) {
 		c.Write([]byte("WHOIS alice\r\n"))
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
-		r.ReadBytes('\n')
+		for i := 0; i < 14; i++ {
+			r.ReadBytes('\n')
+		}
 		resp, _ := r.ReadBytes('\n')
 
 		sha := sha256.New()
@@ -224,20 +215,16 @@ func TestUnknownCount(t *testing.T) {
 	// incremented
 	c.Write([]byte("NICK one\r\n"))
 
-	s.unknownLock.Lock()
-	if s.unknowns != 1 {
+	if s.unknowns.Get() != 1 {
 		t.Error("did not increment unknown count")
 	}
-	s.unknownLock.Unlock()
 
 	c.Write([]byte("USER 1 0 0 :1\r\n"))
 	r.ReadBytes('\n')
 
-	s.unknownLock.Lock()
-	if s.unknowns != 0 {
+	if s.unknowns.Get() != 0 {
 		t.Error("did not decrement unknown count")
 	}
-	s.unknownLock.Unlock()
 }
 
 func TestUTF8ONLY(t *testing.T) {
@@ -298,7 +285,7 @@ func connectAndRegister(nick string) (net.Conn, *bufio.Reader) {
 	c.Write([]byte("USER " + nick + " 0 0 :" + nick + "\r\n"))
 
 	r := bufio.NewReader(c)
-	for i := 0; i < 11; i++ {
+	for i := 0; i < 13; i++ {
 		r.ReadBytes('\n')
 	}
 
