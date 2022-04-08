@@ -3,13 +3,13 @@ module github.com/mitchr/gossip
 go 1.17
 
 require (
+	github.com/google/uuid v1.3.0
 	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	modernc.org/sqlite v1.14.1
 )
 
 require (
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
