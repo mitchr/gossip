@@ -534,7 +534,10 @@ func TestTOPIC(t *testing.T) {
 		assertResponse(resp, ":gossip 461 alice TOPIC :Not enough parameters\r\n", t)
 	})
 
-	t.Run("TestNoPrivileges", func(t *testing.T) {
+	t.Run("TestNoPrivilegesProtectedChan", func(t *testing.T) {
+		testChan, _ := s.getChannel("&test")
+		testChan.Protected = true
+
 		c2, r2 := connectAndRegister("b")
 		defer c2.Close()
 		c2.Write([]byte("JOIN &test\r\nTOPIC &test :I have no privileges\r\n"))

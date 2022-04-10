@@ -439,7 +439,7 @@ func TOPIC(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	if len(m.Params) >= 2 { // modify topic
-		if m, _ := ch.GetMember(c.Nick); !m.Is(channel.Operator) {
+		if m, _ := ch.GetMember(c.Nick); ch.Protected && !m.Is(channel.Operator) {
 			s.writeReply(c, c.Id(), ERR_CHANOPRIVSNEEDED, ch)
 			return
 		}
