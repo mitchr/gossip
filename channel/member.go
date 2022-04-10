@@ -16,8 +16,7 @@ type Member struct {
 }
 
 func (m Member) Is(p prefix) bool {
-	// a founder satisfies all prefixes
-	if strings.ContainsRune(m.Prefix, rune(Founder)) {
+	if (p == Operator || p == Halfop) && strings.ContainsRune(m.Prefix, rune(Founder)) {
 		return true
 	} else {
 		return strings.ContainsRune(m.Prefix, rune(p))
