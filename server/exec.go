@@ -1121,11 +1121,12 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 }
 
 func PING(s *Server, c *client.Client, m *msg.Message) {
-	token := ""
-	if len(m.Params) > 0 {
-		token = " " + m.Params[0]
+	if len(m.Params) < 1 {
+		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "PING")
+		return
 	}
-	fmt.Fprintf(c, ":%s PONG%s", s.Name, token)
+
+	c.WriteMessage(msg.New(nil, s.Name, "", "", "PONG", []string{s.Name, m.Params[0]}, m.Params[0] == ""))
 }
 
 func PONG(s *Server, c *client.Client, m *msg.Message) {
