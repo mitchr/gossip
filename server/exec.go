@@ -886,6 +886,9 @@ func constructSpcrplResponse(fields string, c *client.Client, s *Server) string 
 	if strings.ContainsRune(fields, 's') {
 		resp = append(resp, s.Name)
 	}
+	if strings.ContainsRune(fields, 'n') {
+		resp = append(resp, c.Nick)
+	}
 	if strings.ContainsRune(fields, 'f') {
 		flags := whoreplyFlagsForClient(c)
 		resp = append(resp, flags)
