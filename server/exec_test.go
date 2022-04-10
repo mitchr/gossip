@@ -519,7 +519,7 @@ func TestTOPIC(t *testing.T) {
 	unchanged, _ := r.ReadBytes('\n')
 	assertResponse(unchanged, fmt.Sprintf(":%s 331 alice &test :No topic is set\r\n", s.Name), t)
 	changed, _ := r.ReadBytes('\n')
-	assertResponse(changed, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Name), t)
+	assertResponse(changed, fmt.Sprintf(":%s TOPIC &test :This is a test\r\n", s.Name), t)
 	retrieve, _ := r.ReadBytes('\n')
 	assertResponse(retrieve, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Name), t)
 
