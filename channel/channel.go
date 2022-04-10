@@ -24,9 +24,11 @@ const (
 
 type Channel struct {
 	// Name is case-insensitive, stored internally in lower-case
-	Name     string
-	ChanType ChanType
-	Topic    string
+	Name       string
+	ChanType   ChanType
+	Topic      string
+	TopicSetBy *client.Client
+	TopicSetAt int64
 
 	// array of nickmasks
 	Ban          []string

@@ -444,12 +444,15 @@ func TOPIC(s *Server, c *client.Client, m *msg.Message) {
 			return
 		}
 		ch.Topic = m.Params[1]
+		ch.TopicSetBy = c
+		ch.TopicSetAt = time.Now().Unix()
 		ch.WriteMessage(msg.New(nil, s.Name, "", "", "TOPIC", []string{ch.String(), ch.Topic}, true))
 	} else {
 		if ch.Topic == "" {
 			s.writeReply(c, c.Id(), RPL_NOTOPIC, ch)
 		} else { // give back existing topic
 			s.writeReply(c, c.Id(), RPL_TOPIC, ch, ch.Topic)
+			s.writeReply(c, c.Id(), RPL_TOPICWHOTIME, ch, ch.TopicSetBy, ch.TopicSetAt)
 		}
 	}
 }

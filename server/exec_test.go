@@ -522,6 +522,10 @@ func TestTOPIC(t *testing.T) {
 	assertResponse(changed, fmt.Sprintf(":%s TOPIC &test :This is a test\r\n", s.Name), t)
 	retrieve, _ := r.ReadBytes('\n')
 	assertResponse(retrieve, fmt.Sprintf(":%s 332 alice &test :This is a test\r\n", s.Name), t)
+	r.ReadBytes('\n')
+	// TODO: figure out a way to check the unix timestamp
+	// topicWhoTime, _ := r.ReadBytes('\n')
+	// assertResponse(topicWhoTime, fmt.Sprintf(RPL_TOPICWHOTIME+"\r\n", s.Name, "alice", "&test", "alice", 0), t)
 
 	r.ReadBytes('\n')
 	clear, _ := r.ReadBytes('\n')

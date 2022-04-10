@@ -41,6 +41,7 @@ const (
 	RPL_WHOISACCOUNT     = ":%s 330 %s %s %s :is logged in as"
 	RPL_NOTOPIC          = ":%s 331 %s %s :No topic is set"
 	RPL_TOPIC            = ":%s 332 %s %s :%s"
+	RPL_TOPICWHOTIME     = ":%s 333 %s %s %s %v"
 	RPL_INVITING         = ":%s 341 %s %s %s"
 	RPL_INVITELIST       = ":%s 346 %s %s %s"
 	RPL_ENDOFINVITELIST  = ":%s 347 %s %s :End of channel invite list"
