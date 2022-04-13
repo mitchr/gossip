@@ -937,7 +937,13 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	masks := strings.Split(strings.ToLower(m.Params[0]), ",")
+	// ignore optional target param
+	nicks := m.Params[0]
+	if len(m.Params) == 2 {
+		nicks = m.Params[1]
+	}
+
+	masks := strings.Split(strings.ToLower(nicks), ",")
 	for _, m := range masks {
 		if v, ok := s.getClient(m); ok {
 			s.sendWHOIS(c, v)
