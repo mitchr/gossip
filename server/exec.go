@@ -392,7 +392,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			chanChar := channel.ChanType(chans[i][0])
 			chanName := chans[i][1:]
 
-			if chanChar != channel.Remote && chanChar != channel.Local {
+			if (chanChar != channel.Remote && chanChar != channel.Local) || !isValidChannelName(chanName) {
 				s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, chans[i])
 				return
 			}
@@ -405,6 +405,19 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			NAMES(s, c, &msg.Message{Params: []string{newChan.String()}})
 		}
 	}
+}
+
+func isValidChannelName(ch string) bool {
+	for _, v := range ch {
+		if isDisallowedChanChar(rune(v)) {
+			return false
+		}
+	}
+	return true
+}
+
+func isDisallowedChanChar(r rune) bool {
+	return r == 0x20 || r == 0x07 || r == 0x2c
 }
 
 func PART(s *Server, c *client.Client, m *msg.Message) {
