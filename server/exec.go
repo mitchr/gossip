@@ -607,6 +607,10 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 		// reply with all channels that aren't secret
 		s.chanLock.RLock()
 		for _, v := range s.channels {
+			_, senderBelongs := v.GetMember(c.Nick)
+			if v.Secret && !senderBelongs {
+				continue
+			}
 			s.sendListReply(v, c)
 		}
 		s.chanLock.RUnlock()
