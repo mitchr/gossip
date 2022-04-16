@@ -11,6 +11,7 @@ import (
 
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/channel"
+	"github.com/mitchr/gossip/sasl/external"
 	"github.com/mitchr/gossip/sasl/plain"
 	"github.com/mitchr/gossip/scan/msg"
 )
@@ -383,21 +384,11 @@ func TestExtendedJoin(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	a, r, p := connect(s)
-	defer p()
+	a, r1 := connectAndRegister("a")
+	defer a.Close()
 
-	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
-	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
-
-	a.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE PLAIN\r\n"))
-	r.ReadBytes('\n')
-	r.ReadBytes('\n')
-	clientFirst := []byte("\000tim\000tanstaaftanstaaf")
-	firstEncoded := base64.StdEncoding.EncodeToString(clientFirst)
-	a.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\n" + "CAP END\r\n"))
-	for i := 0; i < 13; i++ {
-		r.ReadBytes('\n')
-	}
+	aClient, _ := s.getClient("a")
+	aClient.SASLMech = external.New(nil, aClient)
 
 	b, r2 := connectAndRegister("b")
 	defer b.Close()
@@ -409,11 +400,10 @@ func TestExtendedJoin(t *testing.T) {
 	r2.ReadBytes('\n')
 
 	a.Write([]byte("JOIN #test\r\n"))
-	r.ReadBytes('\n')
+	r1.ReadBytes('\n')
 	resp, _ := r2.ReadBytes('\n')
 
-	aClient, _ := s.getClient("a")
-	assertResponse(resp, msg.New(nil, aClient.Nick, aClient.User, aClient.Host, "JOIN", []string{"#test", "tim", "A"}, false).String(), t)
+	assertResponse(resp, msg.New(nil, aClient.Nick, aClient.User, aClient.Host, "JOIN", []string{"#test", "a", "a"}, false).String(), t)
 }
 
 func TestServerTime(t *testing.T) {
