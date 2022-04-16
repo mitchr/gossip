@@ -17,6 +17,12 @@ type node struct {
 	data whowasInfo
 }
 
+func (l *whowasStack) len() int {
+	l.RLock()
+	defer l.RUnlock()
+	return l.size
+}
+
 func (l *whowasStack) push(nick, user, host, realname string) {
 	l.Lock()
 	defer l.Unlock()

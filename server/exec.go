@@ -1017,7 +1017,7 @@ func WHOWAS(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	count := s.whowasHistory.size
+	count := s.whowasHistory.len()
 	if len(m.Params) > 1 {
 		givenCount, _ := strconv.Atoi(m.Params[1])
 		// negative counts should be treated as wanting to traverse the entire history
