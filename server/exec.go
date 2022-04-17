@@ -392,7 +392,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			chanChar := channel.ChanType(chans[i][0])
 			chanName := chans[i][1:]
 
-			if (chanChar != channel.Remote && chanChar != channel.Local) || !isValidChannelName(chanName) {
+			if !isValidChannelString(string(chanChar) + chanName) {
 				s.writeReply(c, c.Id(), ERR_NOSUCHCHANNEL, chans[i])
 				return
 			}
@@ -407,7 +407,15 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 	}
 }
 
-func isValidChannelName(ch string) bool {
+func isValidChannelString(ch string) bool {
+	if len(ch) == 0 {
+		return false
+	}
+
+	if ch[0] != byte(channel.Remote) && ch[0] != byte(channel.Local) {
+		return false
+	}
+
 	for _, v := range ch {
 		if isDisallowedChanChar(rune(v)) {
 			return false
@@ -700,7 +708,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	target := m.Params[0]
-	if !isChannel(target) {
+	if !isValidChannelString(target) {
 		client, ok := s.getClient(target)
 		if !ok {
 			s.writeReply(c, c.Id(), ERR_NOSUCHNICK, target)
@@ -1089,7 +1097,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 		msg.Params[0] = v
 
 		// TODO: support sending to only a specific user mode in channel (i.e., PRIVMSG %#buffy)
-		if isChannel(v) {
+		if isValidChannelString(v) {
 			ch, _ := s.getChannel(v)
 			if ch == nil { // channel doesn't exist
 				if !skipReplies {
@@ -1272,9 +1280,4 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		s.writeReply(c, c.Id(), ERR_UNKNOWNCOMMAND, m.Command)
 	}
 	c.Flush()
-}
-
-// determine if the given string is a channel
-func isChannel(s string) bool {
-	return s[0] == byte(channel.Remote) || s[0] == byte(channel.Local)
 }
