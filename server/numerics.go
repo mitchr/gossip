@@ -150,22 +150,23 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool, multiPrefix bool, us
 }
 
 var isupportTokens = func() []string {
-	// TODO: actually honor these values
 	supported := []string{
-		"AWAYLEN=200",
 		"CASEMAPPING=ascii",
 		"CHANLIMIT=#&:",
+		"ELIST=M",
+		"STATUSMSG=~&@%+",
+		"WHOX",
+		"UTF8ONLY",
+
+		// TODO: honor the below values
+		"AWAYLEN=200",
 		"CHANNELLEN=64",
-		"ELIST=N",
 		"HOSTLEN=64",
 		"KICKLEN=200",
 		"MAXLIST=beI:25",
 		"NICKLEN=30",
-		"STATUSMSG=~&@%+",
 		"TOPICLEN=307",
 		"USERLEN=18",
-		"WHOX",
-		"UTF8ONLY",
 	}
 
 	// try to get every line below 200 bytes, that seems like a good number

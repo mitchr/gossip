@@ -622,8 +622,10 @@ func NAMES(s *Server, c *client.Client, m *msg.Message) {
 	}
 }
 
-// TODO: support ELIST m.Params
+// TODO: support all ELIST params
 func LIST(s *Server, c *client.Client, m *msg.Message) {
+	defer s.writeReply(c, c.Id(), RPL_LISTEND)
+
 	if len(m.Params) == 0 {
 		// reply with all channels that aren't secret
 		s.chanLock.RLock()
@@ -631,14 +633,63 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 			s.sendListReply(v, c)
 		}
 		s.chanLock.RUnlock()
-	} else {
-		for _, v := range strings.Split(m.Params[0], ",") {
-			if ch, ok := s.getChannel(v); ok {
-				s.sendListReply(ch, c)
-			}
+		return
+	}
+
+	var chans, elist []string
+	chans = strings.Split(m.Params[0], ",")
+	if len(m.Params) == 2 {
+		elist = strings.Split(m.Params[1], ",")
+	}
+
+	// the first param could be a list of channels or elist conditions. we
+	// can assume they are elist conditions, which means we filter over
+	// all channels. if they do indeed end up just being channel strings,
+	// they will be caught in the default mask match (which will only be
+	// an O(1) lookup)
+	if elist == nil {
+		elist = chans
+		chans = make([]string, 0, s.channelLen())
+		s.chanLock.RLock()
+		for _, v := range s.channels {
+			chans = append(chans, v.String())
+		}
+		s.chanLock.RUnlock()
+	}
+
+	replies := []*channel.Channel{}
+	for _, v := range chans {
+		if ch, ok := s.getChannel(v); ok {
+			replies = append(replies, ch)
 		}
 	}
-	s.writeReply(c, c.Id(), RPL_LISTEND)
+
+	for _, v := range elist {
+		replies = s.applyElistConditions(v, replies)
+	}
+
+	for _, v := range replies {
+		s.sendListReply(v, c)
+	}
+}
+
+// for now, we only handle masks ("M")
+func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) []*channel.Channel {
+	filtered := []*channel.Channel{}
+
+	// first see if we can get an exact match
+	if ch, ok := s.getChannel(pattern); ok {
+		filtered = append(filtered, ch)
+	} else {
+		s.chanLock.RLock()
+		for _, v := range chans {
+			if wild.Match(pattern, v.String()) {
+				filtered = append(filtered, v)
+			}
+		}
+		s.chanLock.RUnlock()
+	}
+	return filtered
 }
 
 func (s *Server) sendListReply(ch *channel.Channel, c *client.Client) {
