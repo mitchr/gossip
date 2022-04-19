@@ -1065,10 +1065,8 @@ func (s *Server) sendWHOIS(c *client.Client, v *client.Client) {
 
 		// if client is invisible or this channel is secret, only send
 		// a response if the sender shares a channel with this client
-		if k.Secret || v.Is(client.Invisible) {
-			if !(senderBelongs && clientBelongs) {
-				continue
-			}
+		if (k.Secret || v.Is(client.Invisible)) && !(senderBelongs && clientBelongs) {
+			continue
 		}
 		hasMultiPrefix := c.Caps[cap.MultiPrefix.Name]
 		chans = append(chans, string(member.HighestPrefix(hasMultiPrefix))+k.String())
