@@ -143,7 +143,7 @@ func validateNick(s string) bool {
 		return false
 	}
 
-	if isDisallowedNickChar(rune(s[0])) {
+	if isDisallowedNickStartChar(rune(s[0])) {
 		return false
 	}
 
