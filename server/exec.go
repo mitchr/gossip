@@ -677,17 +677,27 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) []*channel.Channel {
 	filtered := []*channel.Channel{}
 
-	// first see if we can get an exact match
-	if ch, ok := s.getChannel(pattern); ok {
-		filtered = append(filtered, ch)
-	} else {
+	if pattern[0] == '!' {
 		s.chanLock.RLock()
 		for _, v := range chans {
-			if wild.Match(pattern, v.String()) {
+			if !wild.Match(pattern[1:], v.String()) {
 				filtered = append(filtered, v)
 			}
 		}
 		s.chanLock.RUnlock()
+	} else {
+		// first see if we can get an exact match
+		if ch, ok := s.getChannel(pattern); ok {
+			filtered = append(filtered, ch)
+		} else {
+			s.chanLock.RLock()
+			for _, v := range chans {
+				if wild.Match(pattern, v.String()) {
+					filtered = append(filtered, v)
+				}
+			}
+			s.chanLock.RUnlock()
+		}
 	}
 	return filtered
 }

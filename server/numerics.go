@@ -153,7 +153,7 @@ var isupportTokens = func() []string {
 	supported := []string{
 		"CASEMAPPING=ascii",
 		"CHANLIMIT=#&:",
-		"ELIST=M",
+		"ELIST=MN",
 		"STATUSMSG=~&@%+",
 		"WHOX",
 		"UTF8ONLY",
