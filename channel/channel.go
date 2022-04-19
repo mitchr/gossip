@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/mode"
@@ -28,7 +29,7 @@ type Channel struct {
 	ChanType   ChanType
 	Topic      string
 	TopicSetBy *client.Client
-	TopicSetAt int64
+	TopicSetAt time.Time
 
 	// array of nickmasks
 	Ban          []string

@@ -469,14 +469,14 @@ func TOPIC(s *Server, c *client.Client, m *msg.Message) {
 		}
 		ch.Topic = m.Params[1]
 		ch.TopicSetBy = c
-		ch.TopicSetAt = time.Now().Unix()
+		ch.TopicSetAt = time.Now()
 		ch.WriteMessage(msg.New(nil, s.Name, "", "", "TOPIC", []string{ch.String(), ch.Topic}, true))
 	} else {
 		if ch.Topic == "" {
 			s.writeReply(c, c.Id(), RPL_NOTOPIC, ch)
 		} else { // give back existing topic
 			s.writeReply(c, c.Id(), RPL_TOPIC, ch, ch.Topic)
-			s.writeReply(c, c.Id(), RPL_TOPICWHOTIME, ch, ch.TopicSetBy, ch.TopicSetAt)
+			s.writeReply(c, c.Id(), RPL_TOPICWHOTIME, ch, ch.TopicSetBy, ch.TopicSetAt.Unix())
 		}
 	}
 }
@@ -677,7 +677,40 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) []*channel.Channel {
 	filtered := []*channel.Channel{}
 
-	if pattern[0] == '!' {
+	if pattern[0] == '<' || pattern[0] == '>' {
+		lessThan := pattern[0] == '<'
+		val, _ := strconv.Atoi(pattern[1:])
+
+		s.chanLock.RLock()
+		for _, v := range chans {
+			userCount := v.Len()
+			fmt.Println(v, userCount, val)
+			if (lessThan && userCount < val) || (!lessThan && userCount > val) {
+				fmt.Println("found", v)
+				filtered = append(filtered, v)
+			}
+		}
+		s.chanLock.RUnlock()
+	} else if len(pattern) >= 2 && (pattern[1] == '<' || pattern[1] == '>') {
+		lessThan := pattern[1] == '<'
+		val, _ := strconv.Atoi(pattern[2:])
+
+		if pattern[0] == 'T' {
+			valMinutes := time.Minute * time.Duration(val)
+			now := time.Now()
+
+			s.chanLock.RLock()
+			for _, v := range chans {
+				difference := time.Duration(now.Sub(v.TopicSetAt).Minutes())
+				// topic time that was set less than val minutes ago OR
+				// topic time that was set more than val minutes ago
+				if (lessThan && difference < valMinutes) || (!lessThan && difference > valMinutes) {
+					filtered = append(filtered, v)
+				}
+			}
+			s.chanLock.RUnlock()
+		}
+	} else if pattern[0] == '!' {
 		s.chanLock.RLock()
 		for _, v := range chans {
 			if !wild.Match(pattern[1:], v.String()) {
