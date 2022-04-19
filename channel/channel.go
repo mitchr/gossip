@@ -25,8 +25,11 @@ const (
 
 type Channel struct {
 	// Name is case-insensitive, stored internally in lower-case
-	Name       string
-	ChanType   ChanType
+	Name     string
+	ChanType ChanType
+
+	CreatedAt time.Time
+
 	Topic      string
 	TopicSetBy *client.Client
 	TopicSetAt time.Time
