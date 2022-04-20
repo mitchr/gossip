@@ -229,8 +229,7 @@ func (c *Client) Write(b []byte) (int, error) {
 	c.writeLock.Lock()
 	defer c.writeLock.Unlock()
 
-	prepared := c.PrepareMessage(b)
-	return c.ReadWriter.Write(prepared)
+	return c.ReadWriter.Write(append(b, '\r', '\n'))
 }
 
 func resizeBuffer(b []byte, size int) []byte {
@@ -250,17 +249,6 @@ func resizeBuffer(b []byte, size int) []byte {
 }
 
 const timeFormat string = "2006-01-02T15:04:05.999Z"
-
-func (c *Client) PrepareMessage(b []byte) []byte {
-	temp := b
-	if c.Caps[capability.ServerTime.Name] {
-		serverTime := "@time=" + time.Now().UTC().Format(timeFormat) + " "
-		temp = append([]byte(serverTime), temp...)
-	}
-	temp = append(temp, '\r', '\n')
-
-	return temp
-}
 
 func (c *Client) WriteMessage(m *msg.Message) {
 	c.writeLock.Lock()
