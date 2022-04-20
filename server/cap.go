@@ -46,12 +46,12 @@ func LS(s *Server, c *client.Client, params ...string) {
 		c.ApplyCap(cap.CapNotify.Name, false)
 	}
 
-	s.writeReply(c, c.Id(), ":%s CAP %s LS :%s", s.capString(version >= 302))
+	c.WriteMessage(msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "LS", s.capString(version >= 302)}, true))
 }
 
 // see what capabilities this client has active during this connection
 func capLIST(s *Server, c *client.Client, params ...string) {
-	s.writeReply(c, c.Id(), ":%s CAP %s LIST :%s", c.CapsSet())
+	c.WriteMessage(msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "LIST", c.CapsSet()}, true))
 }
 
 func REQ(s *Server, c *client.Client, params ...string) {
@@ -84,7 +84,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 			todo[i].cap = v
 			todo[i].remove = remove
 		} else { // capability not recognized
-			s.writeReply(c, c.Id(), ":%s CAP %s NAK :%s", strings.Join(params, " "))
+			c.WriteMessage(msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "NAK", strings.Join(params, " ")}, true))
 			return
 		}
 	}
@@ -93,7 +93,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 	for _, v := range todo {
 		c.ApplyCap(v.cap, v.remove)
 	}
-	s.writeReply(c, c.Id(), ":%s CAP %s ACK :%s", strings.Join(params, " "))
+	c.WriteMessage(msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "ACK", strings.Join(params, " ")}, true))
 }
 
 func END(s *Server, c *client.Client, params ...string) {
