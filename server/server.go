@@ -47,6 +47,7 @@ type Server struct {
 
 	supportedCaps []cap.Cap
 	whowasHistory *whowasStack
+	monitor       monitor
 
 	wg sync.WaitGroup
 }
@@ -59,6 +60,7 @@ func New(c *Config) (*Server, error) {
 		channels:      make(map[string]*channel.Channel),
 		supportedCaps: []cap.Cap{cap.AccountTag, cap.AwayNotify, cap.CapNotify, cap.Chghost, cap.EchoMessage, cap.ExtendedJoin, cap.MessageTags, cap.MultiPrefix, cap.SASL, cap.ServerTime, cap.Setname, cap.UserhostInNames},
 		whowasHistory: new(whowasStack),
+		monitor:       monitor{m: make(map[string]map[string]bool)},
 	}
 
 	err := s.loadDatabase(s.Datasource)
@@ -175,6 +177,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			return
 		}
 		s.whowasHistory.push(c.Nick, c.User, c.Host, c.Realname)
+		s.notifyOff(c)
 	}()
 
 	s.unknowns.Inc()

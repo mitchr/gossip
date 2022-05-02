@@ -91,6 +91,11 @@ const (
 	ERR_UMODEUNKNOWNFLAG = ":%s 501 %s :Unknown MODE flag"
 	ERR_USERSDONTMATCH   = ":%s 502 %s :Can't change mode for other users"
 	ERR_INVALIDKEY       = ":%s 525 %s %s :Key is not well-formed"
+	RPL_MONONLINE        = ":%s 730 %s :%s"
+	RPL_MONOFFLINE       = ":%s 731 %s :%s"
+	RPL_MONLIST          = ":%s 732 %s :%s"
+	RPL_ENDOFMONLIST     = ":%s 733 %s :End of MONITOR list"
+	// ERR_MONLISTFULL      = ":%s 734 %s %v %v :Monitor list is full"
 
 	RPL_LOGGEDIN    = ":%s 900 %s %s %s :You are now logged in as %s"
 	RPL_LOGGEDOUT   = ":%s 901 %s %s :You are not logged out"
@@ -154,6 +159,7 @@ var isupportTokens = func() []string {
 		"CASEMAPPING=ascii",
 		"CHANLIMIT=#&:",
 		"ELIST=MNTU",
+		"MONITOR", // TODO: add a limit?
 		"STATUSMSG=~&@%+",
 		"WHOX",
 		"UTF8ONLY",

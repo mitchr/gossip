@@ -68,6 +68,7 @@ var commands = map[string]executor{
 	"AWAY":     AWAY,
 	"REHASH":   REHASH,
 	"USERHOST": USERHOST,
+	"MONITOR":  MONITOR,
 }
 
 func PASS(s *Server, c *client.Client, m *msg.Message) {
@@ -275,6 +276,8 @@ func (s *Server) endRegistration(c *client.Client) {
 
 	// after registration burst, give clients max grants
 	c.FillGrants()
+
+	s.notifyOn(c)
 }
 
 func SETNAME(s *Server, c *client.Client, m *msg.Message) {
