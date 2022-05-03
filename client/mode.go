@@ -17,6 +17,7 @@ const (
 	Away
 	Op
 	LocalOp
+	Bot
 )
 
 var letter = map[rune]Mode{
@@ -25,6 +26,7 @@ var letter = map[rune]Mode{
 	'O': LocalOp,
 	'r': Registered,
 	'w': Wallops,
+	'b': Bot,
 }
 
 func (m Mode) String() string {

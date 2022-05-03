@@ -1091,6 +1091,9 @@ func (s *Server) sendWHOIS(c *client.Client, v *client.Client) {
 
 	s.writeReply(c, c.Id(), RPL_WHOISUSER, v.Nick, v.User, v.Host, v.Realname)
 	s.writeReply(c, c.Id(), RPL_WHOISSERVER, v.Nick, s.Name, "wip irc server")
+	if v.Is(client.Bot) {
+		s.writeReply(c, c.Id(), RPL_WHOISBOT, v.Nick)
+	}
 	if v.Is(client.Op) {
 		s.writeReply(c, c.Id(), RPL_WHOISOPERATOR, v.Nick)
 	}

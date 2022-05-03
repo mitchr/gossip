@@ -270,6 +270,10 @@ func (c *Client) WriteMessageFrom(m *msg.Message, from *Client) {
 		m = m.RemoveAllTags()
 	}
 
+	if from.Is(Bot) {
+		m.AddTag("bot", "")
+	}
+
 	// if from == "*", then we assume that the sender has no authn
 	if from.SASLMech.Authn() != "*" && c.Caps[capability.AccountTag.Name] {
 		m.AddTag("account", from.SASLMech.Authn())

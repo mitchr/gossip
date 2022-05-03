@@ -42,6 +42,7 @@ const (
 	RPL_NOTOPIC          = ":%s 331 %s %s :No topic is set"
 	RPL_TOPIC            = ":%s 332 %s %s :%s"
 	RPL_TOPICWHOTIME     = ":%s 333 %s %s %s %v"
+	RPL_WHOISBOT         = ":%s 335 %s %s :bot"
 	RPL_INVITING         = ":%s 341 %s %s %s"
 	RPL_INVITELIST       = ":%s 346 %s %s %s"
 	RPL_ENDOFINVITELIST  = ":%s 347 %s %s :End of channel invite list"
@@ -156,6 +157,7 @@ func constructNAMREPLY(c *channel.Channel, invisibles bool, multiPrefix bool, us
 
 var isupportTokens = func() []string {
 	supported := []string{
+		"BOT=b",
 		"CASEMAPPING=ascii",
 		"CHANLIMIT=#&:",
 		"ELIST=MNTU",
@@ -198,6 +200,9 @@ func whoreplyFlagsForClient(c *client.Client) string {
 	flags := "H"
 	if c.Is(client.Away) {
 		flags = "G"
+	}
+	if c.Is(client.Bot) {
+		flags += "b"
 	}
 	if c.Is(client.Op) {
 		flags += "*"
