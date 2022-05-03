@@ -43,24 +43,20 @@ func (m *monitor) list(c string) []string {
 
 	list := []string{}
 	for client := range m.m {
-		for o := range m.getObserversOf(client) {
-			if o == c { // c is an observer of client
-				list = append(list, client)
-			}
+		if m.getObserversOf(client)[c] {
+			list = append(list, client)
 		}
 	}
 	return list
 }
 
-// c does not want to monitor anybody anymore
+// remove c from the observers list of all clients
 func (m *monitor) clear(c string) {
 	c = strings.ToLower(c)
 
 	for client := range m.m {
-		for o := range m.getObserversOf(client) {
-			if o == c { // c is an observer of client, delete them
-				m.unobserve(c, o)
-			}
+		if m.getObserversOf(client)[c] {
+			m.unobserve(client, c)
 		}
 	}
 }
