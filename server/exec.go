@@ -368,6 +368,9 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 		copy(keys, k)
 	}
 
+	s.joinLock.Lock()
+	defer s.joinLock.Unlock()
+
 	for i := range chans {
 		if ch, ok := s.getChannel(chans[i]); ok { // channel already exists
 			err := ch.Admit(c, keys[i])

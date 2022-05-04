@@ -407,6 +407,26 @@ func TestChannelCreation(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s 403 alice *testChan :No such channel\r\n", s.Name), t)
 	})
 
+	t.Run("TestCreateChanSameTime", func(t *testing.T) {
+		c3, r3 := connectAndRegister("race1")
+		c4, r4 := connectAndRegister("race2")
+		defer c3.Close()
+		defer c4.Close()
+
+		c3.Write([]byte("JOIN #race\r\nPING 10\r\n"))
+		c4.Write([]byte("JOIN #race\r\nPING 11\r\n"))
+		readUntilPONG(r3)
+		readUntilPONG(r4)
+
+		race, _ := s.getChannel("#race")
+		race1, _ := race.GetMember("race1")
+		race2, _ := race.GetMember("race2")
+
+		if ((race1 == nil && race2 != nil) || (race1 != nil && race2 == nil)) || (race1.Is(channel.Founder) && race2.Is(channel.Founder)) {
+			t.Error("join at same time caused double founder")
+		}
+	})
+
 	t.Run("TestChanNameInsensitive", func(t *testing.T) {
 		c2.Write([]byte("JOIN #LOcAl\r\n"))
 		resp, _ := r2.ReadBytes('\n')

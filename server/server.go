@@ -39,6 +39,8 @@ type Server struct {
 	channels map[string]*channel.Channel
 	chanLock sync.RWMutex
 
+	joinLock sync.Mutex
+
 	// a running count of connected users who are unregistered
 	unknowns statistic
 

@@ -15,6 +15,7 @@ import (
 	"log"
 	"math/big"
 	"net"
+	"strings"
 	"testing"
 	"time"
 	"unicode/utf16"
@@ -308,6 +309,11 @@ func connectAndRegister(nick string) (net.Conn, *bufio.Reader) {
 	}
 
 	return c, r
+}
+
+func readUntilPONG(r *bufio.Reader) {
+	for resp, _ := r.ReadString('\n'); !strings.Contains(resp, "PONG"); resp, _ = r.ReadString('\n') {
+	}
 }
 
 // connect can be used for mocking simple connections that don't need
