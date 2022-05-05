@@ -144,6 +144,8 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 		}
 		cred := external.NewCredential(c.Id(), cert)
 		s.db.Exec("INSERT INTO sasl_external VALUES(?, ?)", cred.Username, cred.Cert)
+	default:
+		fmt.Fprintf(c, "NOTICE :Unsupposed registration type %s", m.Params[0])
 	}
 
 	fmt.Fprintf(c, "NOTICE Registered")
