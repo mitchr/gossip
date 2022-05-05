@@ -143,7 +143,7 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 			// TODO: fail registration
 		}
 		cred := external.NewCredential(c.Id(), cert)
-		s.db.Exec("INSERT INTO sasl_exec VALUES(?, ?)", cred.Username, cred.Cert)
+		s.db.Exec("INSERT INTO sasl_external VALUES(?, ?)", cred.Username, cred.Cert)
 	}
 
 	fmt.Fprintf(c, "NOTICE Registered")
