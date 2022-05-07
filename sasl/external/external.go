@@ -58,7 +58,7 @@ func (e *External) Next([]byte) (challenge []byte, err error) {
 
 func (e *External) lookup(username string) (*Credential, error) {
 	c := &Credential{}
-	row := e.db.QueryRow("SELECT * FROM sasl_external WHERE username = ?", username)
+	row := e.db.QueryRow("SELECT username, clientCert FROM sasl_external WHERE username = ?", username)
 	err := row.Scan(&c.Username, &c.Cert)
 	return c, err
 }

@@ -106,18 +106,21 @@ func (s *Server) loadDatabase(datasource string) error {
 
 	_, err = s.db.Exec(`CREATE TABLE IF NOT EXISTS sasl_plain(
 		username TEXT,
+		nick TEXT,
 		pass BLOB,
 		PRIMARY KEY(username)
 	);
 	
 	CREATE TABLE IF NOT EXISTS sasl_external(
 		username TEXT,
+		nick TEXT,
 		clientCert BLOB,
 		PRIMARY KEY(username)
 	);
 	
 	CREATE TABLE IF NOT EXISTS sasl_scram(
 		username TEXT,
+		nick TEXT,
 		serverKey BLOB,
 		storedKey BLOB,
 		salt BLOB,

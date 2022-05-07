@@ -59,7 +59,7 @@ func (p *Plain) Next(b []byte) (challenge []byte, err error) {
 
 func (p *Plain) lookup(username string) (*Credential, error) {
 	c := &Credential{}
-	row := p.db.QueryRow("SELECT * FROM sasl_plain WHERE username = ?", username)
+	row := p.db.QueryRow("SELECT username, pass FROM sasl_plain WHERE username = ?", username)
 	err := row.Scan(&c.Username, &c.Pass)
 	return c, err
 }

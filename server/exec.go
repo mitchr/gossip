@@ -240,6 +240,12 @@ func (s *Server) endRegistration(c *client.Client) {
 		return
 	}
 
+	// client tried to finish registration with the nick of an already registered account
+	if authn := s.userAccountForNickExists(c.Nick); authn != "" && c.SASLMech.Authn() != authn {
+		s.writeReply(c, c.Id(), ERR_NICKNAMEINUSE, c.Nick)
+		return
+	}
+
 	// we need this check here for the following situation: 1->NICK n;
 	// 2->NICK n; 1-> USER u s e r; and then 2 tries to send USER, we
 	// should reject 2's registration for having the same nick

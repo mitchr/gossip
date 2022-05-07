@@ -45,7 +45,7 @@ func NewCredential(hash func() hash.Hash, uname, pass string, salt []byte, iter 
 }
 
 func (s *Scram) lookup(username string) (*Credential, error) {
-	row := s.db.QueryRow("SELECT * FROM sasl_scram WHERE username = ?", username)
+	row := s.db.QueryRow("SELECT username, serverKey, storedKey, salt, iterations	FROM sasl_scram WHERE username = ?", username)
 
 	c := &Credential{}
 	err := row.Scan(&c.Username, &c.ServerKey, &c.StoredKey, &c.Salt, &c.Iteration)

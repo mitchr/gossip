@@ -37,7 +37,7 @@ func TestAUTHENTICATE(t *testing.T) {
 	go s.Serve()
 
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
-	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+	s.persistPlain(plainCred.Username, "b", plainCred.Pass)
 
 	t.Run("TestAUTHENTICATEAfterRegister", func(t *testing.T) {
 		c, r := connectAndRegister("a")
@@ -74,7 +74,7 @@ func TestAUTHENTICATE(t *testing.T) {
 		c, r, p := connect(s)
 		defer p()
 
-		c.Write([]byte("CAP REQ sasl\r\nAUTHENTICATE PLAIN\r\nNICK b\r\nUSER b 0 0 :B\r\nCAP END\r\n"))
+		c.Write([]byte("CAP REQ sasl\r\nAUTHENTICATE PLAIN\r\nNICK c\r\nUSER c 0 0 :B\r\nCAP END\r\n"))
 		r.ReadBytes('\n') // cap ack
 		r.ReadBytes('\n') // authenticate +
 
@@ -85,7 +85,7 @@ func TestAUTHENTICATE(t *testing.T) {
 		c.Write([]byte("AUTHENTICATE anything\r\n"))
 		resp, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(ERR_SASLABORTED, s.Name, "b")+"\r\n", t)
+		assertResponse(resp, fmt.Sprintf(ERR_SASLABORTED, s.Name, "c")+"\r\n", t)
 	})
 
 	t.Run("TestMissingParams", func(t *testing.T) {
@@ -136,7 +136,7 @@ func TestAUTHENTICATEPLAIN(t *testing.T) {
 	defer p()
 
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
-	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+	s.persistPlain(plainCred.Username, "a", plainCred.Pass)
 
 	c.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE PLAIN\r\n"))
 	r.ReadBytes('\n')
@@ -172,7 +172,7 @@ func TestAUTHENTICATEEXTERNAL(t *testing.T) {
 	r := bufio.NewReader(c)
 
 	cred := external.NewCredential("a", cert.Certificate[0])
-	s.db.Exec("INSERT INTO sasl_external VALUES(?, ?)", cred.Username, cred.Cert)
+	s.persistExternal(cred.Username, "a", cred.Cert)
 
 	c.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE EXTERNAL\r\n"))
 	r.ReadBytes('\n')
@@ -199,10 +199,28 @@ func TestAUTHENTICATESCRAM(t *testing.T) {
 	defer p()
 
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
-	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+	s.persistPlain(plainCred.Username, "a", plainCred.Pass)
 
 	c.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE SCRAM-SHA-256\r\n"))
 	r.ReadBytes('\n')
 	resp, _ := r.ReadBytes('\n')
 	assertResponse(resp, ":gossip AUTHENTICATE +\r\n", t)
+}
+
+func TestEndRegistrationWithANickBelongingToRegisteredAccount(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	s.persistPlain("m", "m", []byte("pass"))
+
+	c, r, p := connect(s)
+	defer p()
+
+	c.Write([]byte("nick m\r\nuser u s e r\r\n"))
+	resp, _ := r.ReadBytes('\n')
+	assertResponse(resp, fmt.Sprintf(ERR_NICKNAMEINUSE+"\r\n", s.Name, "m", "m"), t)
 }

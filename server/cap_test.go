@@ -305,7 +305,7 @@ func TestAccountTag(t *testing.T) {
 	defer p()
 
 	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
-	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+	s.persistPlain(plainCred.Username, "a", plainCred.Pass)
 
 	a.Write([]byte("CAP REQ sasl\r\nNICK a\r\nUSER a 0 0 :A\r\nAUTHENTICATE PLAIN\r\n"))
 	r.ReadBytes('\n')

@@ -130,12 +130,12 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 		pass := m.Params[1]
 
 		plainCred := plain.NewCredential(c.Id(), pass)
-		s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?)", plainCred.Username, plainCred.Pass)
+		s.persistPlain(plainCred.Username, c.Nick, plainCred.Pass)
 
 		salt := make([]byte, 16)
 		rand.Read(salt)
 		scramCred := scram.NewCredential(sha256.New, c.Id(), pass, salt, 4096)
-		s.db.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?)", scramCred.Username, scramCred.ServerKey, scramCred.StoredKey, scramCred.Salt, scramCred.Iteration)
+		s.persistScram(scramCred.Username, c.Nick, scramCred.ServerKey, scramCred.StoredKey, scramCred.Salt, scramCred.Iteration)
 
 	case "CERT":
 		cert, err := c.Certificate()
@@ -143,10 +143,33 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 			// TODO: fail registration
 		}
 		cred := external.NewCredential(c.Id(), cert)
-		s.db.Exec("INSERT INTO sasl_external VALUES(?, ?)", cred.Username, cred.Cert)
+		s.persistExternal(cred.Username, c.Nick, cred.Cert)
 	default:
 		fmt.Fprintf(c, "NOTICE :Unsupposed registration type %s", m.Params[0])
 	}
 
 	fmt.Fprintf(c, "NOTICE Registered")
+}
+
+func (s *Server) persistPlain(username, nick string, pass []byte) {
+	s.db.Exec("INSERT INTO sasl_plain VALUES(?, ?, ?)", username, nick, pass)
+}
+
+func (s *Server) persistScram(username, nick string, serverKey, storedKey, salt []byte, iteration int) {
+	s.db.Exec("INSERT INTO sasl_scram VALUES(?, ?, ?, ?, ?, ?)", username, nick, serverKey, storedKey, salt, iteration)
+}
+
+func (s *Server) persistExternal(username, nick string, cert []byte) {
+	s.db.Exec("INSERT INTO sasl_external VALUES(?, ?, ?)", username, nick, cert)
+}
+
+func (s *Server) userAccountForNickExists(n string) (username string) {
+	s.db.QueryRow(`
+		select username from sasl_plain where nick=?
+		union
+		select username from sasl_scram where nick=?
+		union
+		select username from sasl_external where nick=?
+	`, n, n, n).Scan(&username)
+	return
 }
