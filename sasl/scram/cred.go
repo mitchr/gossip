@@ -19,17 +19,22 @@ type Credential struct {
 	Iteration int
 }
 
+var (
+	serverHMACMsg = []byte("Server Key")
+	clientHMACMsg = []byte("Client Key")
+)
+
 func NewCredential(hash func() hash.Hash, uname, pass string, salt []byte, iter int) *Credential {
 	c := &Credential{hash: hash, Username: uname, Salt: salt, Iteration: iter}
 
 	saltedPass := pbkdf2.Key([]byte(pass), salt, iter, hash().Size(), hash)
 
 	mac := hmac.New(hash, saltedPass)
-	mac.Write([]byte("Server Key"))
+	mac.Write([]byte(serverHMACMsg))
 	c.ServerKey = mac.Sum(nil)
 
 	mac.Reset()
-	mac.Write([]byte("Client Key"))
+	mac.Write([]byte(clientHMACMsg))
 	clientKey := mac.Sum(nil)
 
 	h := hash()
