@@ -190,7 +190,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	msgs := make(chan *msg.Message, 1)
 	errs := make(chan error)
 
-	go s.startRegistrationTimer(c, errs)
+	go startRegistrationTimer(c, errs)
 	go s.getMessage(c, clientCtx, msgs, errs)
 
 	pingTick := time.NewTicker(time.Minute * 5)  // every 5 minutes, send PING
@@ -259,7 +259,7 @@ func waitForPong(c *client.Client, errs chan<- error) {
 }
 
 // give a small window for client to register before kicking them off
-func (s *Server) startRegistrationTimer(c *client.Client, errs chan<- error) {
+func startRegistrationTimer(c *client.Client, errs chan<- error) {
 	time.Sleep(time.Second * 10)
 	if !c.Is(client.Registered) {
 		errs <- ErrRegistrationTimeout
