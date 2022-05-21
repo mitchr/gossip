@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/client"
@@ -120,7 +121,7 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	switch m.Params[0] {
+	switch strings.ToUpper(m.Params[0]) {
 	case "PASS":
 		if len(m.Params) < 2 {
 			// TODO; fail because no password argument
