@@ -72,8 +72,7 @@ func (s *Scram) ParseClientFirst(m string) error {
 	// grab username from db
 	cred, err := s.lookup(attrs[2][2:])
 	if err != nil {
-		// TODO: use correct error string here
-		return errors.New("e=other-error")
+		return errors.New("e=unknown-user")
 	}
 	s.cred = cred
 
