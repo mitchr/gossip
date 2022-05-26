@@ -79,6 +79,7 @@ const (
 	ERR_USERNOTINCHANNEL = ":%s 441 %s %s %s :They aren't on that channel"
 	ERR_NOTONCHANNEL     = ":%s 442 %s %s :You're not on that channel"
 	ERR_USERONCHANNEL    = ":%s 443 %s %s %s :is already on channel"
+	ERR_NOTREGISTERED    = ":%s 451 :You have no registered"
 	ERR_NEEDMOREPARAMS   = ":%s 461 %s %s :Not enough parameters"
 	ERR_ALREADYREGISTRED = ":%s 462 %s :You may not reregister"
 	ERR_PASSWDMISMATCH   = ":%s 464 %s :Password Incorrect"
