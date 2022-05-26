@@ -153,19 +153,23 @@ func TestCAP302(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s CAP bob LS :%s\r\n", s.Name, s.capString(true)), t)
 	})
 
-	// TODO: is this comment even true?
-	// even if the client had initally shown support for >=302, still give
-	// back un-302 values for an LS of lesser value
+	// "If a client sends a lower CAP version (or omits the version number
+	// entirely), servers SHOULD return a CAP LS reply consistent with the
+	// request’s version, but keep storing the original (higher) version"
 	t.Run("TestCAPLSValues", func(t *testing.T) {
 		c.Write([]byte("CAP LS\r\n"))
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s CAP bob LS :%s\r\n", s.Name, s.capString(false)), t)
 	})
 
-	// TODO: test that cap version got updated
 	t.Run("TestCAPUpgrade", func(t *testing.T) {
 		c.Write([]byte("CAP LS 306\r\n"))
 		r.ReadBytes('\n')
+
+		bob, _ := s.getClient("bob")
+		if bob.CapVersion != 306 {
+			t.Fatal("could not upgrade cap version")
+		}
 	})
 }
 

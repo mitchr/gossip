@@ -764,7 +764,6 @@ func MOTD(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	// TODO: should we also send RPL_LOCALUSERS and RPL_GLOBALUSERS?
 	s.writeReply(c, c.Id(), RPL_MOTDSTART, s.Name)
 	for _, v := range s.motd {
 		s.writeReply(c, c.Id(), RPL_MOTD, v)

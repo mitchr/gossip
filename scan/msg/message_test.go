@@ -66,21 +66,18 @@ func TestMessageString(t *testing.T) {
 			Nick:    "alice",
 			Command: "REHASH",
 		}},
-		// TODO: find a way to test this even though the tags get all jumbled up when parsed
-		// {"@aaa=bbb;ccc;example.com/ddd=eee :nick!ident@host.com PRIVMSG me :Hello\r\n",
-		// 	&Message{
-		// 		nick:        "nick",
-		// 		user:        "ident",
-		// 		host:        "host.com",
-		// 		Command:     "PRIVMSG",
-		// 		Params:      []string{"me", "Hello"},
-		// 		trailingSet: true,
-		// 		tags: map[string]TagVal{
-		// 			"aaa": {Value: "bbb"},
-		// 			"ccc": {Value: ""},
-		// 			"ddd": {Value: "eee", Vendor: "example.com"},
-		// 		}},
-		// },
+		{"@example.com/a=bb :nick!ident@host.com PRIVMSG me :Hello\r\n",
+			&Message{
+				Nick:        "nick",
+				User:        "ident",
+				Host:        "host.com",
+				Command:     "PRIVMSG",
+				Params:      []string{"me", "Hello"},
+				trailingSet: true,
+				tags: map[string]TagVal{
+					"a": {Value: "bb", Vendor: "example.com"},
+				}},
+		},
 	}
 
 	for _, v := range tests {

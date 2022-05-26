@@ -149,11 +149,6 @@ func escapedVal(p *scan.Parser) string {
 	return val
 }
 
-// TODO: one way we could make this better is by imposing some kind of
-// restriction on how nick/user/host names look, so we could then create
-// a rule for the lexer that would allow them to be tokenized. as far as
-// I can tell, the IRC spec leaves handling of nick/user/host name up to
-// the server implementation, but I think restricting to ASCII is fair
 // nickname [ [ "!" user ] "@" host ]
 func source(p *scan.Parser) (nick, user, host string) {
 	// get nickname
