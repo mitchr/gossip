@@ -30,7 +30,6 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 
 	// client must have requested the SASL capability, and has not yet registered
 	if !c.Caps[cap.SASL.Name] || c.Is(client.Registered) {
-		// TODO: what error to give?
 		s.writeReply(c, c.Id(), ERR_SASLFAIL)
 		return
 	}
@@ -87,9 +86,8 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		// *("AUTHENTICATE" SP 400BASE64 CRLF) "AUTHENTICATE" SP (1*399BASE64 / "+") CRLF
 		resp, err := base64.StdEncoding.DecodeString(m.Params[0])
 		if err != nil {
-			fmt.Println(err)
-			// TODO: is this an acceptable response?
 			s.writeReply(c, c.Id(), ERR_SASLFAIL)
+			return
 		}
 		decodedResp = resp
 	}
@@ -124,7 +122,6 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 	switch strings.ToUpper(m.Params[0]) {
 	case "PASS":
 		if len(m.Params) < 2 {
-			// TODO; fail because no password argument
 			s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "REGISTER PASS")
 			return
 		}
@@ -141,12 +138,12 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 	case "CERT":
 		cert, err := c.Certificate()
 		if err != nil {
-			// TODO: fail registration
+			fmt.Fprintf(c, "NOTICE :%s", err)
 		}
 		cred := external.NewCredential(c.Id(), cert)
 		s.persistExternal(cred.Username, c.Nick, cred.Cert)
 	default:
-		fmt.Fprintf(c, "NOTICE :Unsupposed registration type %s", m.Params[0])
+		fmt.Fprintf(c, "NOTICE :Unsupported registration type %s", m.Params[0])
 	}
 
 	fmt.Fprintf(c, "NOTICE Registered")
