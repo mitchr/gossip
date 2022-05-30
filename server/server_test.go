@@ -90,12 +90,21 @@ func TestMessageSize(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s 417 * :Input line was too long\r\n", s.Name), t)
 	})
 
-	// TODO
 	t.Run("JustRight", func(t *testing.T) {
-		t.Skip()
-		msg := make([]byte, 512)
-		msg[511] = '\n'
-		c.Write(msg)
+		b, r2, p2 := connect(s)
+		defer p2()
+
+		msg := []byte("PING ")
+		zeros := make([]byte, 510-len(msg))
+		for i := range zeros {
+			zeros[i] = '0'
+		}
+		msg = append(msg, zeros...)
+		msg = append(msg, '\r', '\n')
+		b.Write(msg)
+		resp, _ := r2.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":gossip PONG gossip %s\r\n", zeros), t)
 	})
 
 	t.Run("HugeTags", func(t *testing.T) {
