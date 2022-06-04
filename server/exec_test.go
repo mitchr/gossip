@@ -20,6 +20,16 @@ func TestRegistration(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
+	t.Run("UnregisteredCommands", func(t *testing.T) {
+		c, r, p := connect(s)
+		defer p()
+
+		c.Write([]byte("WALLOPS\r\n"))
+		resp, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, ":gossip 451 * :You have not registered\r\n", t)
+	})
+
 	t.Run("NICKMissing", func(t *testing.T) {
 		c, r, p := connect(s)
 		defer p()
