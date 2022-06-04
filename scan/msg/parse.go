@@ -151,6 +151,8 @@ func escapedVal(p *scan.Parser) string {
 
 // nickname [ [ "!" user ] "@" host ]
 func source(p *scan.Parser) (nick, user, host string) {
+	var b strings.Builder
+
 	// get nickname
 	for {
 		n := p.Peek()
@@ -158,9 +160,12 @@ func source(p *scan.Parser) (nick, user, host string) {
 			break
 		}
 
-		nick += string(n.Value)
+		b.WriteRune(n.Value)
 		p.Next()
 	}
+	nick = b.String()
+	b.Reset()
+
 	// get user
 	if p.Peek().TokenType == exclam {
 		p.Next() // consume '!'
@@ -170,10 +175,13 @@ func source(p *scan.Parser) (nick, user, host string) {
 				break
 			}
 
-			user += string(u.Value)
+			b.WriteRune(u.Value)
 			p.Next()
 		}
 	}
+	user = b.String()
+	b.Reset()
+
 	// get host
 	if p.Peek().TokenType == at {
 		p.Next() // consume '@'
@@ -183,21 +191,22 @@ func source(p *scan.Parser) (nick, user, host string) {
 				break
 			}
 
-			host += string(h.Value)
+			b.WriteRune(h.Value)
 			p.Next()
 		}
 	}
+	host = b.String()
 
 	return nick, user, host
 }
 
 // 1*letter / 3digit
 func command(p *scan.Parser) string {
-	c := ""
+	var c strings.Builder
 	for scan.IsLetter(p.Peek().Value) {
-		c += string(p.Next().Value)
+		c.WriteRune(p.Next().Value)
 	}
-	return c
+	return c.String()
 }
 
 // *( SPACE middle ) [ SPACE ":" trailing ]
@@ -226,39 +235,40 @@ func middle(p *scan.Parser) string {
 	if !isNospcrlfcl(p.Peek().Value) {
 		return ""
 	}
-	m := nospcrlfcl(p)
+	var m strings.Builder
+	m.WriteString(nospcrlfcl(p))
 
 	for {
 		t := p.Peek()
 		if t.TokenType == colon {
-			m += string(t.Value)
+			m.WriteRune(t.Value)
 			p.Next()
 		} else if isNospcrlfcl(t.Value) {
-			m += nospcrlfcl(p)
+			m.WriteString(nospcrlfcl(p))
 		} else {
 			break
 		}
 	}
-	return m
+	return m.String()
 }
 
 // *( ":" / " " / nospcrlfcl )
 func trailing(p *scan.Parser) string {
-	m := ""
+	var m strings.Builder
 	for {
 		t := p.Peek()
 		if t == scan.EOFToken {
 			break
 		} else if t.TokenType == colon || t.TokenType == space {
-			m += string(t.Value)
+			m.WriteRune(t.Value)
 			p.Next()
 		} else if isNospcrlfcl(t.Value) {
-			m += nospcrlfcl(p)
+			m.WriteString(nospcrlfcl(p))
 		} else {
 			break
 		}
 	}
-	return m
+	return m.String()
 }
 
 // <sequence of any characters except NUL, CR, LF, colon (`:`) and SPACE>
