@@ -139,6 +139,7 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 		cert, err := c.Certificate()
 		if err != nil {
 			fmt.Fprintf(c, "NOTICE :%s", err)
+			return
 		}
 		cred := external.NewCredential(c.Id(), cert)
 		s.persistExternal(cred.Username, c.Nick, cred.Cert)
