@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -985,77 +986,91 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 	s.writeReply(c, c.Id(), RPL_ENDOFWHO, mask)
 }
 
+var whoxTokenHierarchy = map[byte]int{
+	't': 1,
+	'c': 2,
+	'u': 3,
+	'i': 4,
+	'h': 5,
+	's': 6,
+	'n': 7,
+	'f': 8,
+	'd': 9,
+	'l': 10,
+	'a': 11,
+	'o': 12,
+	'r': 13,
+}
+
 // construct params used in whox reply
-func constructSpcrplResponse(fields string, c *client.Client, s *Server) string {
-	resp := make([]string, 0, len(fields))
+func constructSpcrplResponse(params string, c *client.Client, s *Server) string {
+	split := strings.Split(params, ",")
+	fields := []byte(split[0][1:]) // trim beginning '%'
+
+	// sort the tokens so they are in the correct response order
+	sort.Slice(fields, func(i, j int) bool {
+		return whoxTokenHierarchy[fields[i]] < whoxTokenHierarchy[fields[j]]
+	})
+	resp := make([]string, len(fields))
 
 	var chanRef *channel.Channel
 
-	if strings.ContainsRune(fields, 't') {
-		f := strings.Split(fields, ",")
-		if len(f) > 1 {
-			resp = append(resp, f[1])
-		}
-	}
-	if strings.ContainsRune(fields, 'c') {
-		channel := "*"
-		chans := s.channelsOf(c)
-		if len(chans) > 0 {
-			chanRef = chans[0]
-			channel = chans[0].String()
-		}
-		resp = append(resp, channel)
-	}
-	if strings.ContainsRune(fields, 'u') {
-		resp = append(resp, c.User)
-	}
-	if strings.ContainsRune(fields, 'i') {
-		// TODO: will this assertion fail if we add support for websockets?
-		resp = append(resp, c.Conn.RemoteAddr().(*net.TCPAddr).IP.String())
-	}
-	if strings.ContainsRune(fields, 'h') {
-		resp = append(resp, c.Host)
-	}
-	if strings.ContainsRune(fields, 's') {
-		resp = append(resp, s.Name)
-	}
-	if strings.ContainsRune(fields, 'n') {
-		resp = append(resp, c.Nick)
-	}
-	if strings.ContainsRune(fields, 'f') {
-		flags := whoreplyFlagsForClient(c)
-		resp = append(resp, flags)
-	}
-	if strings.ContainsRune(fields, 'd') {
-		resp = append(resp, "0")
-	}
-	if strings.ContainsRune(fields, 'l') {
-		resp = append(resp, fmt.Sprintf("%v", time.Since(c.Idle).Round(time.Second).Seconds()))
-	}
-	if strings.ContainsRune(fields, 'a') {
-		a := "0"
-		if c.IsAuthenticated {
-			a = c.SASLMech.Authn()
-		}
-		resp = append(resp, a)
-	}
-	if strings.ContainsRune(fields, 'o') {
-		prefix := "n/a"
-		if chanRef != nil {
-			m, _ := chanRef.GetMember(c.Nick)
-			if m.Is(channel.Operator) {
-				prefix = string(channel.Operator)
-			} else if m.Is(channel.Halfop) {
-				prefix = string(channel.Halfop)
-			} else if m.Is(channel.Founder) {
-				prefix = string(channel.Founder)
+	for i, f := range fields {
+		switch f {
+		case 't':
+			if len(split) > 1 {
+				resp[i] = split[1]
 			}
+		case 'c':
+			channel := "*"
+			chans := s.channelsOf(c)
+			if len(chans) > 0 {
+				chanRef = chans[0]
+				channel = chans[0].String()
+			}
+			resp[i] = channel
+		case 'u':
+			resp[i] = c.User
+		case 'i':
+			// TODO: will this assertion fail if we add support for websockets?
+			resp[i] = c.Conn.RemoteAddr().(*net.TCPAddr).IP.String()
+		case 'h':
+			resp[i] = c.Host
+		case 's':
+			resp[i] = s.Name
+		case 'n':
+			resp[i] = c.Nick
+		case 'f':
+			flags := whoreplyFlagsForClient(c)
+			resp[i] = flags
+		case 'd':
+			resp[i] = "0"
+		case 'l':
+			resp[i] = fmt.Sprintf("%v", time.Since(c.Idle).Round(time.Second).Seconds())
+		case 'a':
+			a := "0"
+			if c.IsAuthenticated {
+				a = c.SASLMech.Authn()
+			}
+			resp[i] = a
+		case 'o':
+			prefix := "n/a"
+			if chanRef != nil {
+				m, _ := chanRef.GetMember(c.Nick)
+				if m.Is(channel.Operator) {
+					prefix = string(channel.Operator)
+				} else if m.Is(channel.Halfop) {
+					prefix = string(channel.Halfop)
+				} else if m.Is(channel.Founder) {
+					prefix = string(channel.Founder)
+				}
+			}
+			resp[i] = prefix
+		case 'r':
+			resp[i] = ":" + c.Realname
 		}
-		resp = append(resp, prefix)
 	}
-	if strings.ContainsRune(fields, 'r') {
-		resp = append(resp, ":"+c.Realname)
-	}
+
 	return strings.Join(resp, " ")
 }
 

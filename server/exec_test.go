@@ -1100,9 +1100,17 @@ func TestWHOXClient(t *testing.T) {
 	c2, _ := connectAndRegister("bob")
 	defer c2.Close()
 
-	c1.Write([]byte("WHO bob %%tcuihsnfdlaor,10\r\n"))
+	c1.Write([]byte("WHO bob %tcuihsnfdlaor,10\r\n"))
 	resp, _ := r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
 	assertResponse(resp, fmt.Sprintf(":%s 354 alice 10 * bob 127.0.0.1 localhost gossip bob H 0 0 0 n/a :bob\r\n", s.Name), t)
+
+	t.Run("OutOfOrder", func(t *testing.T) {
+		c1.Write([]byte("WHO bob %afnt,42\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 354 alice 42 bob H 0\r\n", s.Name), t)
+	})
 }
 
 func TestWHOChannel(t *testing.T) {
