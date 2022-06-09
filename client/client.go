@@ -229,7 +229,7 @@ func (c *Client) Write(b []byte) (int, error) {
 	c.writeLock.Lock()
 	defer c.writeLock.Unlock()
 
-	return c.ReadWriter.Write(append(b, '\r', '\n'))
+	return c.ReadWriter.Write(b)
 }
 
 func resizeBuffer(b []byte, size int) []byte {
@@ -251,9 +251,6 @@ func resizeBuffer(b []byte, size int) []byte {
 const timeFormat string = "2006-01-02T15:04:05.999Z"
 
 func (c *Client) WriteMessage(m *msg.Message) {
-	c.writeLock.Lock()
-	defer c.writeLock.Unlock()
-
 	if c.Caps[capability.ServerTime.Name] {
 		m.AddTag("time", time.Now().UTC().Format(timeFormat))
 	}
@@ -262,7 +259,7 @@ func (c *Client) WriteMessage(m *msg.Message) {
 		m.SetMsgid()
 	}
 
-	c.ReadWriter.Write([]byte(m.String()))
+	c.Write([]byte(m.String()))
 }
 
 func (c *Client) WriteMessageFrom(m *msg.Message, from *Client) {

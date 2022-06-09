@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -203,7 +202,7 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		case <-clientCtx.Done():
 			return
 		case <-pingTick.C:
-			fmt.Fprintf(c, ":%s PING %s", s.Name, c.Nick)
+			c.WriteMessage(msg.New(nil, s.Name, "", "", "PING", []string{c.Nick}, false))
 			c.Flush()
 			go waitForPong(c, errs)
 		case <-grantTick.C:

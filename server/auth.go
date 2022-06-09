@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 	"strings"
 
 	cap "github.com/mitchr/gossip/capability"
@@ -72,7 +71,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		// so we can be assured that the server should be sending a blank
 		// challenge here. In the future if more mechanisms are added, this
 		// will have to be reevaluated
-		fmt.Fprintf(c, ":%s AUTHENTICATE +", s.Name)
+		c.WriteMessage(msg.New(nil, s.Name, "", "", "AUTHENTICATE", []string{"+"}, false))
 		return
 	}
 
@@ -106,7 +105,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	encodedChallenge := base64.StdEncoding.EncodeToString(challenge)
-	fmt.Fprintf(c, ":%s AUTHENTICATE %s", s.Name, encodedChallenge)
+	c.WriteMessage(msg.New(nil, s.Name, "", "", "AUTHENTICATE", []string{encodedChallenge}, false))
 }
 
 // REGISTER is nonstandard

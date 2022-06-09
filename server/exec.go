@@ -115,10 +115,10 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 	if c.Nick != "" {
 		// give back NICK to the caller and notify all the channels this
 		// user is part of that their nick changed
-		fmt.Fprintf(c, ":%s NICK :%s", c, nick)
+		c.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, true))
 		for _, v := range s.channelsOf(c) {
 			v.ForAllMembersExcept(c, func(m *channel.Member) {
-				fmt.Fprintf(m, ":%s NICK :%s", c, nick)
+				m.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, true))
 				m.Flush()
 			})
 
@@ -204,7 +204,7 @@ func OPER(s *Server, c *client.Client, m *msg.Message) {
 
 	c.SetMode(client.Op)
 	s.writeReply(c, c.Id(), RPL_YOUREOPER)
-	fmt.Fprintf(c, ":%s MODE %s +o", s.Name, c.Nick)
+	c.WriteMessage(msg.New(nil, s.Name, "", "", "MODE", []string{c.Nick, "+o"}, false))
 }
 
 func QUIT(s *Server, c *client.Client, m *msg.Message) {
@@ -225,7 +225,7 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 		} else {
 			// message entire channel that client left
 			v.DeleteMember(c.Nick)
-			fmt.Fprintf(v, ":%s QUIT :%s", c, reason)
+			v.WriteMessage(msg.New(nil, c.String(), "", "", "QUIT", []string{reason}, true))
 		}
 	}
 
@@ -309,11 +309,11 @@ func SETNAME(s *Server, c *client.Client, m *msg.Message) {
 			if !m.Caps[cap.Setname.Name] {
 				return
 			}
-			fmt.Fprintf(m, ":%s SETNAME :%s", c, c.Realname)
+			m.WriteMessage(msg.New(nil, c.String(), "", "", "SETNAME", []string{c.Realname}, true))
 			m.Flush()
 		})
 	}
-	fmt.Fprintf(c, ":%s SETNAME :%s", c, c.Realname)
+	c.WriteMessage(msg.New(nil, c.String(), "", "", "SETNAME", []string{c.Realname}, true))
 }
 
 func CHGHOST(s *Server, c *client.Client, m *msg.Message) {
@@ -334,12 +334,12 @@ func CHGHOST(s *Server, c *client.Client, m *msg.Message) {
 
 		v.ForAllMembersExcept(c, func(m *channel.Member) {
 			if m.Caps[cap.Chghost.Name] {
-				fmt.Fprintf(m, ":%s CHGHOST %s %s", oldPrefix, c.User, c.Host)
+				m.WriteMessage(msg.New(nil, oldPrefix, "", "", "CHGHOST", []string{c.User, c.Host}, false))
 			} else {
-				fmt.Fprintf(m, ":%s QUIT :Changing hostname", oldPrefix)
-				fmt.Fprintf(m, ":%s JOIN %s", c, v)
+				m.WriteMessage(msg.New(nil, oldPrefix, "", "", "QUIT", []string{"Changing hostname"}, true))
+				m.WriteMessage(msg.New(nil, c.String(), "", "", "JOIN", []string{v.String()}, false))
 				if modes != "" {
-					fmt.Fprintf(m, ":%s MODE %s +%s %s", s.Name, v, modes, c.Nick)
+					m.WriteMessage(msg.New(nil, s.Name, "", "", "MODE", []string{v.String(), "+" + modes, c.Nick}, false))
 				}
 			}
 			m.Flush()
@@ -349,7 +349,7 @@ func CHGHOST(s *Server, c *client.Client, m *msg.Message) {
 	// "send the CHGHOST message to the client whose own username or host
 	// changed, if that client also supports the chghost capability"
 	if _, verbose := c.Caps[cap.Chghost.Name]; verbose {
-		fmt.Fprintf(c, ":%s CHGHOST %s %s", oldPrefix, c.User, c.Host)
+		c.WriteMessage(msg.New(nil, oldPrefix, "", "", "CHGHOST", []string{c.User, c.Host}, false))
 	}
 }
 
@@ -414,7 +414,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			newChan.CreatedAt = time.Now()
 			s.setChannel(newChan)
 			newChan.SetMember(&channel.Member{Client: c, Prefix: string(channel.Founder)})
-			fmt.Fprintf(c, ":%s JOIN %s", c, newChan)
+			c.WriteMessage(msg.New(nil, c.String(), "", "", "JOIN", []string{newChan.String()}, false))
 
 			NAMES(s, c, &msg.Message{Params: []string{newChan.String()}})
 		}
@@ -445,9 +445,9 @@ func isDisallowedChanChar(r rune) bool {
 func PART(s *Server, c *client.Client, m *msg.Message) {
 	chans := strings.Split(m.Params[0], ",")
 
-	reason := ""
+	params := make([]string, 1)
 	if len(m.Params) > 1 {
-		reason = " :" + m.Params[1]
+		params = append(params, m.Params[1])
 	}
 
 	for _, v := range chans {
@@ -456,7 +456,9 @@ func PART(s *Server, c *client.Client, m *msg.Message) {
 			return
 		}
 
-		fmt.Fprintf(ch, ":%s PART %s%s", c, ch, reason)
+		params[0] = ch.String()
+		ch.WriteMessage(msg.New(nil, c.String(), "", "", "PART", params, len(params) > 1))
+
 		if ch.Len() == 1 {
 			s.deleteChannel(ch.String())
 		} else {
@@ -527,7 +529,6 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 	ch.Invited = append(ch.Invited, nick)
 
 	recipient.WriteMessageFrom(msg.New(nil, sender.Nick, sender.User, sender.Host, "INVITE", []string{nick, ch.String()}, false), c)
-	// fmt.Fprintf(recipient, ":%s INVITE %s %s", sender, nick, ch)
 	recipient.Flush()
 
 	s.writeReply(c, c.Id(), RPL_INVITING, nick, ch)
@@ -698,9 +699,7 @@ func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) 
 		s.chanLock.RLock()
 		for _, v := range chans {
 			userCount := v.Len()
-			fmt.Println(v, userCount, val)
 			if (lessThan && userCount < val) || (!lessThan && userCount > val) {
-				fmt.Println("found", v)
 				filtered = append(filtered, v)
 			}
 		}
@@ -837,7 +836,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 				}
 			}
 
-			fmt.Fprintf(c, ":%s MODE %s %s", s.Name, c.Nick, applied)
+			c.WriteMessage(msg.New(nil, s.Name, "", "", "MODE", []string{c.Nick, applied}, false))
 		} else { // give back own mode
 			s.writeReply(c, c.Id(), RPL_UMODEIS, c.Mode)
 		}
@@ -1312,7 +1311,7 @@ func (s *Server) awayNotify(c *client.Client, chans ...*channel.Channel) {
 	for _, v := range chans {
 		v.ForAllMembersExcept(c, func(m *channel.Member) {
 			if m.Caps[cap.AwayNotify.Name] {
-				fmt.Fprintf(m, ":%s AWAY :%s", c, c.AwayMsg)
+				m.WriteMessage(msg.New(nil, c.String(), "", "", "AWAY", []string{c.AwayMsg}, true))
 				m.Flush()
 			}
 		})

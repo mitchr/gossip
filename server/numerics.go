@@ -116,7 +116,7 @@ func (s *Server) writeReply(buf io.Writer, clientId string, format string, f ...
 	args[0] = s.Name
 	args[1] = clientId
 	copy(args[2:], f)
-	fmt.Fprintf(buf, format, args...)
+	fmt.Fprintf(buf, format+"\r\n", args...)
 }
 
 func (s *Server) ERROR(c *client.Client, m string) {
