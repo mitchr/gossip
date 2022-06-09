@@ -138,16 +138,17 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 	case "CERT":
 		cert, err := c.Certificate()
 		if err != nil {
-			fmt.Fprintf(c, "NOTICE :%s", err)
+			s.NOTICE(c, err.Error())
 			return
 		}
 		cred := external.NewCredential(c.Id(), cert)
 		s.persistExternal(cred.Username, c.Nick, cred.Cert)
 	default:
-		fmt.Fprintf(c, "NOTICE :Unsupported registration type %s", m.Params[0])
+		s.NOTICE(c, "Unsupported registration type "+m.Params[0])
+		return
 	}
 
-	fmt.Fprintf(c, "NOTICE Registered")
+	s.NOTICE(c, "Registered")
 }
 
 func (s *Server) persistPlain(username, nick string, pass []byte) {

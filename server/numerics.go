@@ -6,6 +6,7 @@ import (
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/scan/msg"
 )
 
 const (
@@ -118,10 +119,14 @@ func (s *Server) writeReply(buf io.Writer, clientId string, format string, f ...
 	fmt.Fprintf(buf, format, args...)
 }
 
-func (s *Server) ERROR(c *client.Client, msg string) {
-	fmt.Fprintf(c, "ERROR :%s", msg)
+func (s *Server) ERROR(c *client.Client, m string) {
+	c.WriteMessage(msg.New(nil, "", "", "", "ERROR", []string{m}, true))
 	c.Flush()
 	c.Close()
+}
+
+func (s *Server) NOTICE(c *client.Client, m string) {
+	c.WriteMessage(msg.New(nil, "", "", "", "NOTICE", []string{m}, true))
 }
 
 // given a channel, construct a NAMREPLY for all the members. if

@@ -25,7 +25,7 @@ func TestREGISTER(t *testing.T) {
 	conn.Write([]byte("REGISTER PASS pass1\r\n"))
 	resp, _ := r.ReadBytes('\n')
 
-	assertResponse(resp, "NOTICE Registered\r\n", t)
+	assertResponse(resp, "NOTICE :Registered\r\n", t)
 }
 
 func TestAUTHENTICATE(t *testing.T) {
