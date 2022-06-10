@@ -480,7 +480,7 @@ func TestChannelCreation(t *testing.T) {
 		r3.ReadBytes('\n')
 		r3.ReadBytes('\n')
 
-		c3.Write([]byte("LIST\r\n"))
+		c3.Write([]byte("LIST #chan1,#chan2,#chan3\r\n"))
 		response, _ := r3.ReadBytes('\n')
 		assertResponse(response, fmt.Sprintf(":%s 323 c :End of /LIST\r\n", s.Name), t)
 	})
