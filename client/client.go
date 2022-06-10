@@ -20,7 +20,7 @@ import (
 )
 
 type Client struct {
-	net.Conn
+	conn net.Conn
 
 	Nick     string
 	User     string
@@ -32,7 +32,7 @@ type Client struct {
 	// last time that client sent a succcessful message
 	Idle time.Time
 
-	*bufio.ReadWriter
+	rw            *bufio.ReadWriter
 	writeLock     sync.Mutex
 	msgSizeChange chan int
 	msgBuf        []byte
@@ -65,11 +65,11 @@ type Client struct {
 func New(conn net.Conn) *Client {
 	now := time.Now()
 	c := &Client{
-		Conn:     conn,
+		conn:     conn,
 		JoinTime: now.Unix(),
 		Idle:     now,
 
-		ReadWriter:    bufio.NewReadWriter(bufio.NewReaderSize(conn, 512), bufio.NewWriter(conn)),
+		rw:            bufio.NewReadWriter(bufio.NewReaderSize(conn, 512), bufio.NewWriter(conn)),
 		msgSizeChange: make(chan int, 1),
 		msgBuf:        make([]byte, 0, 512),
 
@@ -133,9 +133,11 @@ func (c *Client) Id() string {
 	return "*"
 }
 
+func (c *Client) RemoteAddr() net.Addr { return c.conn.RemoteAddr() }
+
 // returns true if the client is connected over tls
 func (c *Client) IsSecure() bool {
-	_, ok := c.Conn.(*tls.Conn)
+	_, ok := c.conn.(*tls.Conn)
 	return ok
 }
 
@@ -144,7 +146,7 @@ func (c *Client) Certificate() ([]byte, error) {
 		return nil, errors.New("client is not connected over tls")
 	}
 
-	certs := c.Conn.(*tls.Conn).ConnectionState().PeerCertificates
+	certs := c.conn.(*tls.Conn).ConnectionState().PeerCertificates
 	if len(certs) < 1 {
 		return nil, errors.New("client has not provided a certificate")
 	}
@@ -209,7 +211,7 @@ func (c *Client) ReadMsg() ([]byte, error) {
 		case size := <-c.msgSizeChange:
 			c.msgBuf = resizeBuffer(c.msgBuf, size)
 		default:
-			b, err := c.ReadByte()
+			b, err := c.rw.ReadByte()
 			if err != nil {
 				return nil, err
 			}
@@ -229,7 +231,7 @@ func (c *Client) Write(b []byte) (int, error) {
 	c.writeLock.Lock()
 	defer c.writeLock.Unlock()
 
-	return c.ReadWriter.Write(b)
+	return c.rw.Write(b)
 }
 
 func resizeBuffer(b []byte, size int) []byte {
@@ -287,8 +289,10 @@ func (c *Client) Flush() error {
 	c.writeLock.Lock()
 	defer c.writeLock.Unlock()
 
-	return c.ReadWriter.Flush()
+	return c.rw.Flush()
 }
+
+func (c *Client) Close() error { return c.conn.Close() }
 
 const maxGrants = 20
 

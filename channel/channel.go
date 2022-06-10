@@ -152,14 +152,14 @@ func (c *Channel) Write(b []byte) (int, error) {
 	c.MembersLock.RLock()
 	defer c.MembersLock.RUnlock()
 	for _, v := range c.Members {
-		written, err := v.Conn.Write(append(b, '\r', '\n'))
+		written, err := v.Write(append(b, '\r', '\n'))
 		if err != nil {
 			errStrings = append(errStrings, err.Error())
 			log.Println(string(b), err)
 		}
+		v.Flush()
 		n += written
 	}
-
 	return n, errors.New(strings.Join(errStrings, "\n"))
 }
 

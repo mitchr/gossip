@@ -1032,7 +1032,7 @@ func constructSpcrplResponse(params string, c *client.Client, s *Server) string 
 			resp[i] = c.User
 		case 'i':
 			// TODO: will this assertion fail if we add support for websockets?
-			resp[i] = c.Conn.RemoteAddr().(*net.TCPAddr).IP.String()
+			resp[i] = c.RemoteAddr().(*net.TCPAddr).IP.String()
 		case 'h':
 			resp[i] = c.Host
 		case 's':
