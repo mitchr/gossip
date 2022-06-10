@@ -278,10 +278,6 @@ func (c *Client) WriteMessageFrom(m *msg.Message, from *Client) {
 		m.AddTag("account", from.SASLMech.Authn())
 	}
 
-	if c.Caps[capability.ExtendedJoin.Name] && m.Command == "JOIN" {
-		m.Params = append(m.Params, from.SASLMech.Authn(), from.Realname)
-	}
-
 	c.WriteMessage(m)
 }
 

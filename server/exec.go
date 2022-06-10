@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchr/gossip/capability"
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
@@ -393,8 +394,22 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 				}
 				return
 			}
+
 			// send JOIN to all participants of channel
-			ch.WriteMessageFrom(msg.New(nil, c.Nick, c.User, c.Host, "JOIN", []string{ch.String()}, false), c)
+			joinMsgParams := []string{ch.String(), c.SASLMech.Authn(), c.Realname}
+			ch.MembersLock.Lock()
+			for _, m := range ch.Members {
+				joinMsg := msg.New(nil, c.Nick, c.User, c.Host, "JOIN", nil, false)
+				if m.Caps[capability.ExtendedJoin.Name] {
+					joinMsg.Params = joinMsgParams
+				} else {
+					joinMsg.Params = joinMsgParams[:1]
+				}
+				m.WriteMessage(joinMsg)
+				m.Flush()
+			}
+			ch.MembersLock.Unlock()
+
 			if ch.Topic != "" {
 				// only send topic if it exists
 				TOPIC(s, c, &msg.Message{Params: []string{ch.String()}})
