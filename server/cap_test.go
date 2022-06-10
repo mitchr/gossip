@@ -254,6 +254,28 @@ func TestMessageTags(t *testing.T) {
 	})
 }
 
+func TestMessageId(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("a")
+	defer c1.Close()
+	c2, _ := connectAndRegister("b")
+	defer c2.Close()
+	c1.Write([]byte("CAP REQ :message-tags\r\n"))
+	r1.ReadBytes('\n')
+
+	c2.Write([]byte("PRIVMSG a :hey\r\n"))
+	resp, _ := r1.ReadString('\n')
+	if !strings.Contains(resp, "@msgid") {
+		t.Error("msgid not added")
+	}
+}
+
 func TestMultiPrefix(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {

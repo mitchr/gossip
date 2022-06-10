@@ -1260,6 +1260,9 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				if msg.Command == "TAGMSG" && !m.Caps[cap.MessageTags.Name] {
 					return
 				}
+				if m.Caps[capability.MessageTags.Name] {
+					msg.SetMsgid()
+				}
 				m.WriteMessageFrom(&msg, c)
 				m.Flush()
 			})
@@ -1278,6 +1281,9 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			}
 			if msg.Command == "TAGMSG" && !target.Caps[cap.MessageTags.Name] {
 				continue
+			}
+			if target.Caps[capability.MessageTags.Name] {
+				msg.SetMsgid()
 			}
 			target.WriteMessageFrom(&msg, c)
 			target.Flush()

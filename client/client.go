@@ -257,10 +257,6 @@ func (c *Client) WriteMessage(m *msg.Message) {
 		m.AddTag("time", time.Now().UTC().Format(timeFormat))
 	}
 
-	if (m.Command == "PRIVMSG" || m.Command == "NOTICE" || m.Command == "TAGMSG") && c.Caps[capability.MessageTags.Name] {
-		m.SetMsgid()
-	}
-
 	c.Write([]byte(m.String()))
 }
 
