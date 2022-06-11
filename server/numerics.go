@@ -166,7 +166,7 @@ var isupportTokens = func() []string {
 		"BOT=b",
 		"CASEMAPPING=ascii",
 		"CHANLIMIT=#&:",
-		"ELIST=MNTU",
+		"ELIST=CMNTU",
 		"MONITOR", // TODO: add a limit?
 		"STATUSMSG=~&@%+",
 		"WHOX",

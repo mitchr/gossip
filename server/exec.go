@@ -652,7 +652,6 @@ func NAMES(s *Server, c *client.Client, m *msg.Message) {
 	}
 }
 
-// TODO: support all ELIST params
 func LIST(s *Server, c *client.Client, m *msg.Message) {
 	defer s.writeReply(c, c.Id(), RPL_LISTEND)
 
@@ -717,6 +716,22 @@ func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) 
 		for _, v := range chans {
 			userCount := v.Len()
 			if (lessThan && userCount < val) || (!lessThan && userCount > val) {
+				filtered = append(filtered, v)
+			}
+		}
+	case 'C':
+		lessThan := pattern[1] == '<'
+		if len(pattern) < 2 {
+			break
+		}
+		val, _ := strconv.Atoi(pattern[2:])
+		valMinutes := time.Minute * time.Duration(val)
+
+		for _, v := range chans {
+			difference := time.Since(v.CreatedAt).Round(time.Minute)
+			// topic time that was set less than val minutes ago OR
+			// topic time that was set more than val minutes ago
+			if (lessThan && difference < valMinutes) || (!lessThan && difference > valMinutes) {
 				filtered = append(filtered, v)
 			}
 		}

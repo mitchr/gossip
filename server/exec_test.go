@@ -781,11 +781,35 @@ func TestELIST(t *testing.T) {
 	c, r := connectAndRegister("a")
 	defer c.Close()
 
-	t.Run("T<", func(t *testing.T) {
-		chanPast := channel.New("past", channel.Remote)
-		chanPast.TopicSetAt = time.Now().Add(-time.Minute * 1) // topic set 1 minute ago
-		s.setChannel(chanPast)
+	chanPast := channel.New("past", channel.Remote)
+	chanPast.TopicSetAt = time.Now().Add(-time.Minute * 1) // topic set 1 minute ago
+	chanPast.CreatedAt = chanPast.TopicSetAt
+	s.setChannel(chanPast)
 
+	chanFuture := channel.New("future", channel.Remote)
+	chanFuture.TopicSetAt = time.Now().Add(-time.Minute * 3) // topic set 3 minutes ago
+	chanFuture.CreatedAt = chanFuture.TopicSetAt
+	s.setChannel(chanFuture)
+
+	t.Run("C<", func(t *testing.T) {
+		c.Write([]byte("LIST C<2\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		end, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 322 a #past 0 :\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 323 a :End of /LIST\r\n", s.Name), t)
+	})
+
+	t.Run("C>", func(t *testing.T) {
+		c.Write([]byte("LIST C>2\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		end, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 322 a #future 0 :\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 323 a :End of /LIST\r\n", s.Name), t)
+	})
+
+	t.Run("T<", func(t *testing.T) {
 		c.Write([]byte("LIST T<2\r\n"))
 		resp, _ := r.ReadBytes('\n')
 		end, _ := r.ReadBytes('\n')
@@ -795,10 +819,6 @@ func TestELIST(t *testing.T) {
 	})
 
 	t.Run("T>", func(t *testing.T) {
-		chanFuture := channel.New("future", channel.Remote)
-		chanFuture.TopicSetAt = time.Now().Add(-time.Minute * 3) // topic set 3 minutes ago
-		s.setChannel(chanFuture)
-
 		c.Write([]byte("LIST T>2\r\n"))
 		resp, _ := r.ReadBytes('\n')
 		end, _ := r.ReadBytes('\n')
