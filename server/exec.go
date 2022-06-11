@@ -705,20 +705,21 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 
 // for now, we only handle masks ("M")
 func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) []*channel.Channel {
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
+
 	filtered := []*channel.Channel{}
 
 	if pattern[0] == '<' || pattern[0] == '>' {
 		lessThan := pattern[0] == '<'
 		val, _ := strconv.Atoi(pattern[1:])
 
-		s.chanLock.RLock()
 		for _, v := range chans {
 			userCount := v.Len()
 			if (lessThan && userCount < val) || (!lessThan && userCount > val) {
 				filtered = append(filtered, v)
 			}
 		}
-		s.chanLock.RUnlock()
 	} else if len(pattern) >= 2 && (pattern[1] == '<' || pattern[1] == '>') {
 		lessThan := pattern[1] == '<'
 		val, _ := strconv.Atoi(pattern[2:])
@@ -727,7 +728,6 @@ func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) 
 			valMinutes := time.Minute * time.Duration(val)
 			now := time.Now()
 
-			s.chanLock.RLock()
 			for _, v := range chans {
 				difference := time.Duration(now.Sub(v.TopicSetAt).Minutes())
 				// topic time that was set less than val minutes ago OR
@@ -736,28 +736,23 @@ func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) 
 					filtered = append(filtered, v)
 				}
 			}
-			s.chanLock.RUnlock()
 		}
 	} else if pattern[0] == '!' {
-		s.chanLock.RLock()
 		for _, v := range chans {
 			if !wild.Match(pattern[1:], v.String()) {
 				filtered = append(filtered, v)
 			}
 		}
-		s.chanLock.RUnlock()
 	} else {
 		// first see if we can get an exact match
 		if ch, ok := s.getChannel(pattern); ok {
 			filtered = append(filtered, ch)
 		} else {
-			s.chanLock.RLock()
 			for _, v := range chans {
 				if wild.Match(pattern, v.String()) {
 					filtered = append(filtered, v)
 				}
 			}
-			s.chanLock.RUnlock()
 		}
 	}
 	return filtered
