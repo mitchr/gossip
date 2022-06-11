@@ -703,14 +703,14 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 	}
 }
 
-// for now, we only handle masks ("M")
 func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) []*channel.Channel {
 	s.chanLock.RLock()
 	defer s.chanLock.RUnlock()
 
 	filtered := []*channel.Channel{}
 
-	if pattern[0] == '<' || pattern[0] == '>' {
+	switch pattern[0] {
+	case '<', '>':
 		lessThan := pattern[0] == '<'
 		val, _ := strconv.Atoi(pattern[1:])
 
@@ -720,30 +720,30 @@ func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) 
 				filtered = append(filtered, v)
 			}
 		}
-	} else if len(pattern) >= 2 && (pattern[1] == '<' || pattern[1] == '>') {
+	case 'T':
 		lessThan := pattern[1] == '<'
+		if len(pattern) < 2 {
+			break
+		}
 		val, _ := strconv.Atoi(pattern[2:])
+		valMinutes := time.Minute * time.Duration(val)
+		now := time.Now()
 
-		if pattern[0] == 'T' {
-			valMinutes := time.Minute * time.Duration(val)
-			now := time.Now()
-
-			for _, v := range chans {
-				difference := time.Duration(now.Sub(v.TopicSetAt).Minutes())
-				// topic time that was set less than val minutes ago OR
-				// topic time that was set more than val minutes ago
-				if (lessThan && difference < valMinutes) || (!lessThan && difference > valMinutes) {
-					filtered = append(filtered, v)
-				}
+		for _, v := range chans {
+			difference := time.Duration(now.Sub(v.TopicSetAt).Minutes())
+			// topic time that was set less than val minutes ago OR
+			// topic time that was set more than val minutes ago
+			if (lessThan && difference < valMinutes) || (!lessThan && difference > valMinutes) {
+				filtered = append(filtered, v)
 			}
 		}
-	} else if pattern[0] == '!' {
+	case '!':
 		for _, v := range chans {
 			if !wild.Match(pattern[1:], v.String()) {
 				filtered = append(filtered, v)
 			}
 		}
-	} else {
+	default:
 		// first see if we can get an exact match
 		if ch, ok := s.getChannel(pattern); ok {
 			filtered = append(filtered, ch)
