@@ -727,10 +727,9 @@ func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) 
 		}
 		val, _ := strconv.Atoi(pattern[2:])
 		valMinutes := time.Minute * time.Duration(val)
-		now := time.Now()
 
 		for _, v := range chans {
-			difference := time.Duration(now.Sub(v.TopicSetAt).Minutes())
+			difference := time.Since(v.TopicSetAt).Round(time.Minute)
 			// topic time that was set less than val minutes ago OR
 			// topic time that was set more than val minutes ago
 			if (lessThan && difference < valMinutes) || (!lessThan && difference > valMinutes) {
