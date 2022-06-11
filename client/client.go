@@ -257,14 +257,14 @@ func (c *Client) WriteMessage(m *msg.Message) {
 		m.AddTag("time", time.Now().UTC().Format(timeFormat))
 	}
 
+	if !c.HasMessageTags() {
+		m = m.RemoveAllTags()
+	}
+
 	c.Write([]byte(m.String()))
 }
 
 func (c *Client) WriteMessageFrom(m *msg.Message, from *Client) {
-	if !c.Caps[capability.MessageTags.Name] {
-		m = m.RemoveAllTags()
-	}
-
 	if from.Is(Bot) {
 		m.AddTag("bot", "")
 	}
