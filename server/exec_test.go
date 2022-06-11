@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
@@ -766,6 +767,44 @@ func TestLIST(t *testing.T) {
 		c.Write([]byte("LIST &params\r\n"))
 		end, _ := r.ReadBytes('\n')
 		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.Name), t)
+	})
+}
+
+func TestELIST(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("a")
+	defer c.Close()
+
+	t.Run("T<", func(t *testing.T) {
+		chanPast := channel.New("past", channel.Remote)
+		chanPast.TopicSetAt = time.Now().Add(-time.Minute * 1) // topic set 1 minute ago
+		s.setChannel(chanPast)
+
+		c.Write([]byte("LIST T<2\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		end, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 322 a #past 0 :\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 323 a :End of /LIST\r\n", s.Name), t)
+	})
+
+	t.Run("T>", func(t *testing.T) {
+		chanFuture := channel.New("future", channel.Remote)
+		chanFuture.TopicSetAt = time.Now().Add(-time.Minute * 3) // topic set 3 minutes ago
+		s.setChannel(chanFuture)
+
+		c.Write([]byte("LIST T>2\r\n"))
+		resp, _ := r.ReadBytes('\n')
+		end, _ := r.ReadBytes('\n')
+
+		assertResponse(resp, fmt.Sprintf(":%s 322 a #future 0 :\r\n", s.Name), t)
+		assertResponse(end, fmt.Sprintf(":%s 323 a :End of /LIST\r\n", s.Name), t)
 	})
 }
 
