@@ -678,10 +678,12 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 	// an O(1) lookup)
 	if elist == nil {
 		elist = chans
-		chans = make([]string, 0, s.channelLen())
+		chans = make([]string, s.channelLen())
+		i := 0
 		s.chanLock.RLock()
 		for _, v := range s.channels {
-			chans = append(chans, v.String())
+			chans[i] = v.String()
+			i++
 		}
 		s.chanLock.RUnlock()
 	}
