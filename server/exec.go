@@ -703,9 +703,6 @@ func LIST(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) []*channel.Channel {
-	s.chanLock.RLock()
-	defer s.chanLock.RUnlock()
-
 	filtered := []*channel.Channel{}
 
 	switch pattern[0] {
