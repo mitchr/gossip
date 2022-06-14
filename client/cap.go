@@ -11,7 +11,10 @@ func (c *Client) ApplyCap(cap string, remove bool) {
 		return
 	}
 
-	capHandlers[cap](c, remove)
+	handler := capHandlers[cap]
+	if handler != nil {
+		handler(c, remove)
+	}
 	if remove {
 		delete(c.Caps, cap)
 	} else {
@@ -22,22 +25,10 @@ func (c *Client) ApplyCap(cap string, remove bool) {
 type capHandler func(*Client, bool)
 
 var capHandlers = map[string]capHandler{
-	cap.AccountTag.Name:      messageTags,
-	cap.AwayNotify.Name:      doNothing,
-	cap.CapNotify.Name:       doNothing,
-	cap.Chghost.Name:         doNothing,
-	cap.EchoMessage.Name:     doNothing,
-	cap.ExtendedJoin.Name:    doNothing,
-	cap.MessageTags.Name:     messageTags,
-	cap.MultiPrefix.Name:     doNothing,
-	cap.SASL.Name:            doNothing,
-	cap.ServerTime.Name:      messageTags,
-	cap.Setname.Name:         doNothing,
-	cap.UserhostInNames.Name: doNothing,
+	cap.AccountTag.Name:  messageTags,
+	cap.MessageTags.Name: messageTags,
+	cap.ServerTime.Name:  messageTags,
 }
-
-// used to capabilities that are just basically advertisements, like cap-notify
-func doNothing(*Client, bool) {}
 
 func messageTags(c *Client, remove bool) {
 	hasMessageTags := c.HasMessageTags()
