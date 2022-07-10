@@ -200,8 +200,7 @@ func (c *Client) ReadMsg() ([]byte, error) {
 	}
 
 	c.msgBuf = c.msgBuf[:0] // clear
-	n := 0
-	for n < cap(c.msgBuf) {
+	for n := 0; n < cap(c.msgBuf); n++ {
 		// when the client adds or removes the 'message-tags' capability,
 		// the maximum message size will change. by checking this signal
 		// before every byte, we avoid the case where message1 requests
@@ -221,7 +220,6 @@ func (c *Client) ReadMsg() ([]byte, error) {
 			if b == '\n' {
 				return c.msgBuf, nil
 			}
-			n++
 		}
 	}
 	return nil, msg.ErrMsgSizeOverflow
