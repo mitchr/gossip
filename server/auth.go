@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	cap "github.com/mitchr/gossip/capability"
+	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/sasl"
 	"github.com/mitchr/gossip/sasl/external"
@@ -101,11 +102,33 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		// TODO: what are <account> and <user>?
 		s.writeReply(c, c.Id(), RPL_LOGGEDIN, c, c.SASLMech.Authn(), c.Id())
 		s.writeReply(c, c.Id(), RPL_SASLSUCCESS)
+		s.accountNotify(c)
 		return
 	}
 
 	encodedChallenge := base64.StdEncoding.EncodeToString(challenge)
 	c.WriteMessage(msg.New(nil, s.Name, "", "", "AUTHENTICATE", []string{encodedChallenge}, false))
+}
+
+func (s *Server) accountNotify(c *client.Client) {
+	if c.Caps[cap.AccountNotify.Name] {
+		c.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false))
+	}
+
+	// keep track of all clients in the same channel with c
+	clients := make(map[*client.Client]bool)
+	chans := s.channelsOf(c)
+	for _, v := range chans {
+		v.ForAllMembersExcept(c, func(m *channel.Member) {
+			if clients[m.Client] || !m.Caps[cap.AccountNotify.Name] {
+				return
+			}
+			clients[m.Client] = true
+			m.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false))
+			s.writeReply(m, m.Id(), "ACCOUNT %s", c.SASLMech.Authn())
+		})
+	}
+
 }
 
 // REGISTER is nonstandard

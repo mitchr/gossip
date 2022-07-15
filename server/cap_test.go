@@ -319,6 +319,35 @@ func TestMultiPrefix(t *testing.T) {
 
 }
 
+// TODO: find out if it is acceptable to AUTHENTICATE after registering
+// and test this for that case when two clients are joined to the same
+// channel
+func TestAccountNotify(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	plainCred := plain.NewCredential("tim", "tanstaaftanstaaf")
+	s.persistPlain(plainCred.Username, "b", plainCred.Pass)
+
+	b, r, p := connect(s)
+	defer p()
+	b.Write([]byte("CAP REQ :sasl account-notify\r\nNICK b\r\nUSER b 0 0 :B\r\nAUTHENTICATE PLAIN\r\n"))
+	r.ReadBytes('\n')
+	clientFirst := []byte("\000tim\000tanstaaftanstaaf")
+	firstEncoded := base64.StdEncoding.EncodeToString(clientFirst)
+	b.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\nCAP END\r\nJOIN #test\r\n"))
+	for i := 0; i < 3; i++ {
+		r.ReadString('\n')
+	}
+
+	resp, _ := r.ReadBytes('\n')
+	assertResponse(resp, ":b!b@pipe ACCOUNT tim\r\n", t)
+}
+
 func TestAccountTag(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {
