@@ -24,13 +24,13 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	// numeric, then register the client without authentication"
 	if c.Is(client.Registered) && !saslNone && !c.IsAuthenticated {
 		c.SASLMech = nil
-		s.writeReply(c, c.Id(), ERR_SASLABORTED)
+		s.writeReply(c, ERR_SASLABORTED)
 		return
 	}
 
 	// client must have requested the SASL capability, and has not yet registered
 	if !c.Caps[cap.SASL.Name] || c.Is(client.Registered) {
-		s.writeReply(c, c.Id(), ERR_SASLFAIL)
+		s.writeReply(c, ERR_SASLFAIL)
 		return
 	}
 
@@ -38,18 +38,18 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	// already authenticating successfully, the server MUST reject it
 	// with a 907 numeric"
 	if c.IsAuthenticated {
-		s.writeReply(c, c.Id(), ERR_SASLALREADY)
+		s.writeReply(c, ERR_SASLALREADY)
 		return
 	}
 
 	if len(m.Params) == 0 {
-		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "AUTHENTICATE")
+		s.writeReply(c, ERR_NEEDMOREPARAMS, "AUTHENTICATE")
 		return
 	}
 
 	if m.Params[0] == "*" {
 		c.SASLMech = nil
-		s.writeReply(c, c.Id(), ERR_SASLABORTED)
+		s.writeReply(c, ERR_SASLABORTED)
 		return
 	}
 
@@ -63,8 +63,8 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		case "SCRAM-SHA-256":
 			c.SASLMech = scram.New(s.db, sha256.New)
 		default:
-			s.writeReply(c, c.Id(), RPL_SASLMECHS, cap.SASL.Value)
-			s.writeReply(c, c.Id(), ERR_SASLFAIL)
+			s.writeReply(c, RPL_SASLMECHS, cap.SASL.Value)
+			s.writeReply(c, ERR_SASLFAIL)
 			return
 		}
 
@@ -86,7 +86,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		// *("AUTHENTICATE" SP 400BASE64 CRLF) "AUTHENTICATE" SP (1*399BASE64 / "+") CRLF
 		resp, err := base64.StdEncoding.DecodeString(m.Params[0])
 		if err != nil {
-			s.writeReply(c, c.Id(), ERR_SASLFAIL)
+			s.writeReply(c, ERR_SASLFAIL)
 			return
 		}
 		decodedResp = resp
@@ -94,14 +94,14 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 
 	challenge, err := c.SASLMech.Next(decodedResp)
 	if err != nil {
-		s.writeReply(c, c.Id(), ERR_SASLFAIL)
+		s.writeReply(c, ERR_SASLFAIL)
 		return
 	}
 	if challenge == nil {
 		c.IsAuthenticated = true
 		// TODO: what are <account> and <user>?
-		s.writeReply(c, c.Id(), RPL_LOGGEDIN, c, c.SASLMech.Authn(), c.Id())
-		s.writeReply(c, c.Id(), RPL_SASLSUCCESS)
+		s.writeReply(c, RPL_LOGGEDIN, c, c.SASLMech.Authn(), c.Id())
+		s.writeReply(c, RPL_SASLSUCCESS)
 		s.accountNotify(c)
 		return
 	}
@@ -125,7 +125,7 @@ func (s *Server) accountNotify(c *client.Client) {
 			}
 			clients[m.Client] = true
 			m.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false))
-			s.writeReply(m, m.Id(), "ACCOUNT %s", c.SASLMech.Authn())
+			s.writeReply(m.Client, "ACCOUNT %s", c.SASLMech.Authn())
 		})
 	}
 
@@ -137,14 +137,14 @@ func (s *Server) accountNotify(c *client.Client) {
 // REGISTER CERT
 func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) == 0 {
-		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "REGISTER")
+		s.writeReply(c, ERR_NEEDMOREPARAMS, "REGISTER")
 		return
 	}
 
 	switch strings.ToUpper(m.Params[0]) {
 	case "PASS":
 		if len(m.Params) < 2 {
-			s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "REGISTER PASS")
+			s.writeReply(c, ERR_NEEDMOREPARAMS, "REGISTER PASS")
 			return
 		}
 		pass := m.Params[1]

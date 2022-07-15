@@ -63,7 +63,7 @@ func (m *monitor) clear(c string) {
 
 func MONITOR(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) < 1 {
-		s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "MONITOR")
+		s.writeReply(c, ERR_NEEDMOREPARAMS, "MONITOR")
 		return
 	}
 
@@ -71,7 +71,7 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) {
 	switch modifier {
 	case "+":
 		if len(m.Params) < 2 {
-			s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "MONITOR")
+			s.writeReply(c, ERR_NEEDMOREPARAMS, "MONITOR")
 			return
 		}
 
@@ -79,14 +79,14 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) {
 		for _, target := range targets {
 			s.monitor.observe(target, c.Nick)
 			if k := s.clients[target]; k != nil {
-				s.writeReply(c, c.Id(), RPL_MONONLINE, k)
+				s.writeReply(c, RPL_MONONLINE, k)
 			} else {
-				s.writeReply(c, c.Id(), RPL_MONOFFLINE, target)
+				s.writeReply(c, RPL_MONOFFLINE, target)
 			}
 		}
 	case "-":
 		if len(m.Params) < 2 {
-			s.writeReply(c, c.Id(), ERR_NEEDMOREPARAMS, "MONITOR")
+			s.writeReply(c, ERR_NEEDMOREPARAMS, "MONITOR")
 			return
 		}
 
@@ -100,9 +100,9 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) {
 		l := s.monitor.list(c.Nick)
 		if len(l) != 0 {
 			// TODO: split this into multiple RPL_MONLIST if they go over the line length limit
-			s.writeReply(c, c.Id(), RPL_MONLIST, strings.Join(l, ","))
+			s.writeReply(c, RPL_MONLIST, strings.Join(l, ","))
 		}
-		s.writeReply(c, c.Id(), RPL_ENDOFMONLIST)
+		s.writeReply(c, RPL_ENDOFMONLIST)
 	case "S":
 		l := s.monitor.list(c.Nick)
 		on := []string{}
@@ -117,10 +117,10 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) {
 		}
 
 		if len(on) != 0 {
-			s.writeReply(c, c.Id(), RPL_MONONLINE, strings.Join(on, ","))
+			s.writeReply(c, RPL_MONONLINE, strings.Join(on, ","))
 		}
 		if len(off) != 0 {
-			s.writeReply(c, c.Id(), RPL_MONOFFLINE, strings.Join(off, ","))
+			s.writeReply(c, RPL_MONOFFLINE, strings.Join(off, ","))
 		}
 	}
 }
@@ -128,7 +128,7 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) {
 func (s *Server) notifyOn(c *client.Client) {
 	for v := range s.monitor.getObserversOf(c.Nick) {
 		if observer, ok := s.getClient(v); ok {
-			s.writeReply(observer, observer.Id(), RPL_MONONLINE, c)
+			s.writeReply(observer, RPL_MONONLINE, c)
 			observer.Flush()
 		}
 	}
@@ -137,7 +137,7 @@ func (s *Server) notifyOn(c *client.Client) {
 func (s *Server) notifyOff(c *client.Client) {
 	for v := range s.monitor.getObserversOf(c.Nick) {
 		if observer, ok := s.getClient(v); ok {
-			s.writeReply(observer, observer.Id(), RPL_MONOFFLINE, c.Nick)
+			s.writeReply(observer, RPL_MONOFFLINE, c.Nick)
 			observer.Flush()
 		}
 	}
