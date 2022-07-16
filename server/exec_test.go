@@ -115,7 +115,7 @@ func TestRegistration(t *testing.T) {
 		resp, _ := r.ReadBytes('\n')
 
 		foo, _ := s.getClient("foo")
-		assertResponse(resp, fmt.Sprintf(RPL_WELCOME+"\r\n", s.Name, foo.Nick, s.Network, foo), t)
+		assertResponse(resp, fmt.Sprintf(RPL_WELCOME, s.Name, foo.Nick, s.Network, foo), t)
 	})
 
 	t.Run("TestNickCaseChange", func(t *testing.T) {
@@ -338,7 +338,7 @@ func TestCHGHOST(t *testing.T) {
 	t.Run("NotEnoughParams", func(t *testing.T) {
 		c.Write([]byte("CHGHOST\r\n"))
 		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(ERR_NEEDMOREPARAMS+"\r\n", s.Name, "alice", "CHGHOST"), t)
+		assertResponse(resp, fmt.Sprintf(ERR_NEEDMOREPARAMS, s.Name, "alice", "CHGHOST"), t)
 	})
 
 	t.Run("Success", func(t *testing.T) {
@@ -556,7 +556,7 @@ func TestTOPIC(t *testing.T) {
 	r.ReadBytes('\n')
 	// TODO: figure out a way to check the unix timestamp
 	// topicWhoTime, _ := r.ReadBytes('\n')
-	// assertResponse(topicWhoTime, fmt.Sprintf(RPL_TOPICWHOTIME+"\r\n", s.Name, "alice", "&test", "alice", 0), t)
+	// assertResponse(topicWhoTime, fmt.Sprintf(RPL_TOPICWHOTIME, s.Name, "alice", "&test", "alice", 0), t)
 
 	r.ReadBytes('\n')
 	clear, _ := r.ReadBytes('\n')
@@ -843,7 +843,7 @@ func TestMOTD(t *testing.T) {
 	t.Run("NoFile", func(t *testing.T) {
 		c.Write([]byte("MOTD\r\n"))
 		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(ERR_NOMOTD+"\r\n", s.Name, "alice"), t)
+		assertResponse(resp, fmt.Sprintf(ERR_NOMOTD, s.Name, "alice"), t)
 	})
 
 	t.Run("Success", func(t *testing.T) {
@@ -854,10 +854,10 @@ func TestMOTD(t *testing.T) {
 		line2, _ := r.ReadBytes('\n')
 		end, _ := r.ReadBytes('\n')
 
-		assertResponse(start, fmt.Sprintf(RPL_MOTDSTART+"\r\n", s.Name, "alice", s.Name), t)
-		assertResponse(line1, fmt.Sprintf(RPL_MOTD+"\r\n", s.Name, "alice", "this is line 1"), t)
-		assertResponse(line2, fmt.Sprintf(RPL_MOTD+"\r\n", s.Name, "alice", "line 2"), t)
-		assertResponse(end, fmt.Sprintf(RPL_ENDOFMOTD+"\r\n", s.Name, "alice"), t)
+		assertResponse(start, fmt.Sprintf(RPL_MOTDSTART, s.Name, "alice", s.Name), t)
+		assertResponse(line1, fmt.Sprintf(RPL_MOTD, s.Name, "alice", "this is line 1"), t)
+		assertResponse(line2, fmt.Sprintf(RPL_MOTD, s.Name, "alice", "line 2"), t)
+		assertResponse(end, fmt.Sprintf(RPL_ENDOFMOTD, s.Name, "alice"), t)
 	})
 }
 
@@ -1296,11 +1296,11 @@ func TestWHOWAS(t *testing.T) {
 
 		c3.Write([]byte("WHOWAS alice\r\n"))
 		resp1, _ := r3.ReadBytes('\n')
-		assertResponse(resp1, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "alice"), t)
+		assertResponse(resp1, fmt.Sprintf(RPL_WHOWASUSER, s.Name, "bob", "alice", "alice", "localhost", "alice"), t)
 		resp2, _ := r3.ReadBytes('\n')
-		assertResponse(resp2, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "alice"), t)
+		assertResponse(resp2, fmt.Sprintf(RPL_WHOWASUSER, s.Name, "bob", "alice", "alice", "localhost", "alice"), t)
 		end, _ := r3.ReadBytes('\n')
-		assertResponse(end, fmt.Sprintf(RPL_ENDOFWHOWAS+"\r\n", s.Name, "bob", "alice"), t)
+		assertResponse(end, fmt.Sprintf(RPL_ENDOFWHOWAS, s.Name, "bob", "alice"), t)
 	})
 
 	t.Run("TestCount1", func(t *testing.T) {
@@ -1318,9 +1318,9 @@ func TestWHOWAS(t *testing.T) {
 
 		c3.Write([]byte("WHOWAS alice 1\r\n"))
 		resp, _ := r3.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(RPL_WHOWASUSER+"\r\n", s.Name, "bob", "alice", "alice", "localhost", "alice"), t)
+		assertResponse(resp, fmt.Sprintf(RPL_WHOWASUSER, s.Name, "bob", "alice", "alice", "localhost", "alice"), t)
 		end, _ := r3.ReadBytes('\n')
-		assertResponse(end, fmt.Sprintf(RPL_ENDOFWHOWAS+"\r\n", s.Name, "bob", "alice"), t)
+		assertResponse(end, fmt.Sprintf(RPL_ENDOFWHOWAS, s.Name, "bob", "alice"), t)
 	})
 }
 
@@ -1535,7 +1535,7 @@ func TestPRIVMSG(t *testing.T) {
 	t.Run("TestNoTextToSend", func(t *testing.T) {
 		c1.Write([]byte("PRIVMSG bob\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(ERR_NOTEXTTOSEND+"\r\n", s.Name, "alice"), t)
+		assertResponse(resp, fmt.Sprintf(ERR_NOTEXTTOSEND, s.Name, "alice"), t)
 	})
 
 	t.Run("TestClientPRIVMSG", func(t *testing.T) {
@@ -1548,7 +1548,7 @@ func TestPRIVMSG(t *testing.T) {
 	t.Run("TestNoSuchNick", func(t *testing.T) {
 		c1.Write([]byte("PRIVMSG notReal :hello\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(ERR_NOSUCHNICK+"\r\n", s.Name, "alice", "notReal"), t)
+		assertResponse(resp, fmt.Sprintf(ERR_NOSUCHNICK, s.Name, "alice", "notReal"), t)
 	})
 
 	t.Run("TestChannelPRIVMSG", func(t *testing.T) {
@@ -1561,7 +1561,7 @@ func TestPRIVMSG(t *testing.T) {
 	t.Run("TestNoSuchChan", func(t *testing.T) {
 		c1.Write([]byte("PRIVMSG #notFound :hello\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(ERR_NOSUCHCHANNEL+"\r\n", s.Name, "alice", "#notFound"), t)
+		assertResponse(resp, fmt.Sprintf(ERR_NOSUCHCHANNEL, s.Name, "alice", "#notFound"), t)
 	})
 
 	t.Run("TestMultipleTargets", func(t *testing.T) {
@@ -1697,7 +1697,7 @@ func TestUSERHOST(t *testing.T) {
 	t.Run("TestNotAway", func(t *testing.T) {
 		c1.Write([]byte("USERHOST bob\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(RPL_USERHOST+"\r\n", s.Name, "alice", "bob=+localhost"), t)
+		assertResponse(resp, fmt.Sprintf(RPL_USERHOST, s.Name, "alice", "bob=+localhost"), t)
 	})
 	t.Run("TestAway", func(t *testing.T) {
 		c2.Write([]byte("AWAY :I'm away\r\n"))
@@ -1705,7 +1705,7 @@ func TestUSERHOST(t *testing.T) {
 
 		c1.Write([]byte("USERHOST bob\r\n"))
 		resp, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(RPL_USERHOST+"\r\n", s.Name, "alice", "bob=-localhost"), t)
+		assertResponse(resp, fmt.Sprintf(RPL_USERHOST, s.Name, "alice", "bob=-localhost"), t)
 	})
 }
 
@@ -1755,7 +1755,7 @@ func TestREHASH(t *testing.T) {
 		c.Write([]byte("REHASH\r\n"))
 		resp, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(ERR_NOPRIVILEGES+"\r\n", s.Name, "a"), t)
+		assertResponse(resp, fmt.Sprintf(ERR_NOPRIVILEGES, s.Name, "a"), t)
 	})
 }
 

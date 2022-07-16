@@ -301,21 +301,21 @@ func TestMultiPrefix(t *testing.T) {
 	c1.Write([]byte("NAMES #local\r\n"))
 	namreply, _ := r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
-	assertResponse(namreply, fmt.Sprintf(RPL_NAMREPLY+"\r\n", s.Name, "a", "=", "#local", "~&@%+b"), t)
+	assertResponse(namreply, fmt.Sprintf(RPL_NAMREPLY, s.Name, "a", "=", "#local", "~&@%+b"), t)
 
 	// local.SetMember(&channel.Member{Client: a})
 
 	c1.Write([]byte("WHO #local\r\n"))
 	whoreply, _ := r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
-	assertResponse(whoreply, fmt.Sprintf(RPL_WHOREPLY+"\r\n", s.Name, "a", "#local", "b", "localhost", s.Name, "b", "H~&@%+", "b"), t)
+	assertResponse(whoreply, fmt.Sprintf(RPL_WHOREPLY, s.Name, "a", "#local", "b", "localhost", s.Name, "b", "H~&@%+", "b"), t)
 
 	c1.Write([]byte("WHOIS b\r\n"))
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 	whoisreply, _ := r1.ReadBytes('\n')
-	assertResponse(whoisreply, fmt.Sprintf(RPL_WHOISCHANNELS+"\r\n", s.Name, "a", "b ", ":~&@%+#local"), t)
+	assertResponse(whoisreply, fmt.Sprintf(RPL_WHOISCHANNELS, s.Name, "a", "b ", ":~&@%+#local"), t)
 
 }
 
@@ -409,7 +409,7 @@ func TestAwayNotify(t *testing.T) {
 	t.Run("TestShouldNotifyChannel", func(t *testing.T) {
 		c2.Write([]byte("AWAY :I'm away\r\n"))
 		resp, _ := r2.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(RPL_NOWAWAY+"\r\n", s.Name, b.Nick), t)
+		assertResponse(resp, fmt.Sprintf(RPL_NOWAWAY, s.Name, b.Nick), t)
 
 		notify, _ := r1.ReadBytes('\n')
 		assertResponse(notify, fmt.Sprintf(":%s AWAY :%s\r\n", b, b.AwayMsg), t)
@@ -547,5 +547,5 @@ func TestUserhostInNames(t *testing.T) {
 	c1.Write([]byte("CAP REQ userhost-in-names\r\nNAMES #local\r\n"))
 	r1.ReadBytes('\n')
 	names, _ := r1.ReadBytes('\n')
-	assertResponse(names, fmt.Sprintf(RPL_NAMREPLY+"\r\n", s.Name, "a", "=", "#local", b.String()), t)
+	assertResponse(names, fmt.Sprintf(RPL_NAMREPLY, s.Name, "a", "=", "#local", b.String()), t)
 }

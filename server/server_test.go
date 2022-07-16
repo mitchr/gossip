@@ -126,7 +126,7 @@ func TestMessageSize(t *testing.T) {
 
 		d.Write(tags)
 		resp, _ := r2.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(ERR_INPUTTOOLONG+"\r\n", s.Name, "d"), t)
+		assertResponse(resp, fmt.Sprintf(ERR_INPUTTOOLONG, s.Name, "d"), t)
 	})
 }
 
