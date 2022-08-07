@@ -79,7 +79,7 @@ type Config struct {
 func loadConfig(r io.Reader) (*Config, error) {
 	decoder := json.NewDecoder(r)
 
-	c := &Config{configSource: r}
+	c := &Config{configSource: r, Datasource: ":memory:"}
 	err := decoder.Decode(c)
 	if err != nil {
 		return nil, err
@@ -99,10 +99,6 @@ func NewConfig(r io.Reader) (*Config, error) {
 	c, err := loadConfig(r)
 	if err != nil {
 		return nil, err
-	}
-
-	if c.Datasource == "" {
-		c.Datasource = ":memory:"
 	}
 
 	if c.TLS.Enabled {
