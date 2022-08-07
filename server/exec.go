@@ -423,7 +423,6 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			}
 
 			newChan := channel.New(chanName, chanChar)
-			newChan.CreatedAt = time.Now()
 			s.setChannel(newChan)
 			newChan.SetMember(&channel.Member{Client: c, Prefix: string(channel.Founder)})
 			c.WriteMessage(msg.New(nil, c.String(), "", "", "JOIN", []string{newChan.String()}, false))

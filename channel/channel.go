@@ -56,10 +56,11 @@ type Channel struct {
 
 func New(name string, t ChanType) *Channel {
 	return &Channel{
-		Name:     name,
-		ChanType: t,
-		Limit:    math.MaxInt,
-		Members:  make(map[string]*Member),
+		Name:      name,
+		ChanType:  t,
+		Limit:     math.MaxInt,
+		Members:   make(map[string]*Member),
+		CreatedAt: time.Now(),
 	}
 }
 
