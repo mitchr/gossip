@@ -841,21 +841,30 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 		}
 
 		if len(m.Params) == 2 { // modify own mode
-			applied := ""
+			applied := []rune{}
+			removed := []rune{}
 			for _, v := range mode.Parse([]byte(m.Params[1])) {
 				found := c.ApplyMode(v)
 				if !found {
 					s.writeReply(c, ERR_UMODEUNKNOWNFLAG)
 				} else {
 					if v.Type == mode.Add {
-						applied += "+" + string(v.ModeChar)
+						applied = append(applied, v.ModeChar)
 					} else if v.Type == mode.Remove {
-						applied += "-" + string(v.ModeChar)
+						removed = append(removed, v.ModeChar)
 					}
 				}
 			}
 
-			c.WriteMessage(msg.New(nil, s.Name, "", "", "MODE", []string{c.Nick, applied}, false))
+			var modeStr string
+			if len(applied) > 0 {
+				modeStr += "+" + string(applied)
+			}
+			if len(removed) > 0 {
+				modeStr += "-" + string(removed)
+			}
+
+			c.WriteMessage(msg.New(nil, s.Name, "", "", "MODE", []string{c.Nick, modeStr}, false))
 		} else { // give back own mode
 			s.writeReply(c, RPL_UMODEIS, c.Mode)
 		}

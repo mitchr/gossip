@@ -1088,7 +1088,7 @@ func TestMODEClient(t *testing.T) {
 	t.Run("TestAddMultipleMode", func(t *testing.T) {
 		c.Write([]byte("MODE alice +wi\r\n"))
 		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s MODE alice +w+i\r\n", s.Name), t)
+		assertResponse(resp, fmt.Sprintf(":%s MODE alice +wi\r\n", s.Name), t)
 
 		if !alice.Is(client.Wallops) || !alice.Is(client.Invisible) {
 			t.Error(alice.Mode)
@@ -1098,7 +1098,7 @@ func TestMODEClient(t *testing.T) {
 	t.Run("TestRemoveMultipleMode", func(t *testing.T) {
 		c.Write([]byte("MODE alice -wi\r\n"))
 		resp, _ := r.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s MODE alice -w-i\r\n", s.Name), t)
+		assertResponse(resp, fmt.Sprintf(":%s MODE alice -wi\r\n", s.Name), t)
 
 		if alice.Is(client.Wallops) || alice.Is(client.Invisible) {
 			t.Error(alice.Mode)
