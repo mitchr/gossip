@@ -99,7 +99,6 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	}
 	if challenge == nil {
 		c.IsAuthenticated = true
-		// TODO: what are <account> and <user>?
 		s.writeReply(c, RPL_LOGGEDIN, c, c.SASLMech.Authn(), c.Id())
 		s.writeReply(c, RPL_SASLSUCCESS)
 		s.accountNotify(c)

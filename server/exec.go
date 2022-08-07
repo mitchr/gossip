@@ -167,8 +167,6 @@ func isDisallowedNickChar(r rune) bool {
 }
 
 func USER(s *Server, c *client.Client, m *msg.Message) {
-	// TODO: Ident Protocol
-
 	if c.Is(client.Registered) {
 		s.writeReply(c, ERR_ALREADYREGISTRED)
 		return
@@ -294,7 +292,6 @@ func SETNAME(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	// TODO: should validate here (check for length/unicode garbage etc)
 	c.Realname = m.Params[0]
 
 	// "If a client sends a SETNAME command without having negotiated the
