@@ -38,6 +38,7 @@ const (
 	RPL_LIST             = ":%s 322 %s %s %v :%s\r\n"
 	RPL_LISTEND          = ":%s 323 %s :End of /LIST\r\n"
 	RPL_CHANNELMODEIS    = ":%s 324 %s %s %s%s\r\n"
+	RPL_CREATIONTIME     = ":%s 329 %s %s %s\r\n"
 	RPL_WHOISACCOUNT     = ":%s 330 %s %s %s :is logged in as\r\n"
 	RPL_NOTOPIC          = ":%s 331 %s %s :No topic is set\r\n"
 	RPL_TOPIC            = ":%s 332 %s %s :%s\r\n"

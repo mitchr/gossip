@@ -873,6 +873,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 			}
 
 			s.writeReply(c, RPL_CHANNELMODEIS, ch, modeStr, strings.Join(params, " "))
+			s.writeReply(c, RPL_CREATIONTIME, ch, ch.CreatedAt)
 		} else { // modeStr given
 			modes := mode.Parse([]byte(m.Params[1]))
 			channel.PopulateModeParams(modes, m.Params[2:])

@@ -893,6 +893,7 @@ func TestMODEChannel(t *testing.T) {
 	passApplied, _ := r1.ReadBytes('\n')
 	opApplied, _ := r1.ReadBytes('\n')
 	getModeResp, _ := r1.ReadBytes('\n')
+	r1.ReadBytes('\n')
 
 	assertResponse(passApplied, fmt.Sprintf(":%s MODE #local +k pass\r\n", s.Name), t)
 	assertResponse(opApplied, fmt.Sprintf(":%s MODE #local +o bob\r\n", s.Name), t)
