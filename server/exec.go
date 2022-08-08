@@ -891,22 +891,13 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 				if m.Param == "" {
 					switch m.ModeChar {
 					case 'b':
-						for _, v := range ch.Ban {
-							s.writeReply(c, RPL_BANLIST, ch, v)
-						}
-						s.writeReply(c, RPL_ENDOFBANLIST, ch)
+						s.sendChannelModeList(c, ch, ch.Ban, RPL_BANLIST, RPL_ENDOFBANLIST)
 						continue
 					case 'e':
-						for _, v := range ch.BanExcept {
-							s.writeReply(c, RPL_EXCEPTLIST, ch, v)
-						}
-						s.writeReply(c, RPL_ENDOFEXCEPTLIST, ch)
+						s.sendChannelModeList(c, ch, ch.BanExcept, RPL_EXCEPTLIST, RPL_ENDOFEXCEPTLIST)
 						continue
 					case 'I':
-						for _, v := range ch.InviteExcept {
-							s.writeReply(c, RPL_INVITELIST, ch, v)
-						}
-						s.writeReply(c, RPL_ENDOFINVITELIST, ch)
+						s.sendChannelModeList(c, ch, ch.InviteExcept, RPL_INVITELIST, RPL_ENDOFINVITELIST)
 						continue
 					}
 				}
@@ -928,6 +919,14 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 			}
 		}
 	}
+}
+
+// used for responding to requests to list the various channel mode lists
+func (s *Server) sendChannelModeList(c *client.Client, ch *channel.Channel, list []string, dataResponse string, endResponse string) {
+	for _, v := range list {
+		s.writeReply(c, dataResponse, ch, v)
+	}
+	s.writeReply(c, endResponse, ch)
 }
 
 func INFO(s *Server, c *client.Client, m *msg.Message) {
