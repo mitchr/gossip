@@ -841,29 +841,17 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 		}
 
 		if len(m.Params) == 2 { // modify own mode
-			applied := []rune{}
-			removed := []rune{}
+			appliedModes := []mode.Mode{}
 			for _, v := range mode.Parse([]byte(m.Params[1])) {
 				found := c.ApplyMode(v)
 				if !found {
 					s.writeReply(c, ERR_UMODEUNKNOWNFLAG)
 				} else {
-					if v.Type == mode.Add {
-						applied = append(applied, v.ModeChar)
-					} else if v.Type == mode.Remove {
-						removed = append(removed, v.ModeChar)
-					}
+					appliedModes = append(appliedModes, v)
 				}
 			}
 
-			var modeStr string
-			if len(applied) > 0 {
-				modeStr += "+" + string(applied)
-			}
-			if len(removed) > 0 {
-				modeStr += "-" + string(removed)
-			}
-
+			modeStr := buildModestr(appliedModes)
 			c.WriteMessage(msg.New(nil, s.Name, "", "", "MODE", []string{c.Nick, modeStr}, false))
 		} else { // give back own mode
 			s.writeReply(c, RPL_UMODEIS, c.Mode)
@@ -886,7 +874,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 		} else { // modeStr given
 			modes := mode.Parse([]byte(m.Params[1]))
 			channel.PopulateModeParams(modes, m.Params[2:])
-			applied := ""
+			appliedModes := []mode.Mode{}
 			for _, m := range modes {
 				if m.Param == "" {
 					switch m.ModeChar {
@@ -901,8 +889,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 						continue
 					}
 				}
-				a, err := ch.ApplyMode(m)
-				applied += a
+				err := ch.ApplyMode(m)
 				if errors.Is(err, channel.ErrNeedMoreParams) {
 					s.writeReply(c, ERR_NEEDMOREPARAMS, err)
 				} else if errors.Is(err, channel.ErrUnknownMode) {
@@ -911,14 +898,46 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 					s.writeReply(c, ERR_USERNOTINCHANNEL, err, ch)
 				} else if errors.Is(err, channel.ErrInvalidKey) {
 					s.writeReply(c, ERR_INVALIDKEY, ch)
+				} else {
+					appliedModes = append(appliedModes, m)
 				}
 			}
+
+			modeStr := buildModestr(appliedModes)
+
 			// only write final MODE to channel if any mode was actually altered
-			if applied != "" {
-				ch.WriteMessageFrom(msg.New(nil, s.Name, "", "", "MODE", []string{ch.String(), applied}, false), c)
+			if modeStr != "" {
+				ch.WriteMessageFrom(msg.New(nil, s.Name, "", "", "MODE", []string{ch.String(), modeStr}, false), c)
 			}
 		}
 	}
+}
+
+func buildModestr(modes []mode.Mode) string {
+	applied := []rune{}
+	removed := []rune{}
+	params := []string{}
+	for _, m := range modes {
+		if m.Param != "" {
+			params = append(params, m.Param)
+		}
+		if m.Type == mode.Add {
+			applied = append(applied, m.ModeChar)
+		} else if m.Type == mode.Remove {
+			removed = append(removed, m.ModeChar)
+		}
+	}
+
+	var modeStr string
+	if len(applied) > 0 {
+		modeStr += "+" + string(applied)
+	}
+	if len(removed) > 0 {
+		modeStr += "-" + string(removed)
+	}
+
+	params = append([]string{modeStr}, params...)
+	return strings.Join(params, " ")
 }
 
 // used for responding to requests to list the various channel mode lists

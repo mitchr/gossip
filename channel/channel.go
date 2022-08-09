@@ -250,52 +250,41 @@ var (
 // ApplyMode applies the given mode to the channel. It does not
 // verify that the sending client has the proper permissions to make
 // those changes. It returns a modeStr if the mode was successfully applied.
-func (c *Channel) ApplyMode(m mode.Mode) (string, error) {
-	var applied string
-	if m.Type == mode.Add {
-		applied = "+"
-	} else if m.Type == mode.Remove {
-		applied = "-"
-	}
-
+func (c *Channel) ApplyMode(m mode.Mode) error {
 	if p, ok := channelLetter[m.ModeChar]; ok {
-		applied += string(m.ModeChar)
 
 		// special branch for key validation
 		if m.ModeChar == 'k' && m.Type == mode.Add {
 			if !keyIsValid(m.Param) {
-				return "", fmt.Errorf("%w%s", ErrInvalidKey, applied)
+				return fmt.Errorf("%w+k", ErrInvalidKey)
 			}
 		}
 
 		if (p.addConsumes && m.Type == mode.Add) || (p.remConsumes && m.Type == mode.Remove) {
 			if m.Param == "" { // mode should have a param but doesn't
-				return "", fmt.Errorf(":%w%s", ErrNeedMoreParams, applied)
-			} else {
-				applied += " " + m.Param
+				return fmt.Errorf(":%w%s", ErrNeedMoreParams, m)
 			}
 		}
 		p.apply(c, m.Param, m.Type == mode.Add)
 	} else if _, ok := memberLetter[m.ModeChar]; ok { // should apply this prefix to a member, not the channel
 		// all user MODE changes should have a param
 		if m.Param == "" {
-			return "", fmt.Errorf(":%w%s", ErrNeedMoreParams, applied+string(m.ModeChar))
+			return fmt.Errorf(":%w%s", ErrNeedMoreParams, m)
 		}
 
 		member, belongs := c.GetMember(m.Param)
 		if !belongs {
 			// give back given nick
-			return "", fmt.Errorf("%w%s", ErrNotInChan, m.Param)
+			return fmt.Errorf("%w%s", ErrNotInChan, m.Param)
 		}
 
 		member.ApplyMode(m)
-		applied += string(m.ModeChar) + " " + m.Param
 	} else {
 		// give back error with the unknown mode char
-		return "", fmt.Errorf("%w%s", ErrUnknownMode, string(m.ModeChar))
+		return fmt.Errorf("%w%s", ErrUnknownMode, string(m.ModeChar))
 	}
 
-	return applied, nil
+	return nil
 }
 
 func keyIsValid(key string) bool {

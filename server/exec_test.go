@@ -887,16 +887,13 @@ func TestMODEChannel(t *testing.T) {
 	bob := &channel.Member{Client: s.clients["bob"]}
 	local.SetMember(bob)
 
-	c1.Write([]byte("MODE #local +k pass\r\n"))
-	c1.Write([]byte("MODE #local +o bob\r\n"))
+	c1.Write([]byte("MODE #local +ko pass bob\r\n"))
 	c1.Write([]byte("MODE #local\r\n"))
-	passApplied, _ := r1.ReadBytes('\n')
-	opApplied, _ := r1.ReadBytes('\n')
+	applied, _ := r1.ReadBytes('\n')
 	getModeResp, _ := r1.ReadBytes('\n')
 	r1.ReadBytes('\n')
 
-	assertResponse(passApplied, fmt.Sprintf(":%s MODE #local +k pass\r\n", s.Name), t)
-	assertResponse(opApplied, fmt.Sprintf(":%s MODE #local +o bob\r\n", s.Name), t)
+	assertResponse(applied, fmt.Sprintf(":%s MODE #local +ko pass bob\r\n", s.Name), t)
 	assertResponse(getModeResp, fmt.Sprintf(":%s 324 alice #local k\r\n", s.Name), t)
 
 	if bob.Prefix != "@" {

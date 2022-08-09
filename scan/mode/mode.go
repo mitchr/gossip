@@ -42,6 +42,16 @@ type Mode struct {
 	Param string
 }
 
+func (m Mode) String() string {
+	var s string
+	if m.Type == Add {
+		s += "+"
+	} else if m.Type == Remove {
+		s += "-"
+	}
+	return s + string(m.ModeChar)
+}
+
 // modestring  =  1*( modeset )
 func Parse(b []byte) []Mode {
 	tokens, _ := scan.Lex(b, lexMode)
