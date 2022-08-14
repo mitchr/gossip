@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchr/gossip/capability"
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
@@ -397,7 +396,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			ch.MembersLock.Lock()
 			for _, m := range ch.Members {
 				joinMsg := msg.New(nil, c.Nick, c.User, c.Host, "JOIN", nil, false)
-				if m.Caps[capability.ExtendedJoin.Name] {
+				if m.Caps[cap.ExtendedJoin.Name] {
 					joinMsg.Params = joinMsgParams
 				} else {
 					joinMsg.Params = joinMsgParams[:1]
@@ -1290,7 +1289,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				if msg.Command == "TAGMSG" && !m.Caps[cap.MessageTags.Name] {
 					return
 				}
-				if m.Caps[capability.MessageTags.Name] {
+				if m.Caps[cap.MessageTags.Name] {
 					msg.SetMsgid()
 				}
 				m.WriteMessageFrom(&msg, c)
@@ -1312,7 +1311,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 			if msg.Command == "TAGMSG" && !target.Caps[cap.MessageTags.Name] {
 				continue
 			}
-			if target.Caps[capability.MessageTags.Name] {
+			if target.Caps[cap.MessageTags.Name] {
 				msg.SetMsgid()
 			}
 			target.WriteMessageFrom(&msg, c)
