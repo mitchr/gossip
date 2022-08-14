@@ -35,17 +35,18 @@ var channelLetter = map[rune]struct {
 	// addConsumes is true if '+modeChar' takes a parameter, same for
 	// remConsumes just '-modeChar'
 	addConsumes, remConsumes bool
+	canList                  bool
 }{
-	'b': {ban, true, true},
-	'e': {banExcept, true, true},
-	'l': {limit, true, false},
-	'i': {invite, false, false},
-	'I': {inviteExcept, true, true},
-	'k': {key, true, false},
-	'm': {moderated, false, false},
-	's': {secret, false, false},
-	't': {protected, false, false},
-	'n': {noExternal, false, false},
+	'b': {ban, true, true, true},
+	'e': {banExcept, true, true, true},
+	'l': {limit, true, false, false},
+	'i': {invite, false, false, false},
+	'I': {inviteExcept, true, true, true},
+	'k': {key, true, false, false},
+	'm': {moderated, false, false, false},
+	's': {secret, false, false, false},
+	't': {protected, false, false, false},
+	'n': {noExternal, false, false, false},
 }
 
 func ban(ch *Channel, mask string, add bool) {

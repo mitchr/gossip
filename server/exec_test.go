@@ -912,6 +912,13 @@ func TestMODEChannel(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s 461 alice :+l :Not enough parameters\r\n", s.Name), t)
 	})
 
+	// should silently ignore extra parameters
+	t.Run("TestChannelModeTooManyParam", func(t *testing.T) {
+		c1.Write([]byte("MODE #local +l 1 2\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s MODE #local +l 1\r\n", s.Name), t)
+	})
+
 	t.Run("TestUnknownMode", func(t *testing.T) {
 		c1.Write([]byte("MODE #local +w\r\n"))
 		resp, _ := r1.ReadBytes('\n')

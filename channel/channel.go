@@ -291,27 +291,40 @@ func keyIsValid(key string) bool {
 	return key != "" && !strings.ContainsAny(key, "\000\r\n\t\v ") && len(key) < 23
 }
 
-// PopulateModeParams associates the given params with the Params field
-// of the Modes. Params are looked at in index order, so something like
-// "MODE #test +ok alice password" will associate 'o' with 'alice' and
-// 'k' with 'password'. This skips mode characters that do not take an
-// argument, and unknown mode characters.
-func PopulateModeParams(modes []mode.Mode, params []string) {
+// PrepareModes performs two tasks:
+//
+//  1. associates the given params with the Params field of the modes.
+//     Params are processed in index order, so something like "MODE
+//     #test +ok alice password" will associate 'o' with 'alice' and 'k'
+//     with 'password'. This skips unknown mode characters.
+//  2. sets the Type of a mode to mode.List if there are no more params
+//     left to be associated and that particular mode is listable
+func PrepareModes(modes []mode.Mode, params []string) {
 	pos := 0
-	for i, m := range modes {
-		// stop looking for params if there are none left; this is good
-		// because if we are expecting more params, that error will occur in ApplyMode
-		if pos > len(params)-1 {
+	for _, p := range params {
+		// no more modes left, we can ignore all other params
+		if pos > len(modes)-1 {
 			return
 		}
-		if p, ok := channelLetter[m.ModeChar]; ok { // is channel mode
-			if (m.Type == mode.Add && p.addConsumes) || (m.Type == mode.Remove && p.remConsumes) {
-				modes[i].Param = params[pos]
+
+		m := modes[pos]
+		if f, ok := channelLetter[m.ModeChar]; ok {
+			if (m.Type == mode.Add && f.addConsumes) || (m.Type == mode.Remove && f.remConsumes) {
+				modes[pos].Param = p
 				pos++
 			}
 		} else if _, ok := memberLetter[m.ModeChar]; ok {
-			modes[i].Param = params[pos]
+			modes[pos].Param = p
 			pos++
+		}
+	}
+
+	// for remaining modes, check if they are listable
+	for i, m := range modes[pos:] {
+		if f, ok := channelLetter[m.ModeChar]; ok {
+			if m.Type == mode.Add && f.canList {
+				modes[i].Type = mode.List
+			}
 		}
 	}
 }

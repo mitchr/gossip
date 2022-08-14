@@ -873,21 +873,19 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 			s.writeReply(c, RPL_CREATIONTIME, ch, ch.CreatedAt)
 		} else { // modeStr given
 			modes := mode.Parse([]byte(m.Params[1]))
-			channel.PopulateModeParams(modes, m.Params[2:])
+			channel.PrepareModes(modes, m.Params[2:])
 			appliedModes := []mode.Mode{}
 			for _, m := range modes {
-				if m.Param == "" {
+				if m.Type == mode.List {
 					switch m.ModeChar {
 					case 'b':
 						s.sendChannelModeList(c, ch, ch.Ban, RPL_BANLIST, RPL_ENDOFBANLIST)
-						continue
 					case 'e':
 						s.sendChannelModeList(c, ch, ch.BanExcept, RPL_EXCEPTLIST, RPL_ENDOFEXCEPTLIST)
-						continue
 					case 'I':
 						s.sendChannelModeList(c, ch, ch.InviteExcept, RPL_INVITELIST, RPL_ENDOFINVITELIST)
-						continue
 					}
+					continue
 				}
 				err := ch.ApplyMode(m)
 				if errors.Is(err, channel.ErrNeedMoreParams) {

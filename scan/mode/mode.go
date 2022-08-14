@@ -104,8 +104,6 @@ func toType(s scan.TokenType) Type {
 		return Add
 	} else if s == minus {
 		return Remove
-	} else if s == modechar {
-		return List
 	}
-	return -1
+	return List
 }
