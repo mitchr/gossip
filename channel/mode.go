@@ -16,7 +16,7 @@ const (
 	Voice     prefix = '+'
 )
 
-var memberLetter = map[rune]prefix{
+var memberLetter = map[byte]prefix{
 	'q': Founder,
 	'a': Protected,
 	'o': Operator,
@@ -30,7 +30,7 @@ var memberLetter = map[rune]prefix{
 // mode.
 type modeFunc func(*Channel, string, bool)
 
-var channelLetter = map[rune]struct {
+var channelLetter = map[byte]struct {
 	apply modeFunc
 	// addConsumes is true if '+modeChar' takes a parameter, same for
 	// remConsumes just '-modeChar'

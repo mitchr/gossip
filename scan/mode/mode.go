@@ -36,7 +36,7 @@ const (
 )
 
 type Mode struct {
-	ModeChar rune
+	ModeChar byte
 	Type     Type
 	// accepts a param if nonempty (used for channel modes)
 	Param string
@@ -79,11 +79,11 @@ func Parse(b []byte) []Mode {
 // some clients ask for mode listings with 'mode #chan b', so the abnf
 // here is different than the spec
 // modeset = plus / minus / modechar *(modechar)
-func modeset(p *scan.Parser) ([]rune, Type) {
-	set := []rune{}
+func modeset(p *scan.Parser) ([]byte, Type) {
+	set := []byte{}
 	verb := p.Next()
 	if verb.TokenType == modechar {
-		set = append(set, verb.Value)
+		set = append(set, byte(verb.Value))
 	}
 
 	for {
@@ -92,7 +92,7 @@ func modeset(p *scan.Parser) ([]rune, Type) {
 			break
 		} else {
 			r := p.Next()
-			set = append(set, r.Value)
+			set = append(set, byte(r.Value))
 		}
 	}
 	return set, toType(verb.TokenType)

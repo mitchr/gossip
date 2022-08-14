@@ -912,8 +912,8 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func buildModestr(modes []mode.Mode) string {
-	applied := []rune{}
-	removed := []rune{}
+	applied := []byte{}
+	removed := []byte{}
 	params := []string{}
 	for _, m := range modes {
 		if m.Param != "" {

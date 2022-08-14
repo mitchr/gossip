@@ -50,7 +50,7 @@ func (m Member) HighestPrefix(multiPrefix bool) string {
 // Reconstruct this member's prefix string as a string of each prefix
 // matched to its corresponding mode letter
 func (m Member) ModeLetters() string {
-	prefixToLetter := make(map[prefix]rune)
+	prefixToLetter := make(map[prefix]byte)
 	for k, v := range memberLetter {
 		prefixToLetter[v] = k
 	}

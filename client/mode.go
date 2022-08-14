@@ -20,7 +20,7 @@ const (
 	Bot
 )
 
-var letter = map[rune]Mode{
+var letter = map[byte]Mode{
 	'i': Invisible,
 	'o': Op,
 	'O': LocalOp,
