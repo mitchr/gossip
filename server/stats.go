@@ -4,33 +4,33 @@ import "sync"
 
 type statistic struct {
 	u uint
-	sync.Mutex
+	m sync.Mutex
 }
 
 func (s *statistic) Inc() {
-	s.Lock()
-	defer s.Unlock()
+	s.m.Lock()
+	defer s.m.Unlock()
 
 	s.u++
 }
 
 func (s *statistic) Dec() {
-	s.Lock()
-	defer s.Unlock()
+	s.m.Lock()
+	defer s.m.Unlock()
 
 	s.u--
 }
 
 func (s *statistic) Get() uint {
-	s.Lock()
-	defer s.Unlock()
+	s.m.Lock()
+	defer s.m.Unlock()
 
 	return s.u
 }
 
 func (s *statistic) KeepMax(t uint) uint {
-	s.Lock()
-	defer s.Unlock()
+	s.m.Lock()
+	defer s.m.Unlock()
 
 	if t > s.u {
 		s.u = t
