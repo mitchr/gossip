@@ -112,7 +112,7 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) {
 			if k := s.clients[v]; k != nil {
 				on = append(on, k.String())
 			} else {
-				off = append(off, k.String())
+				off = append(off, v)
 			}
 		}
 
