@@ -9,13 +9,19 @@ import (
 )
 
 // monitor keeps a record of who is monitoring a specific target
+// m[client] is a map of observers of client
+// m[client][observer] == true means observer obvserves client
 type monitor struct {
-	sync.RWMutex
-	m map[string]map[string]bool
+	rwLock sync.RWMutex
+	m      map[string]map[string]bool
 }
 
 func (m *monitor) getObserversOf(c string) map[string]bool {
 	c = strings.ToLower(c)
+
+	m.rwLock.RLock()
+	defer m.rwLock.RUnlock()
+
 	return m.m[c]
 }
 
@@ -23,6 +29,9 @@ func (m *monitor) getObserversOf(c string) map[string]bool {
 func (m *monitor) observe(client, o string) {
 	client = strings.ToLower(client)
 	o = strings.ToLower(o)
+
+	m.rwLock.Lock()
+	defer m.rwLock.Unlock()
 
 	if m.m[client] == nil {
 		m.m[client] = make(map[string]bool)
@@ -34,6 +43,9 @@ func (m *monitor) observe(client, o string) {
 func (m *monitor) unobserve(client, o string) {
 	client = strings.ToLower(client)
 	o = strings.ToLower(o)
+
+	m.rwLock.Lock()
+	defer m.rwLock.Unlock()
 
 	delete(m.m[client], o)
 }
@@ -126,6 +138,9 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) {
 }
 
 func (s *Server) notifyOn(c *client.Client) {
+	s.monitor.rwLock.RLock()
+	defer s.monitor.rwLock.RUnlock()
+
 	for v := range s.monitor.getObserversOf(c.Nick) {
 		if observer, ok := s.getClient(v); ok {
 			s.writeReply(observer, RPL_MONONLINE, c)
@@ -135,6 +150,9 @@ func (s *Server) notifyOn(c *client.Client) {
 }
 
 func (s *Server) notifyOff(c *client.Client) {
+	s.monitor.rwLock.RLock()
+	defer s.monitor.rwLock.RUnlock()
+
 	for v := range s.monitor.getObserversOf(c.Nick) {
 		if observer, ok := s.getClient(v); ok {
 			s.writeReply(observer, RPL_MONOFFLINE, c.Nick)
