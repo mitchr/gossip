@@ -30,12 +30,10 @@ func TestMONITOR(t *testing.T) {
 	defer on.Close()
 
 	t.Run("TestMONITOR+", func(t *testing.T) {
-		c.Write([]byte("MONITOR + online,offline\r\n"))
+		c.Write([]byte("MONITOR + online\r\n"))
 		monline, _ := r.ReadBytes('\n')
-		moffline, _ := r.ReadBytes('\n')
 
 		assertResponse(monline, fmt.Sprintf(RPL_MONONLINE, s.Name, "alice", "online!online@localhost"), t)
-		assertResponse(moffline, fmt.Sprintf(RPL_MONOFFLINE, s.Name, "alice", "offline"), t)
 	})
 
 	t.Run("TestMONITORL", func(t *testing.T) {
@@ -43,8 +41,14 @@ func TestMONITOR(t *testing.T) {
 		monlist, _ := r.ReadBytes('\n')
 		monend, _ := r.ReadBytes('\n')
 
-		assertResponse(monlist, fmt.Sprintf(RPL_MONLIST, s.Name, "alice", "online,offline"), t)
+		assertResponse(monlist, fmt.Sprintf(RPL_MONLIST, s.Name, "alice", "online"), t)
 		assertResponse(monend, fmt.Sprintf(RPL_ENDOFMONLIST, s.Name, "alice"), t)
+	})
+
+	t.Run("TestMONITOR+offline", func(t *testing.T) {
+		c.Write([]byte("MONITOR + offline\r\n"))
+		moffline, _ := r.ReadBytes('\n')
+		assertResponse(moffline, fmt.Sprintf(RPL_MONOFFLINE, s.Name, "alice", "offline"), t)
 	})
 
 	t.Run("TestMONITORS", func(t *testing.T) {
