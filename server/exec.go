@@ -96,15 +96,18 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
+	// trying to change nick to what it already is; a no-op
 	if nick == c.Nick {
-		// trying to change nick to what it already is; a no-op
 		return
 	}
 
+	changingCase := false
+
 	// if nickname is already in use, send back error
 	if _, ok := s.getClient(nick); ok {
+		// client is changing the case of their nick
 		if strings.ToLower(nick) == strings.ToLower(c.Nick) {
-			// client could just be changing the case of their nick, which is ok
+			changingCase = true
 		} else {
 			s.writeReply(c, ERR_NICKNAMEINUSE, nick)
 			return
@@ -130,10 +133,18 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 			}(v, c.Nick)
 		}
 
+		if !changingCase {
+			s.notifyOff(c)
+		}
+
 		// update client map entry
 		s.deleteClient(c.Nick)
 		c.Nick = nick
 		s.setClient(c)
+
+		if !changingCase {
+			s.notifyOn(c)
+		}
 	} else { // nick is being set for first time
 		c.Nick = nick
 		s.endRegistration(c)
