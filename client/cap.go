@@ -43,13 +43,4 @@ func messageTags(c *Client, remove bool) {
 	}
 }
 
-var capsDependentOnMessageTags = [3]cap.Cap{cap.AccountTag, cap.MessageTags, cap.ServerTime}
-
-func (c *Client) HasMessageTags() bool {
-	for _, v := range capsDependentOnMessageTags {
-		if c.Caps[v.Name] {
-			return true
-		}
-	}
-	return false
-}
+func (c *Client) HasMessageTags() bool { return c.Caps[cap.MessageTags.Name] }
