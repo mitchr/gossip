@@ -1356,7 +1356,7 @@ func AWAY(s *Server, c *client.Client, m *msg.Message) {
 	defer s.awayNotify(c, s.channelsOf(c)...)
 
 	// remove away
-	if len(m.Params) == 0 {
+	if len(m.Params) == 0 || m.Params[0] == "" {
 		c.AwayMsg = ""
 		c.UnsetMode(client.Away)
 		s.writeReply(c, RPL_UNAWAY)

@@ -1684,6 +1684,10 @@ func TestAWAY(t *testing.T) {
 	c1.Write([]byte("AWAY\r\n"))
 	unAway, _ := r1.ReadBytes('\n')
 	assertResponse(unAway, fmt.Sprintf(":%s 305 alice :You are no longer marked as being away\r\n", s.Name), t)
+
+	c1.Write([]byte("AWAY :\r\n"))
+	unAway, _ = r1.ReadBytes('\n')
+	assertResponse(unAway, fmt.Sprintf(":%s 305 alice :You are no longer marked as being away\r\n", s.Name), t)
 }
 
 func TestUSERHOST(t *testing.T) {
