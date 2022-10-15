@@ -222,6 +222,15 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 		reason = m.Params[0]
 	}
 
+	if !c.Is(client.Registered) {
+		s.unknowns.Dec()
+		s.ERROR(c, reason)
+		return
+	}
+
+	s.whowasHistory.push(c.Nick, c.User, c.Host, c.Realname)
+	s.notifyOff(c)
+
 	// send QUIT to all channels that client is connected to, and
 	// remove that client from the channel
 	for _, v := range s.channelsOf(c) {
@@ -239,7 +248,6 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	s.ERROR(c, reason)
-	s.deleteClient(c.Nick)
 }
 
 func (s *Server) endRegistration(c *client.Client) {
@@ -267,7 +275,7 @@ func (s *Server) endRegistration(c *client.Client) {
 	if s.Password != nil {
 		if bcrypt.CompareHashAndPassword(s.Password, c.ServerPassAttempt) != nil {
 			s.writeReply(c, ERR_PASSWDMISMATCH)
-			s.ERROR(c, "Closing Link: "+s.Name+" (Bad Password)")
+			QUIT(s, c, &msg.Message{Params: []string{"Closing Link: " + s.Name + " (Bad Password)"}})
 			return
 		}
 	}

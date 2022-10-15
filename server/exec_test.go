@@ -1267,11 +1267,12 @@ func TestWHOWAS(t *testing.T) {
 		c1, r1 := connectAndRegister("alice")
 		c1.Write([]byte("QUIT\r\n"))
 		r1.ReadBytes('\n')
-		defer c1.Close()
+		c1.Close()
+
 		c2, r2 := connectAndRegister("alice")
 		c2.Write([]byte("QUIT\r\n"))
 		r2.ReadBytes('\n')
-		defer c2.Close()
+		c2.Close()
 
 		c3, r3 := connectAndRegister("bob")
 		defer c3.Close()

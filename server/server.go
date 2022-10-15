@@ -15,7 +15,6 @@ import (
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
-	"github.com/mitchr/gossip/scan"
 	"github.com/mitchr/gossip/scan/msg"
 	_ "modernc.org/sqlite"
 )
@@ -174,15 +173,6 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 
 	defer s.wg.Done()
 	defer cancel()
-	defer func() {
-		if !c.Is(client.Registered) {
-			s.unknowns.Dec()
-			c.Close()
-			return
-		}
-		s.whowasHistory.push(c.Nick, c.User, c.Host, c.Realname)
-		s.notifyOff(c)
-	}()
 
 	s.unknowns.Inc()
 
@@ -211,31 +201,21 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			s.executeMessage(msg, c)
 		case err := <-errs:
 			switch err {
-			case ErrRegistrationTimeout:
-				s.ERROR(c, "Closing Link: Client failed to register in allotted time (10 seconds)")
-			case ErrPingTimeout:
-				QUIT(s, c, &msg.Message{Params: []string{"Closing Link: PING timeout (300 seconds)"}})
-			case scan.ErrUtf8Only:
-				s.ERROR(c, scan.ErrUtf8Only.Error())
-			case client.ErrFlood:
-				// TODO: instead of kicking the client right away, maybe a
-				// timeout would be more appropriate (atleast for the first 2
-				// or 3 offenses)
-				QUIT(s, c, &msg.Message{Params: []string{"Flooding"}})
 			case msg.ErrMsgSizeOverflow:
-				// client went past the 512 message length requirement
-				// TODO: discourage client from multiple buffer overflows in a
-				// row to try to prevent against denial of service attacks
 				s.writeReply(c, ERR_INPUTTOOLONG)
 				c.Flush()
 				continue
+			case msg.ErrParse:
+				// silently ignore parse errors
+				continue
 			default:
-				if errors.Unwrap(err) == msg.ErrParse {
-					// silently ignore parse errors
-					continue
+				if errors.Is(err, net.ErrClosed) {
+					if _, ok := s.getClient(c.Nick); !ok {
+						// network closed and client was already removed (or never
+						// was added to begin with); no work to be done here
+						return
+					}
 				}
-				// either client closed its own connection, or something bad happened
-				// we need to send a QUIT command for them
 				QUIT(s, c, &msg.Message{Params: []string{err.Error()}})
 			}
 			return
@@ -244,8 +224,8 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 }
 
 var (
-	ErrPingTimeout         = errors.New(("ping timeout"))
-	ErrRegistrationTimeout = errors.New("failed to register in allotted time")
+	ErrPingTimeout         = errors.New("Closing Link: PING timeout (300 seconds)")
+	ErrRegistrationTimeout = errors.New("Closing Link: Client failed to register in allotted time (10 seconds)")
 )
 
 func waitForPong(c *client.Client, errs chan<- error) {

@@ -286,7 +286,7 @@ func (c *Client) Close() error { return c.conn.Close() }
 
 const maxGrants = 20
 
-var ErrFlood = errors.New("flooding the server")
+var ErrFlood = errors.New("Flooding")
 
 // requestGrant allows the client to process one message. If the client
 // has no grants, this returns an error.

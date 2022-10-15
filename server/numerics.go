@@ -120,6 +120,8 @@ func (s *Server) writeReply(c *client.Client, format string, f ...interface{}) {
 }
 
 func (s *Server) ERROR(c *client.Client, m string) {
+	s.deleteClient(c.Nick)
+
 	c.WriteMessage(msg.New(nil, "", "", "", "ERROR", []string{m}, true))
 	c.Flush()
 	c.Close()
