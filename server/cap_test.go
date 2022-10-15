@@ -311,12 +311,8 @@ func TestMultiPrefix(t *testing.T) {
 	assertResponse(whoreply, fmt.Sprintf(RPL_WHOREPLY, s.Name, "a", "#local", "b", "localhost", s.Name, "b", "H~&@%+", "b"), t)
 
 	c1.Write([]byte("WHOIS b\r\n"))
-	r1.ReadBytes('\n')
-	r1.ReadBytes('\n')
-	r1.ReadBytes('\n')
-	whoisreply, _ := r1.ReadBytes('\n')
+	whoisreply, _ := readLines(r1, 4)
 	assertResponse(whoisreply, fmt.Sprintf(RPL_WHOISCHANNELS, s.Name, "a", "b ", ":~&@%+#local"), t)
-
 }
 
 // TODO: find out if it is acceptable to AUTHENTICATE after registering
@@ -340,11 +336,8 @@ func TestAccountNotify(t *testing.T) {
 	clientFirst := []byte("\000tim\000tanstaaftanstaaf")
 	firstEncoded := base64.StdEncoding.EncodeToString(clientFirst)
 	b.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\nCAP END\r\nJOIN #test\r\n"))
-	for i := 0; i < 3; i++ {
-		r.ReadString('\n')
-	}
 
-	resp, _ := r.ReadBytes('\n')
+	resp, _ := readLines(r, 4)
 	assertResponse(resp, ":b!b@pipe ACCOUNT tim\r\n", t)
 }
 
@@ -368,16 +361,12 @@ func TestAccountTag(t *testing.T) {
 	clientFirst := []byte("\000tim\000tanstaaftanstaaf")
 	firstEncoded := base64.StdEncoding.EncodeToString(clientFirst)
 	a.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\n" + "CAP END\r\n"))
-	for i := 0; i < 15; i++ {
-		r.ReadBytes('\n')
-	}
+	readLines(r, 15)
 
 	b, r2, p2 := connect(s)
 	defer p2()
 	b.Write([]byte("CAP REQ account-tag\r\nNICK b\r\nUSER u s e r\r\nCAP END\r\n"))
-	for i := 0; i < 14; i++ {
-		r2.ReadBytes('\n')
-	}
+	readLines(r2, 14)
 
 	a.Write([]byte("PRIVMSG b :hey\r\n"))
 	resp, _ := r2.ReadBytes('\n')
@@ -419,10 +408,7 @@ func TestAwayNotify(t *testing.T) {
 		c3, r3 := connectAndRegister("d")
 		defer c3.Close()
 		c3.Write([]byte("AWAY :My away msg\r\nJOIN #local\r\n"))
-		r3.ReadBytes('\n')
-		r3.ReadBytes('\n')
-		r3.ReadBytes('\n')
-		r3.ReadBytes('\n')
+		readLines(r3, 4)
 
 		r1.ReadBytes('\n')
 		notify, _ := r1.ReadBytes('\n')
@@ -449,10 +435,7 @@ func TestExtendedJoin(t *testing.T) {
 	defer b.Close()
 
 	b.Write([]byte("CAP REQ extended-join\r\nCAP END\r\nJOIN #test\r\n"))
-	r2.ReadBytes('\n')
-	r2.ReadBytes('\n')
-	r2.ReadBytes('\n')
-	r2.ReadBytes('\n')
+	readLines(r2, 4)
 
 	a.Write([]byte("JOIN #test\r\n"))
 	r1.ReadBytes('\n')
@@ -502,11 +485,8 @@ func TestSTS(t *testing.T) {
 
 	c.Write([]byte("NICK test\r\nUSER test 0 0 :realname\r\n"))
 	c.Write([]byte("CAP LS 302\r\n"))
-	for i := 0; i < 13; i++ {
-		r.ReadBytes('\n')
-	}
 
-	resp, _ := r.ReadBytes('\n')
+	resp, _ := readLines(r, 14)
 	// need to use contains here because the caps can be in any order
 	if !strings.Contains(string(resp), "sts="+s.getSTSValue()) {
 		t.Fail()

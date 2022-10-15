@@ -51,10 +51,7 @@ func TestTLS(t *testing.T) {
 
 	t.Run("TestWHOISCERTFP", func(t *testing.T) {
 		c.Write([]byte("WHOIS alice\r\n"))
-		for i := 0; i < 14; i++ {
-			r.ReadBytes('\n')
-		}
-		resp, _ := r.ReadBytes('\n')
+		resp, _ := readLines(r, 15)
 
 		sha := sha256.New()
 		sha.Write(clientCert.Certificate[0])
@@ -313,9 +310,7 @@ func connectAndRegister(nick string) (net.Conn, *bufio.Reader) {
 	c.Write([]byte("USER " + nick + " 0 0 :" + nick + "\r\n"))
 
 	r := bufio.NewReader(c)
-	for i := 0; i < 13; i++ {
-		r.ReadBytes('\n')
-	}
+	readLines(r, 13)
 
 	return c, r
 }
@@ -323,6 +318,14 @@ func connectAndRegister(nick string) (net.Conn, *bufio.Reader) {
 func readUntilPONG(r *bufio.Reader) {
 	for resp, _ := r.ReadString('\n'); !strings.Contains(resp, "PONG"); resp, _ = r.ReadString('\n') {
 	}
+}
+
+// Read i lines from the buffer, returning the last one read
+func readLines(r *bufio.Reader, i int) ([]byte, error) {
+	for n := 0; n < i-1; n++ {
+		r.ReadBytes('\n')
+	}
+	return r.ReadBytes('\n')
 }
 
 // connect can be used for mocking simple connections that don't need
