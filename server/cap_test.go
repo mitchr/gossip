@@ -331,13 +331,12 @@ func TestAccountNotify(t *testing.T) {
 
 	b, r, p := connect(s)
 	defer p()
-	b.Write([]byte("CAP REQ :sasl account-notify\r\nNICK b\r\nUSER b 0 0 :B\r\nAUTHENTICATE PLAIN\r\n"))
-	r.ReadBytes('\n')
+
 	clientFirst := []byte("\000tim\000tanstaaftanstaaf")
 	firstEncoded := base64.StdEncoding.EncodeToString(clientFirst)
-	b.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\nCAP END\r\nJOIN #test\r\n"))
+	b.Write([]byte("CAP REQ :sasl account-notify\r\nNICK b\r\nUSER b 0 0 :B\r\nAUTHENTICATE PLAIN\r\nAUTHENTICATE " + firstEncoded + "\r\nCAP END\r\nJOIN #test\r\n"))
 
-	resp, _ := readLines(r, 4)
+	resp, _ := readLines(r, 5)
 	assertResponse(resp, ":b!b@pipe ACCOUNT tim\r\n", t)
 }
 

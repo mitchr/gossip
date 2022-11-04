@@ -176,11 +176,10 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 
 	s.unknowns.Inc()
 
-	msgs := make(chan *msg.Message, 1)
 	errs := make(chan error)
 
 	go startRegistrationTimer(c, errs)
-	go s.getMessage(c, clientCtx, msgs, errs)
+	go s.getMessage(c, clientCtx, errs)
 
 	pingTick := time.NewTicker(time.Minute * 5)  // every 5 minutes, send PING
 	grantTick := time.NewTicker(time.Second * 2) // every 2 seconds, give this client a grant
@@ -197,8 +196,6 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			go waitForPong(c, errs)
 		case <-grantTick.C:
 			c.AddGrant()
-		case msg := <-msgs:
-			s.executeMessage(msg, c)
 		case err := <-errs:
 			switch err {
 			case msg.ErrMsgSizeOverflow:
@@ -246,7 +243,7 @@ func startRegistrationTimer(c *client.Client, errs chan<- error) {
 }
 
 // fetch a message from the client and parse it
-func (s *Server) getMessage(c *client.Client, ctx context.Context, msgs chan<- *msg.Message, errs chan<- error) {
+func (s *Server) getMessage(c *client.Client, ctx context.Context, errs chan<- error) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -278,7 +275,7 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, msgs chan<- *
 					errs <- msg.ErrMsgSizeOverflow
 					continue
 				}
-				msgs <- m
+				s.executeMessage(m, c)
 			}
 		}
 	}
