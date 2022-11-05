@@ -1,7 +1,7 @@
 package msg
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -59,52 +59,87 @@ func New(tags map[string]string, nick, user, host, command string, params []stri
 	return &Message{cleanedTags, nick, user, host, command, params, trailing}
 }
 
+func (m Message) estimateMessageSize() int {
+	n := len(m.Nick) + len(m.User) + len(m.Host) + len(m.Command)
+
+	for _, v := range m.tags {
+		n += len(v.Value) + len(v.Vendor)
+	}
+	for _, v := range m.Params {
+		n += len(v)
+	}
+	if m.trailingSet {
+		n += 1
+	}
+	return n
+}
+
 func (m Message) String() string {
-	var tags string
+	var s strings.Builder
+	s.Grow(m.estimateMessageSize())
+
 	var tagCount int
 	for k, v := range m.tags {
 		if tagCount == 0 {
-			tags += "@"
+			s.WriteByte('@')
 		}
 
 		if v.ClientPrefix {
-			tags += "+"
+			s.WriteByte('+')
 		}
 		if v.Vendor != "" {
-			tags += v.Vendor + "/"
+			s.WriteString(v.Vendor)
+			s.WriteByte('/')
 		}
-		tags += k
+		s.WriteString(k)
 		if v.Value != "" {
-			tags += "=" + v.Value
+			s.WriteByte('=')
+			s.WriteString(v.Value)
 		}
 
 		if tagCount == len(m.tags)-1 {
-			tags += " "
+			s.WriteByte(' ')
 		} else {
-			tags += ";"
+			s.WriteByte(';')
 		}
 
 		tagCount++
 	}
 
-	var prefix string
 	if m.User != "" {
-		prefix = fmt.Sprintf(":%s!%s@%s ", m.Nick, m.User, m.Host)
+		s.WriteByte(':')
+		s.WriteString(m.Nick)
+		s.WriteByte('!')
+		s.WriteString(m.User)
+		s.WriteByte('@')
+		s.WriteString(m.Host)
+		s.WriteByte(' ')
 	} else if m.Host != "" {
-		prefix = fmt.Sprintf(":%s@%s ", m.Nick, m.Host)
+		s.WriteByte(':')
+		s.WriteString(m.Nick)
+		s.WriteByte('@')
+		s.WriteString(m.Host)
+		s.WriteByte(' ')
 	} else if m.Nick != "" {
-		prefix = ":" + m.Nick + " "
+		s.WriteByte(':')
+		s.WriteString(m.Nick)
+		s.WriteByte(' ')
 	}
 
-	var params string
+	s.WriteString(m.Command)
+
 	for i, v := range m.Params {
+		s.WriteByte(' ')
 		if i == len(m.Params)-1 && m.trailingSet {
-			v = ":" + v
+			s.WriteByte(':')
 		}
-		params += " " + v
+		s.WriteString(v)
 	}
 
-	return tags + prefix + m.Command + params + "\r\n"
+	s.WriteByte('\r')
+	s.WriteByte('\n')
+
+	return s.String()
 }
 
 func (m *Message) AddTag(k, v string) {

@@ -227,3 +227,20 @@ func BenchmarkParse(b *testing.B) {
 		Parse(tokens)
 	}
 }
+
+func BenchmarkMessageString(b *testing.B) {
+	m := &Message{
+		Nick:        "nick",
+		User:        "ident",
+		Host:        "host.com",
+		Command:     "PRIVMSG",
+		Params:      []string{"me", "Hello"},
+		trailingSet: true,
+		tags: map[string]TagVal{
+			"a": {Value: "bb", Vendor: "example.com"},
+		}}
+
+	for i := 0; i < b.N; i++ {
+		m.String()
+	}
+}
