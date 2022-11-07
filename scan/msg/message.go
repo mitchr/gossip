@@ -106,23 +106,19 @@ func (m Message) String() string {
 		tagCount++
 	}
 
-	if m.User != "" {
+	if m.Nick != "" {
 		s.WriteByte(':')
 		s.WriteString(m.Nick)
+	}
+	if m.User != "" {
 		s.WriteByte('!')
 		s.WriteString(m.User)
+	}
+	if m.Host != "" {
 		s.WriteByte('@')
 		s.WriteString(m.Host)
-		s.WriteByte(' ')
-	} else if m.Host != "" {
-		s.WriteByte(':')
-		s.WriteString(m.Nick)
-		s.WriteByte('@')
-		s.WriteString(m.Host)
-		s.WriteByte(' ')
-	} else if m.Nick != "" {
-		s.WriteByte(':')
-		s.WriteString(m.Nick)
+	}
+	if m.Nick != "" || m.User != "" || m.Host != "" {
 		s.WriteByte(' ')
 	}
 
