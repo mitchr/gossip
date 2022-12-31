@@ -23,12 +23,7 @@ func (p *Parser) Peek() Token {
 }
 
 func (p *Parser) Expect(t TokenType) bool {
-	next := p.Next()
-	if next == EOFToken {
-		return false
-	}
-
-	return next.TokenType == t
+	return p.Next().TokenType == t
 }
 
 // a-zA-z
