@@ -20,7 +20,7 @@ var (
 )
 
 // given a slice of tokens, produce a corresponding irc message
-//["@" tags SPACE] [":" source SPACE] command [params] crlf
+// ["@" tags SPACE] [":" source SPACE] command [params] crlf
 func Parse(t []scan.Token) (*Message, error) {
 	if len(t) == 0 {
 		return nil, fmt.Errorf("%v: empty message", ErrParse)
@@ -137,31 +137,21 @@ func key(p *scan.Parser) (vendor, key string) {
 
 // <sequence of zero or more utf8 characters except NUL, CR, LF, semicolon (`;`) and SPACE>
 func escapedVal(p *scan.Parser) string {
-	val := ""
-	for {
-		v := p.Peek()
-		if !isEscaped(v.Value) {
-			break
-		}
-		val += string(v.Value)
-		p.Next()
+	var val string
+	for isEscaped(p.Peek().Value) {
+		val += string(p.Next().Value)
 	}
 	return val
 }
 
 // nickname [ [ "!" user ] "@" host ]
-func source(p *scan.Parser) (nick, user, host string) {
+func source(p *scan.Parser) (string, string, string) {
 	var b strings.Builder
+	var nick, user, host string
 
 	// get nickname
-	for {
-		n := p.Peek()
-		if n.TokenType == space || n.TokenType == exclam || n.TokenType == at {
-			break
-		}
-
-		b.WriteRune(n.Value)
-		p.Next()
+	for n := p.Peek().TokenType; n != space && n != exclam && n != at; n = p.Peek().TokenType {
+		b.WriteRune(p.Next().Value)
 	}
 	nick = b.String()
 	b.Reset()
@@ -169,33 +159,21 @@ func source(p *scan.Parser) (nick, user, host string) {
 	// get user
 	if p.Peek().TokenType == exclam {
 		p.Next() // consume '!'
-		for {
-			u := p.Peek()
-			if u.TokenType == space || u.TokenType == at {
-				break
-			}
-
-			b.WriteRune(u.Value)
-			p.Next()
+		for u := p.Peek().TokenType; u != space && u != at; u = p.Peek().TokenType {
+			b.WriteRune(p.Next().Value)
 		}
+		user = b.String()
+		b.Reset()
 	}
-	user = b.String()
-	b.Reset()
 
 	// get host
 	if p.Peek().TokenType == at {
 		p.Next() // consume '@'
-		for {
-			h := p.Peek()
-			if h.TokenType == space {
-				break
-			}
-
-			b.WriteRune(h.Value)
-			p.Next()
+		for p.Peek().TokenType != space {
+			b.WriteRune(p.Next().Value)
 		}
+		host = b.String()
 	}
-	host = b.String()
 
 	return nick, user, host
 }
@@ -231,57 +209,43 @@ func params(p *scan.Parser) (m []string, trailingSet bool) {
 
 // nospcrlfcl *( ":" / nospcrlfcl )
 func middle(p *scan.Parser) string {
-	// should expect a first nospcrlfcl
-	if !isNospcrlfcl(p.Peek().Value) {
-		return ""
-	}
 	var m strings.Builder
 	m.WriteString(nospcrlfcl(p))
 
 	for {
-		t := p.Peek()
-		if t.TokenType == colon {
+		switch t := p.Peek(); {
+		case t.TokenType == colon:
 			m.WriteRune(t.Value)
 			p.Next()
-		} else if isNospcrlfcl(t.Value) {
+		case isNospcrlfcl(t.Value):
 			m.WriteString(nospcrlfcl(p))
-		} else {
-			break
+		default:
+			return m.String()
 		}
 	}
-	return m.String()
 }
 
 // *( ":" / " " / nospcrlfcl )
 func trailing(p *scan.Parser) string {
 	var m strings.Builder
 	for {
-		t := p.Peek()
-		if t == scan.EOFToken {
-			break
-		} else if t.TokenType == colon || t.TokenType == space {
+		switch t := p.Peek(); {
+		case t.TokenType == colon, t.TokenType == space:
 			m.WriteRune(t.Value)
 			p.Next()
-		} else if isNospcrlfcl(t.Value) {
+		case isNospcrlfcl(t.Value):
 			m.WriteString(nospcrlfcl(p))
-		} else {
-			break
+		default:
+			return m.String()
 		}
 	}
-	return m.String()
 }
 
 // <sequence of any characters except NUL, CR, LF, colon (`:`) and SPACE>
 func nospcrlfcl(p *scan.Parser) string {
 	var tok strings.Builder
-	for {
-		s := p.Peek()
-		if s != scan.EOFToken && isNospcrlfcl(s.Value) {
-			tok.WriteRune(s.Value)
-			p.Next()
-		} else {
-			break
-		}
+	for isNospcrlfcl(p.Peek().Value) {
+		tok.WriteRune(p.Next().Value)
 	}
 	return tok.String()
 }
