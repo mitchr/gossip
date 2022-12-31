@@ -62,9 +62,7 @@ func New(tags map[string]string, nick, user, host, command string, params []stri
 func (m Message) estimateMessageSize() int {
 	n := len(m.Nick) + len(m.User) + len(m.Host) + len(m.Command)
 
-	for _, v := range m.tags {
-		n += len(v.Value) + len(v.Vendor)
-	}
+	n += m.SizeOfTags()
 	for _, v := range m.Params {
 		n += len(v)
 	}
