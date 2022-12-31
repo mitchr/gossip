@@ -1,14 +1,14 @@
 package scan
 
 type Parser struct {
-	position  int
 	Tokens    []Token
-	BytesRead int
+	BytesRead uint16
+	position  uint16
 }
 
 func (p *Parser) Next() Token {
 	t := p.Peek()
-	p.BytesRead += t.width
+	p.BytesRead += uint16(t.width)
 	p.position++
 	return t
 }
@@ -16,7 +16,7 @@ func (p *Parser) Next() Token {
 // Multiple calls to Peek will continue to return the same value until
 // Next is called.
 func (p *Parser) Peek() Token {
-	if p.position > len(p.Tokens)-1 {
+	if int(p.position) > len(p.Tokens)-1 {
 		return EOFToken
 	}
 	return p.Tokens[p.position]
