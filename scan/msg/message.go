@@ -9,8 +9,9 @@ import (
 // A TagVal represents the value associated with a message tag
 type TagVal struct {
 	// true if this tag is a client only tag
-	ClientPrefix  bool
-	Vendor, Value string
+	ClientPrefix bool
+	// includes vendor as part of value
+	Value string
 }
 
 // Return raw (unescaped) value of tag
@@ -54,7 +55,7 @@ type Message struct {
 func New(tags map[string]string, nick, user, host, command string, params []string, trailing bool) *Message {
 	cleanedTags := make(map[string]TagVal, len(tags))
 	for k, v := range tags {
-		cleanedTags[k] = TagVal{false, "", v}
+		cleanedTags[k] = TagVal{Value: v}
 	}
 	return &Message{cleanedTags, nick, user, host, command, params, trailing}
 }
@@ -84,10 +85,6 @@ func (m Message) String() string {
 
 		if v.ClientPrefix {
 			s.WriteByte('+')
-		}
-		if v.Vendor != "" {
-			s.WriteString(v.Vendor)
-			s.WriteByte('/')
 		}
 		s.WriteString(k)
 		if v.Value != "" {
@@ -140,7 +137,7 @@ func (m *Message) AddTag(k, v string) {
 	if m.tags == nil {
 		m.tags = make(map[string]TagVal)
 	}
-	m.tags[k] = TagVal{false, "", v}
+	m.tags[k] = TagVal{Value: v}
 }
 
 // Generate a unique uuid for this message. Subsequent calls to SetMsgid
@@ -166,9 +163,6 @@ func (m *Message) SizeOfTags() int {
 
 		if v.ClientPrefix {
 			size++ // acocunt for '+'
-		}
-		if v.Vendor != "" {
-			size += len(v.Vendor) + 1 // account for '/'
 		}
 		if v.Value != "" {
 			size += len(v.Value) + 1 // account for '='

@@ -3,7 +3,6 @@ package msg
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/mitchr/gossip/scan"
@@ -74,16 +73,11 @@ func tags(p *scan.Parser) map[string]TagVal {
 	k, v := tag(p)
 	t[k] = v
 
-	for {
-		if p.Peek().TokenType == semicolon {
-			p.Next() // consume ';'
-			k, v := tag(p)
-			t[k] = v
-		} else {
-			break
-		}
+	for p.Peek().TokenType == semicolon {
+		p.Next() // consume ';'
+		k, v = tag(p)
+		t[k] = v
 	}
-
 	return t
 }
 
@@ -94,7 +88,7 @@ func tag(p *scan.Parser) (k string, val TagVal) {
 		p.Next() // consume '+'
 	}
 
-	val.Vendor, k = key(p)
+	k = key(p)
 
 	if p.Peek().TokenType == equals {
 		p.Next() // consume '='
@@ -105,34 +99,36 @@ func tag(p *scan.Parser) (k string, val TagVal) {
 }
 
 // [ <vendor> '/' ] <key_name>
-func key(p *scan.Parser) (vendor, key string) {
-	// we can't know that we were given a vendor until we see '/', so we
-	// consume generically to start and don't make any assumptions
-	name := ""
-	unusedDot := false
-	for {
-		k := p.Peek()
-
-		if !isKeyname(k.Value) {
-			if k.Value == '.' { // found a DNS name
-				unusedDot = true
-			} else if k.TokenType == fwdSlash { // vendor token is finished
-				unusedDot = false
-				vendor = name
-				name = ""
-				p.Next() // skip '/'
-				continue
-			} else if unusedDot { // found a dot in the keyName, which is not allowed
-				log.Println("ill-formed key", vendor, key)
-				return "", ""
-			} else {
-				key = name
-				return
-			}
-		}
-		name += string(k.Value)
-		p.Next()
+func key(p *scan.Parser) string {
+	k := vendor(p)
+	if p.Peek().TokenType == fwdSlash {
+		k += string(p.Next().Value)
+		k += keyName(p)
 	}
+	return k
+}
+
+// https://www.rfc-editor.org/rfc/rfc952
+// <hname> ::= <name>*["."<name>]
+// <name>  ::= <let>[*[<let-or-digit-or-hyphen>]<let-or-digit>]
+func vendor(p *scan.Parser) string {
+	var v string
+	for isKeyname(p.Peek().Value) {
+		v += string(p.Next().Value)
+	}
+	if p.Peek().Value == '.' {
+		v += string(p.Next().Value)
+		v += vendor(p)
+	}
+	return v
+}
+
+func keyName(p *scan.Parser) string {
+	var k string
+	for isKeyname(p.Peek().Value) {
+		k += string(p.Next().Value)
+	}
+	return k
 }
 
 // <sequence of zero or more utf8 characters except NUL, CR, LF, semicolon (`;`) and SPACE>
