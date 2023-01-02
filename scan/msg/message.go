@@ -6,16 +6,18 @@ import (
 	"github.com/google/uuid"
 )
 
-// A TagVal represents the value associated with a message tag
-type TagVal struct {
+type Tag struct {
 	// true if this tag is a client only tag
 	ClientPrefix bool
+
+	Key string
+
 	// includes vendor as part of value
 	Value string
 }
 
 // Return raw (unescaped) value of tag
-func (t TagVal) Raw() string {
+func (t Tag) Raw() string {
 	escaped := []rune{}
 	for i := 0; i < len(t.Value); i++ {
 		if t.Value[i] == '\\' && i+1 < len(t.Value) {
@@ -43,7 +45,7 @@ func (t TagVal) Raw() string {
 
 // Message represents a single irc message
 type Message struct {
-	tags             map[string]TagVal
+	tags             []Tag
 	Nick, User, Host string // source/prefix information
 	Command          string
 	Params           []string // command parameters + trailing (if it exists)
@@ -52,12 +54,12 @@ type Message struct {
 	trailingSet bool
 }
 
-func New(tags map[string]string, nick, user, host, command string, params []string, trailing bool) *Message {
-	cleanedTags := make(map[string]TagVal, len(tags))
-	for k, v := range tags {
-		cleanedTags[k] = TagVal{Value: v}
-	}
-	return &Message{cleanedTags, nick, user, host, command, params, trailing}
+func New(tags []Tag, nick, user, host, command string, params []string, trailing bool) *Message {
+	// cleanedTags := make(map[string]TagVal, len(tags))
+	// for k, v := range tags {
+	// 	cleanedTags[k] = TagVal{Value: v}
+	// }
+	return &Message{tags, nick, user, host, command, params, trailing}
 }
 
 func (m Message) estimateMessageSize() int {
@@ -78,7 +80,7 @@ func (m Message) String() string {
 	s.Grow(m.estimateMessageSize())
 
 	var tagCount int
-	for k, v := range m.tags {
+	for _, v := range m.tags {
 		if tagCount == 0 {
 			s.WriteByte('@')
 		}
@@ -86,7 +88,7 @@ func (m Message) String() string {
 		if v.ClientPrefix {
 			s.WriteByte('+')
 		}
-		s.WriteString(k)
+		s.WriteString(v.Key)
 		if v.Value != "" {
 			s.WriteByte('=')
 			s.WriteString(v.Value)
@@ -134,17 +136,16 @@ func (m Message) String() string {
 }
 
 func (m *Message) AddTag(k, v string) {
-	if m.tags == nil {
-		m.tags = make(map[string]TagVal)
-	}
-	m.tags[k] = TagVal{Value: v}
+	m.tags = append(m.tags, Tag{Key: k, Value: v})
 }
 
 // Generate a unique uuid for this message. Subsequent calls to SetMsgid
 // do not change the id.
 func (m *Message) SetMsgid() {
-	if _, ok := m.tags["msgid"]; ok {
-		return
+	for _, v := range m.tags {
+		if v.Value == "msgid" {
+			return
+		}
 	}
 	m.AddTag("msgid", uuid.NewString())
 }
@@ -158,8 +159,8 @@ func (m *Message) SizeOfTags() int {
 	size := 2
 
 	tagCount := 0
-	for k, v := range m.tags {
-		size += len(k)
+	for _, v := range m.tags {
+		size += len(v.Key)
 
 		if v.ClientPrefix {
 			size++ // acocunt for '+'
@@ -178,12 +179,14 @@ func (m *Message) SizeOfTags() int {
 	return size
 }
 
-func (m Message) TrimNonClientTags() {
-	for k, v := range m.tags {
-		if !v.ClientPrefix {
-			delete(m.tags, k)
+func (m *Message) TrimNonClientTags() {
+	trimmed := []Tag{}
+	for _, v := range m.tags {
+		if v.ClientPrefix {
+			trimmed = append(trimmed, v)
 		}
 	}
+	m.tags = trimmed
 }
 
 // Return a copy of the message with the tags removed. Used for sending

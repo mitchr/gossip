@@ -369,7 +369,7 @@ func TestAccountTag(t *testing.T) {
 
 	a.Write([]byte("PRIVMSG b :hey\r\n"))
 	resp, _ := r2.ReadBytes('\n')
-	assertResponse(resp, msg.New(map[string]string{"account": "tim"}, "a", "a", "pipe", "PRIVMSG", []string{"b", "hey"}, true).String(), t)
+	assertResponse(resp, msg.New([]msg.Tag{{Key: "account", Value: "tim"}}, "a", "a", "pipe", "PRIVMSG", []string{"b", "hey"}, true).String(), t)
 }
 
 func TestAwayNotify(t *testing.T) {

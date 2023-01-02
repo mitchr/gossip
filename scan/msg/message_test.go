@@ -74,8 +74,8 @@ func TestMessageString(t *testing.T) {
 				Command:     "PRIVMSG",
 				Params:      []string{"me", "Hello"},
 				trailingSet: true,
-				tags: map[string]TagVal{
-					"example.com/a": {Value: "bb"},
+				tags: []Tag{
+					{false, "example.com/a", "bb"},
 				}},
 		},
 	}
@@ -154,29 +154,29 @@ func TestParseMessage(t *testing.T) {
 func TestParseTags(t *testing.T) {
 	tests := []struct {
 		input string
-		tags  map[string]TagVal
+		tags  []Tag
 	}{
 		{":nick!ident@host.com PRIVMSG me :Hello\r\n", nil},
-		{"@aaa=bbb;ccc :nick!ident@host.com PRIVMSG me :Hello\r\n", map[string]TagVal{
-			"aaa": {Value: "bbb"},
-			"ccc": {Value: ""},
+		{"@aaa=bbb;ccc :nick!ident@host.com PRIVMSG me :Hello\r\n", []Tag{
+			{false, "aaa", "bbb"},
+			{false, "ccc", ""},
 		}},
-		{"@+example-client-tag=example-value TAGMSG @#channel\r\n", map[string]TagVal{
-			"example-client-tag": {Value: "example-value", ClientPrefix: true},
+		{"@+example-client-tag=example-value TAGMSG @#channel\r\n", []Tag{
+			{true, "example-client-tag", "example-value"},
 		}},
-		{"@aaa=bbb;ccc;example.com/ddd=eee :nick!ident@host.com PRIVMSG me :Hello\r\n", map[string]TagVal{
-			"aaa":             {Value: "bbb"},
-			"ccc":             {Value: ""},
-			"example.com/ddd": {Value: "eee"},
+		{"@aaa=bbb;ccc;example.com/ddd=eee :nick!ident@host.com PRIVMSG me :Hello\r\n", []Tag{
+			{false, "aaa", "bbb"},
+			{false, "ccc", ""},
+			{false, "example.com/ddd", "eee"},
 		}},
-		{"@+example-client-tag=example-value PRIVMSG #channel :Message\r\n", map[string]TagVal{
-			"example-client-tag": {ClientPrefix: true, Value: "example-value"},
+		{"@+example-client-tag=example-value PRIVMSG #channel :Message\r\n", []Tag{
+			{true, "example-client-tag", "example-value"},
 		}},
-		{"@+example.com/foo=bar :irc.example.com NOTICE #channel :A vendor-prefixed client-only tagged message\r\n", map[string]TagVal{
-			"example.com/foo": {ClientPrefix: true, Value: "bar"},
+		{"@+example.com/foo=bar :irc.example.com NOTICE #channel :A vendor-prefixed client-only tagged message\r\n", []Tag{
+			{true, "example.com/foo", "bar"},
 		}},
-		{"@+example=raw+:=,escaped\\:\\s\\\\ :irc.example.com NOTICE #channel :Message\r\n", map[string]TagVal{
-			"example": {ClientPrefix: true, Value: "raw+:=,escaped\\:\\s\\\\"},
+		{"@+example=raw+:=,escaped\\:\\s\\\\ :irc.example.com NOTICE #channel :Message\r\n", []Tag{
+			{true, "example", "raw+:=,escaped\\:\\s\\\\"},
 		}},
 	}
 
@@ -196,10 +196,10 @@ func TestParseTags(t *testing.T) {
 
 func TestTagRaw(t *testing.T) {
 	tests := []struct {
-		input   TagVal
+		input   Tag
 		escaped string
 	}{
-		{TagVal{Value: "raw+:=,escaped\\:\\s\\\\"}, "raw+:=,escaped; \\"},
+		{Tag{Value: "raw+:=,escaped\\:\\s\\\\"}, "raw+:=,escaped; \\"},
 	}
 
 	for _, v := range tests {
@@ -236,8 +236,8 @@ func BenchmarkMessageString(b *testing.B) {
 		Command:     "PRIVMSG",
 		Params:      []string{"me", "Hello"},
 		trailingSet: true,
-		tags: map[string]TagVal{
-			"example.com/a": {Value: "bb"},
+		tags: []Tag{
+			{false, "example.com/a", "bb"},
 		}}
 	b.ResetTimer()
 

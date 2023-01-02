@@ -66,25 +66,25 @@ func Parse(t []scan.Token) (*Message, error) {
 }
 
 // <tag> *[';' <tag>]
-func tags(p *scan.Parser) map[string]TagVal {
-	t := make(map[string]TagVal)
+func tags(p *scan.Parser) []Tag {
+	t := []Tag{}
 
 	// expect atleast 1 tag
-	k, v := tag(p)
-	t[k] = v
+	c, k, v := tag(p)
+	t = append(t, Tag{c, k, v})
 
 	for p.Peek().TokenType == semicolon {
 		p.Next() // consume ';'
-		k, v = tag(p)
-		t[k] = v
+		c, k, v = tag(p)
+		t = append(t, Tag{c, k, v})
 	}
 	return t
 }
 
 // [ <client_prefix> ] <key> ['=' <escaped_value>]
-func tag(p *scan.Parser) (k string, val TagVal) {
+func tag(p *scan.Parser) (clientTag bool, k string, val string) {
 	if p.Peek().TokenType == clientPrefix {
-		val.ClientPrefix = true
+		clientTag = true
 		p.Next() // consume '+'
 	}
 
@@ -92,7 +92,7 @@ func tag(p *scan.Parser) (k string, val TagVal) {
 
 	if p.Peek().TokenType == equals {
 		p.Next() // consume '='
-		val.Value = escapedVal(p)
+		val = escapedVal(p)
 	}
 
 	return
