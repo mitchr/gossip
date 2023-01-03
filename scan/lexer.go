@@ -18,7 +18,7 @@ var EOFToken Token = Token{TokenType(EOF), EOF, 0}
 type Token struct {
 	TokenType TokenType
 	Value     rune
-	width     int
+	width     uint8
 }
 
 func (t Token) String() string { return string(t.Value) }
@@ -32,7 +32,7 @@ type Lexer struct {
 
 	current rune
 	peeked  rune
-	width   int
+	width   uint8
 }
 
 var ErrUtf8Only error = errors.New("Messages must be encoded using UTF-8")
@@ -46,7 +46,7 @@ func (l *Lexer) Next() rune {
 	}
 	l.peeked = -1
 
-	l.position += l.width
+	l.position += int(l.width)
 	return l.current
 }
 
@@ -60,7 +60,8 @@ func (l *Lexer) Peek() rune {
 		return l.peeked
 	}
 
-	l.peeked, l.width = utf8.DecodeRune(l.input[l.position:])
+	p, w := utf8.DecodeRune(l.input[l.position:])
+	l.peeked, l.width = p, uint8(w)
 
 	// input is garbled, force execution to end early
 	if l.peeked == utf8.RuneError {
