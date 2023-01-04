@@ -20,8 +20,8 @@ var (
 
 // given a slice of tokens, produce a corresponding irc message
 // ["@" tags SPACE] [":" source SPACE] command [params] crlf
-func Parse(t []scan.Token) (*Message, error) {
-	if len(t) == 0 {
+func Parse(t *scan.TokQueue) (*Message, error) {
+	if t.Peek() == scan.EOFToken {
 		return nil, fmt.Errorf("%v: empty message", ErrParse)
 	}
 

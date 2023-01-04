@@ -22,10 +22,8 @@ type Token struct {
 
 func (t Token) String() string { return string(t.Value) }
 
-type State func(*Lexer) error
-
 type Lexer struct {
-	tokens   []Token
+	tokens   TokQueue
 	input    []byte
 	position int
 
@@ -70,17 +68,16 @@ func (l *Lexer) Peek() rune {
 }
 
 func (l *Lexer) Push(t TokenType) {
-	l.tokens = append(l.tokens, Token{TokenType: t, Value: l.current, width: l.width})
+	l.tokens.push(Token{TokenType: t, Value: l.current, width: l.width})
 }
 
 // Lex creates a slice of tokens using the given initial state
-func Lex(b []byte, initState State) ([]Token, error) {
+func Lex(b []byte, initState func(*Lexer) error) (*TokQueue, error) {
 	l := &Lexer{
 		input:  b,
 		peeked: -1,
 
-		// allocate enough space to hold a token for every byte in the input
-		tokens: make([]Token, 0, len(b)),
+		tokens: New(len(b)),
 	}
 
 	err := initState(l)
@@ -88,5 +85,5 @@ func Lex(b []byte, initState State) ([]Token, error) {
 		return nil, err
 	}
 
-	return l.tokens, nil
+	return &l.tokens, nil
 }

@@ -23,7 +23,7 @@ const (
 	clientPrefix
 )
 
-func Lex(b []byte) ([]scan.Token, error) { return scan.Lex(b, lexMessage) }
+func Lex(b []byte) (*scan.TokQueue, error) { return scan.Lex(b, lexMessage) }
 
 func lexMessage(l *scan.Lexer) error {
 	for {
