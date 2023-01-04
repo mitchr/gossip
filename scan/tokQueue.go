@@ -6,14 +6,7 @@ type TokQueue struct {
 	buf   []Token
 }
 
-func New(size int) TokQueue {
-	buf := make([]Token, size)
-	for i := range buf {
-		buf[i] = EOFToken
-	}
-
-	return TokQueue{front: -1, end: -1, buf: buf}
-}
+func New(size int) TokQueue { return TokQueue{front: -1, end: -1, buf: make([]Token, size)} }
 
 func (a *TokQueue) Peek() Token {
 	if a.front == -1 || int(a.front) > len(a.buf)-1 {
