@@ -1,6 +1,7 @@
 package msg
 
 import (
+	"errors"
 	"unicode/utf8"
 
 	"github.com/mitchr/gossip/scan"
@@ -28,7 +29,7 @@ func lexMessage(l *scan.Lexer) error {
 	for {
 		switch l.Next() {
 		case utf8.RuneError:
-			return scan.ErrUtf8Only
+			return errors.New("Messages must be encoded using UTF-8")
 		case scan.EOF:
 			return nil
 		case '\r':

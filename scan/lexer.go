@@ -5,7 +5,6 @@
 package scan
 
 import (
-	"errors"
 	"unicode/utf8"
 )
 
@@ -34,8 +33,6 @@ type Lexer struct {
 	peeked  rune
 	width   uint8
 }
-
-var ErrUtf8Only error = errors.New("Messages must be encoded using UTF-8")
 
 func (l *Lexer) Next() rune {
 	// check peek cache
