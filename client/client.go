@@ -32,7 +32,7 @@ type Client struct {
 	// last time that client sent a succcessful message
 	Idle time.Time
 
-	rw            *bufio.ReadWriter
+	reader        *bufio.Reader
 	writeLock     sync.Mutex
 	msgSizeChange chan int
 	msgBuf        []byte
@@ -69,7 +69,7 @@ func New(conn net.Conn) *Client {
 		JoinTime: now.Unix(),
 		Idle:     now,
 
-		rw:            bufio.NewReadWriter(bufio.NewReaderSize(conn, 512), bufio.NewWriter(conn)),
+		reader:        bufio.NewReaderSize(conn, 512),
 		msgSizeChange: make(chan int, 1),
 		msgBuf:        make([]byte, 0, 512),
 
@@ -210,7 +210,7 @@ func (c *Client) ReadMsg() ([]byte, error) {
 		case size := <-c.msgSizeChange:
 			c.msgBuf = resizeBuffer(c.msgBuf, size)
 		default:
-			b, err := c.rw.ReadByte()
+			b, err := c.reader.ReadByte()
 			if err != nil {
 				return nil, err
 			}
@@ -229,7 +229,7 @@ func (c *Client) Write(b []byte) (int, error) {
 	c.writeLock.Lock()
 	defer c.writeLock.Unlock()
 
-	return c.rw.Write(b)
+	return c.conn.Write(b)
 }
 
 func resizeBuffer(b []byte, size int) []byte {
@@ -273,13 +273,6 @@ func (c *Client) WriteMessageFrom(m *msg.Message, from *Client) {
 	}
 
 	c.WriteMessage(m)
-}
-
-func (c *Client) Flush() error {
-	c.writeLock.Lock()
-	defer c.writeLock.Unlock()
-
-	return c.rw.Flush()
 }
 
 func (c *Client) Close() error { return c.conn.Close() }

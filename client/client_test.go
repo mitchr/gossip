@@ -22,8 +22,7 @@ func TestWriteMessageFrom(t *testing.T) {
 
 		in, out := net.Pipe()
 		c := New(in)
-		c.WriteMessageFrom(msg.New(nil, "a", "", "", "PRIVMSG", []string{"b"}, false), from)
-		go c.Flush()
+		go c.WriteMessageFrom(msg.New(nil, "a", "", "", "PRIVMSG", []string{"b"}, false), from)
 
 		resp, _ := bufio.NewReader(out).ReadString('\n')
 		if resp != ":a PRIVMSG b\r\n" {

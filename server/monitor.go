@@ -144,7 +144,6 @@ func (s *Server) notifyOn(c *client.Client) {
 	for v := range s.monitor.getObserversOf(c.Nick) {
 		if observer, ok := s.getClient(v); ok {
 			s.writeReply(observer, RPL_MONONLINE, c)
-			observer.Flush()
 		}
 	}
 }
@@ -156,7 +155,6 @@ func (s *Server) notifyOff(c *client.Client) {
 	for v := range s.monitor.getObserversOf(c.Nick) {
 		if observer, ok := s.getClient(v); ok {
 			s.writeReply(observer, RPL_MONOFFLINE, c.Nick)
-			observer.Flush()
 		}
 	}
 }

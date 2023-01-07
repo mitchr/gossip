@@ -158,7 +158,6 @@ func (c *Channel) Write(b []byte) (int, error) {
 			errStrings = append(errStrings, err.Error())
 			log.Println(string(b), err)
 		}
-		v.Flush()
 		n += written
 	}
 	return n, errors.New(strings.Join(errStrings, "\n"))
@@ -170,7 +169,6 @@ func (c *Channel) WriteMessage(m *msg.Message) {
 
 	for _, v := range c.Members {
 		v.WriteMessage(m)
-		v.Flush()
 	}
 }
 
@@ -180,7 +178,6 @@ func (c *Channel) WriteMessageFrom(m *msg.Message, from *client.Client) {
 
 	for _, v := range c.Members {
 		v.WriteMessageFrom(m, from)
-		v.Flush()
 	}
 }
 
@@ -195,8 +192,8 @@ var (
 // a channel if:
 //  1. If this channel has a key, the client supplies the correct key
 //  2. admitting this client does not put the channel over the chanlimit
-//	3. their nick has been given an INVITE
-//	4. if they have not been given an INVITE, their nickmask is in the inviteException list
+//  3. their nick has been given an INVITE
+//  4. if they have not been given an INVITE, their nickmask is in the inviteException list
 //  5. their nickmask is not included in the banlist
 //  6. if they are in the banlist, they are in the except list
 func (ch *Channel) Admit(c *client.Client, key string) error {

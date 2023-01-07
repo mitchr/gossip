@@ -12,9 +12,9 @@ func TestModeApplication(t *testing.T) {
 		out  bool
 		mask Mode
 	}{
-		{mode.Mode{'i', mode.Add, ""}, true, Invisible},
-		{mode.Mode{'r', mode.Add, ""}, true, Registered},
-		{mode.Mode{'a', mode.Add, ""}, false, None}, //nonexistant modes
+		{mode.Mode{ModeChar: 'i', Type: mode.Add}, true, Invisible},
+		{mode.Mode{ModeChar: 'r', Type: mode.Add}, true, Registered},
+		{mode.Mode{ModeChar: 'a', Type: mode.Add}, false, None}, //nonexistant modes
 	}
 
 	for _, v := range tests {

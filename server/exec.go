@@ -122,7 +122,6 @@ func NICK(s *Server, c *client.Client, m *msg.Message) {
 		for _, v := range s.channelsOf(c) {
 			v.ForAllMembersExcept(c, func(m *channel.Member) {
 				m.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, true))
-				m.Flush()
 			})
 
 			// update member map entry
@@ -326,7 +325,6 @@ func SETNAME(s *Server, c *client.Client, m *msg.Message) {
 				return
 			}
 			m.WriteMessage(msg.New(nil, c.String(), "", "", "SETNAME", []string{c.Realname}, true))
-			m.Flush()
 		})
 	}
 	c.WriteMessage(msg.New(nil, c.String(), "", "", "SETNAME", []string{c.Realname}, true))
@@ -358,7 +356,6 @@ func CHGHOST(s *Server, c *client.Client, m *msg.Message) {
 					m.WriteMessage(msg.New(nil, s.Name, "", "", "MODE", []string{v.String(), "+" + modes, c.Nick}, false))
 				}
 			}
-			m.Flush()
 		})
 	}
 
@@ -421,7 +418,6 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 					joinMsg.Params = joinMsgParams[:1]
 				}
 				m.WriteMessage(joinMsg)
-				m.Flush()
 			}
 			ch.MembersLock.Unlock()
 
@@ -558,7 +554,6 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) {
 	ch.Invited = append(ch.Invited, nick)
 
 	recipient.WriteMessageFrom(msg.New(nil, sender.Nick, sender.User, sender.Host, "INVITE", []string{nick, ch.String()}, false), c)
-	recipient.Flush()
 
 	s.writeReply(c, RPL_INVITING, nick, ch)
 }
@@ -636,7 +631,6 @@ func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick st
 	// send KICK to all channel members but self
 	ch.ForAllMembersExcept(c, func(m *channel.Member) {
 		m.WriteMessageFrom(msg.New(nil, c.Nick, c.User, c.Host, "KICK", []string{ch.String(), u.Nick, comment}, true), c)
-		m.Flush()
 	})
 
 	ch.DeleteMember(u.Nick)
@@ -1312,7 +1306,6 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 					msg.SetMsgid()
 				}
 				m.WriteMessageFrom(&msg, c)
-				m.Flush()
 			})
 		} else { // client->client
 			target, ok := s.getClient(v)
@@ -1334,7 +1327,6 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 				msg.SetMsgid()
 			}
 			target.WriteMessageFrom(&msg, c)
-			target.Flush()
 		}
 	}
 
@@ -1381,7 +1373,6 @@ func (s *Server) awayNotify(c *client.Client, chans ...*channel.Channel) {
 		v.ForAllMembersExcept(c, func(m *channel.Member) {
 			if m.Caps[cap.AwayNotify.Name] {
 				m.WriteMessage(msg.New(nil, c.String(), "", "", "AWAY", []string{c.AwayMsg}, true))
-				m.Flush()
 			}
 		})
 	}
@@ -1446,7 +1437,6 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 	for _, v := range s.clients {
 		if v.Is(client.Wallops) {
 			v.WriteMessage(m)
-			v.Flush()
 		}
 	}
 	s.clientLock.RUnlock()
@@ -1457,7 +1447,6 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	// ignore unregistered user commands until registration completes
 	if !c.Is(client.Registered) && (upper != "CAP" && upper != "NICK" && upper != "USER" && upper != "PASS" && upper != "AUTHENTICATE" && upper != "QUIT" && upper != "PING") {
 		s.writeReply(c, ERR_NOTREGISTERED)
-		c.Flush()
 		return
 	}
 
@@ -1467,5 +1456,4 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	} else {
 		s.writeReply(c, ERR_UNKNOWNCOMMAND, m.Command)
 	}
-	c.Flush()
 }

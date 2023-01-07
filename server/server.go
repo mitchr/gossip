@@ -192,7 +192,6 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			return
 		case <-pingTick.C:
 			c.WriteMessage(msg.New(nil, s.Name, "", "", "PING", []string{c.Nick}, false))
-			c.Flush()
 			go waitForPong(c, errs)
 		case <-grantTick.C:
 			c.AddGrant()
@@ -200,7 +199,6 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 			switch err {
 			case msg.ErrMsgSizeOverflow:
 				s.writeReply(c, ERR_INPUTTOOLONG)
-				c.Flush()
 				continue
 			case msg.ErrParse:
 				// silently ignore parse errors
