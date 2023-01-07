@@ -4,7 +4,7 @@ import (
 	"github.com/mitchr/gossip/scan/mode"
 )
 
-type Mode uint
+type Mode uint8
 
 // Modes are represented as bit masks
 const (

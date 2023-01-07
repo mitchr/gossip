@@ -58,7 +58,7 @@ type Client struct {
 	// used to signal when client has successfully responded to server PING
 	PONG chan struct{}
 
-	grants    int
+	grants    uint8
 	grantLock sync.Mutex
 }
 
