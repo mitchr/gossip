@@ -33,7 +33,6 @@ type Client struct {
 	Idle time.Time
 
 	reader        *bufio.Reader
-	writeLock     sync.Mutex
 	msgSizeChange chan int
 	msgBuf        []byte
 
@@ -225,12 +224,7 @@ func (c *Client) ReadMsg() ([]byte, error) {
 	return nil, msg.ErrMsgSizeOverflow
 }
 
-func (c *Client) Write(b []byte) (int, error) {
-	c.writeLock.Lock()
-	defer c.writeLock.Unlock()
-
-	return c.conn.Write(b)
-}
+func (c *Client) Write(b []byte) (int, error) { return c.conn.Write(b) }
 
 func resizeBuffer(b []byte, size int) []byte {
 	// requesting a smaller capacity
