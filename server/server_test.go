@@ -306,8 +306,7 @@ func BenchmarkRegistrationSurge(b *testing.B) {
 func connectAndRegister(nick string) (net.Conn, *bufio.Reader) {
 	c, _ := net.Dial("tcp", ":6667")
 
-	c.Write([]byte("NICK " + nick + "\r\n"))
-	c.Write([]byte("USER " + nick + " 0 0 :" + nick + "\r\n"))
+	c.Write([]byte("NICK " + nick + "\r\nUSER " + nick + " 0 0 :" + nick + "\r\n"))
 
 	r := bufio.NewReader(c)
 	readLines(r, 13)
