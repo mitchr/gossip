@@ -290,7 +290,7 @@ func BenchmarkRegistrationSurge(b *testing.B) {
 	name := []byte{'a'}
 	for i := 0; i < b.N; i++ {
 		c, _ := connectAndRegister(string(name))
-		defer c.Close()
+		c.Close()
 		if name[len(name)-1] == 'z' {
 			name[len(name)-1] = 'a'
 			name = append(name, 'a')
