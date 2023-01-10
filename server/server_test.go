@@ -286,17 +286,23 @@ func BenchmarkRegistrationSurge(b *testing.B) {
 	defer s.Close()
 	go s.Serve()
 
-	b.ResetTimer()
-	name := []byte{'a'}
-	for i := 0; i < b.N; i++ {
-		c, _ := connectAndRegister(string(name))
-		c.Close()
-		if name[len(name)-1] == 'z' {
-			name[len(name)-1] = 'a'
-			name = append(name, 'a')
+	names := make([]string, 5000)
+	names[0] = "a"
+	for i := 1; i < 5000; i++ {
+		previous := names[i-1]
+		lastByteOfPrevious := previous[len(previous)-1]
+		// last name generated ended with z, should restart at 'a'
+		if lastByteOfPrevious == 'z' {
+			names[i] = previous + "a"
 		} else {
-			name[len(name)-1]++
+			names[i] = previous[:len(previous)-1] + (string(lastByteOfPrevious + 1))
 		}
+	}
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		c, _ := connectAndRegister(string(names[i]))
+		c.Close()
 	}
 }
 
