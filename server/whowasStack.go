@@ -35,10 +35,10 @@ func (l *whowasStack) push(nick, user, host, realname string) {
 // most recent entries first. If count > 1, up to a count number of
 // entries will be returned.
 func (l *whowasStack) search(nick string, count int) []*whowasInfo {
+	matches := make([]*whowasInfo, 0, count)
+
 	l.m.RLock()
 	defer l.m.RUnlock()
-
-	matches := make([]*whowasInfo, 0, count)
 
 	i := 1
 	current := l.head
