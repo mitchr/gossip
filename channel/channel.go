@@ -3,7 +3,6 @@ package channel
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -146,22 +145,22 @@ func (c *Channel) Modes() (modestr string, params []string) {
 }
 
 // broadcast message to each client in channel
-func (c *Channel) Write(b []byte) (int, error) {
-	var n int
-	var errStrings []string
+// func (c *Channel) Write(b []byte) (int, error) {
+// 	var n int
+// 	var errStrings []string
 
-	c.MembersLock.RLock()
-	defer c.MembersLock.RUnlock()
-	for _, v := range c.Members {
-		written, err := v.Write(append(b, '\r', '\n'))
-		if err != nil {
-			errStrings = append(errStrings, err.Error())
-			log.Println(string(b), err)
-		}
-		n += written
-	}
-	return n, errors.New(strings.Join(errStrings, "\n"))
-}
+// 	c.MembersLock.RLock()
+// 	defer c.MembersLock.RUnlock()
+// 	for _, v := range c.Members {
+// 		written, err := v.Write(append(b, '\r', '\n'))
+// 		if err != nil {
+// 			errStrings = append(errStrings, err.Error())
+// 			log.Println(string(b), err)
+// 		}
+// 		n += written
+// 	}
+// 	return n, errors.New(strings.Join(errStrings, "\n"))
+// }
 
 func (c *Channel) WriteMessage(m *msg.Message) {
 	c.MembersLock.RLock()

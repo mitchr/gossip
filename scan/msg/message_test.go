@@ -228,7 +228,7 @@ func BenchmarkParse(b *testing.B) {
 	}
 }
 
-func BenchmarkMessageString(b *testing.B) {
+func BenchmarkMessageBytes(b *testing.B) {
 	m := &Message{
 		Nick:        "nick",
 		User:        "ident",
@@ -242,6 +242,6 @@ func BenchmarkMessageString(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		m.String()
+		_ = m.Bytes()
 	}
 }

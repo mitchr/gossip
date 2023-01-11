@@ -1,7 +1,7 @@
 package msg
 
 import (
-	"strings"
+	"bytes"
 
 	"github.com/google/uuid"
 )
@@ -75,64 +75,68 @@ func (m Message) estimateMessageSize() int {
 	return n
 }
 
-func (m Message) String() string {
-	var s strings.Builder
-	s.Grow(m.estimateMessageSize())
+func (m Message) Bytes() []byte {
+	var b bytes.Buffer
+	b.Grow(m.estimateMessageSize())
 
 	var tagCount int
 	for _, v := range m.tags {
 		if tagCount == 0 {
-			s.WriteByte('@')
+			b.WriteByte('@')
 		}
 
 		if v.ClientPrefix {
-			s.WriteByte('+')
+			b.WriteByte('+')
 		}
-		s.WriteString(v.Key)
+		b.WriteString(v.Key)
 		if v.Value != "" {
-			s.WriteByte('=')
-			s.WriteString(v.Value)
+			b.WriteByte('=')
+			b.WriteString(v.Value)
 		}
 
 		if tagCount == len(m.tags)-1 {
-			s.WriteByte(' ')
+			b.WriteByte(' ')
 		} else {
-			s.WriteByte(';')
+			b.WriteByte(';')
 		}
 
 		tagCount++
 	}
 
 	if m.Nick != "" {
-		s.WriteByte(':')
-		s.WriteString(m.Nick)
+		b.WriteByte(':')
+		b.WriteString(m.Nick)
 	}
 	if m.User != "" {
-		s.WriteByte('!')
-		s.WriteString(m.User)
+		b.WriteByte('!')
+		b.WriteString(m.User)
 	}
 	if m.Host != "" {
-		s.WriteByte('@')
-		s.WriteString(m.Host)
+		b.WriteByte('@')
+		b.WriteString(m.Host)
 	}
 	if m.Nick != "" || m.User != "" || m.Host != "" {
-		s.WriteByte(' ')
+		b.WriteByte(' ')
 	}
 
-	s.WriteString(m.Command)
+	b.WriteString(m.Command)
 
 	for i, v := range m.Params {
-		s.WriteByte(' ')
+		b.WriteByte(' ')
 		if i == len(m.Params)-1 && m.trailingSet {
-			s.WriteByte(':')
+			b.WriteByte(':')
 		}
-		s.WriteString(v)
+		b.WriteString(v)
 	}
 
-	s.WriteByte('\r')
-	s.WriteByte('\n')
+	b.WriteByte('\r')
+	b.WriteByte('\n')
 
-	return s.String()
+	return b.Bytes()
+}
+
+func (m Message) String() string {
+	return string(m.Bytes())
 }
 
 func (m *Message) AddTag(k, v string) {

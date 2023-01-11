@@ -249,7 +249,7 @@ func (c *Client) WriteMessage(m *msg.Message) {
 		m.AddTag("time", time.Now().UTC().Format(timeFormat))
 	}
 
-	c.Write([]byte(m.String()))
+	c.Write(m.Bytes())
 }
 
 func (c *Client) WriteMessageFrom(m *msg.Message, from *Client) {
