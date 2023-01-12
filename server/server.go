@@ -46,7 +46,7 @@ type Server struct {
 	max statistic
 
 	supportedCaps []cap.Cap
-	whowasHistory *whowasStack
+	whowasHistory whowasStack
 	monitor       monitor
 
 	wg sync.WaitGroup
@@ -59,7 +59,6 @@ func New(c *Config) (*Server, error) {
 		clients:       make(map[string]*client.Client),
 		channels:      make(map[string]*channel.Channel),
 		supportedCaps: []cap.Cap{cap.AccountNotify, cap.AccountTag, cap.AwayNotify, cap.CapNotify, cap.Chghost, cap.EchoMessage, cap.ExtendedJoin, cap.MessageTags, cap.MultiPrefix, cap.SASL, cap.ServerTime, cap.Setname, cap.UserhostInNames},
-		whowasHistory: new(whowasStack),
 		monitor:       monitor{m: make(map[string]map[string]bool)},
 	}
 
