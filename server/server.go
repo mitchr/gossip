@@ -168,11 +168,11 @@ func (s *Server) Close() error {
 
 func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 	clientCtx, cancel := context.WithCancel(ctx)
-	c := client.New(u)
 
 	defer s.wg.Done()
 	defer cancel()
 
+	c := client.New(u)
 	s.unknowns.Inc()
 
 	errs := make(chan error)
@@ -227,7 +227,6 @@ func waitForPong(c *client.Client, errs chan<- error) {
 	case <-c.PONG:
 	case <-time.After(time.Second * 10):
 		errs <- ErrPingTimeout
-		return
 	}
 }
 
