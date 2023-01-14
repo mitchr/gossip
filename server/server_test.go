@@ -281,6 +281,24 @@ func TestUTF8ONLY(t *testing.T) {
 	assertResponse(errResp, "ERROR :Messages must be encoded using UTF-8\r\n", t)
 }
 
+// a slow connection should not prevent other clients from receiving a message promptly
+func TestSlowWriter(t *testing.T) {
+	s, _ := New(conf)
+	defer s.Close()
+	go s.Serve()
+
+	p := connectSlowWriter(s)
+	defer p()
+	c2, _ := connectAndRegister("a")
+	defer c2.Close()
+	c3, r3 := connectAndRegister("b")
+	defer c3.Close()
+
+	c2.Write([]byte("PRIVMSG slow,b :hello!\r\n"))
+	resp, _ := r3.ReadBytes('\n')
+	assertResponse(resp, ":a!a@localhost PRIVMSG b :hello!\r\n", t)
+}
+
 func BenchmarkRegistrationSurge(b *testing.B) {
 	s, _ := New(conf)
 	defer s.Close()
@@ -395,4 +413,34 @@ func generateConfig() *Config {
 	c.TLS.Port = ":6697"
 
 	return c
+}
+
+// slowWriter is a net.Conn that sleeps on write when block == true
+type slowWriter struct {
+	net.Conn
+	block bool
+}
+
+func (s slowWriter) Write(b []byte) (int, error) {
+	if s.block {
+		time.Sleep(time.Millisecond * 300)
+	}
+	return s.Conn.Write(b)
+}
+func (s slowWriter) RemoteAddr() net.Addr { return s }
+func (s slowWriter) Network() string      { return "0.0.0.0" }
+func (s slowWriter) String() string       { return s.Network() }
+
+func connectSlowWriter(s *Server) context.CancelFunc {
+	serverHandle, c := net.Pipe()
+	r := bufio.NewReader(c)
+	slow := &slowWriter{Conn: serverHandle}
+	ctx, cancel := context.WithCancel(context.Background())
+	s.wg.Add(1)
+	go s.handleConn(slow, ctx)
+	c.Write([]byte("NICK slow\r\nUSER slow 0 0 slow\r\n"))
+	readLines(r, 13)
+	slow.block = true
+
+	return cancel
 }

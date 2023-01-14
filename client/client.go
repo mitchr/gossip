@@ -224,7 +224,13 @@ func (c *Client) ReadMsg() ([]byte, error) {
 	return nil, msg.ErrMsgSizeOverflow
 }
 
-func (c *Client) Write(b []byte) (int, error) { return c.conn.Write(b) }
+func (c *Client) Write(b []byte) (int, error) {
+	if err := c.conn.SetWriteDeadline(time.Now().Add(time.Millisecond * 250)); err != nil {
+		return 0, err
+	}
+
+	return c.conn.Write(b)
+}
 
 func resizeBuffer(b []byte, size int) []byte {
 	// requesting a smaller capacity
