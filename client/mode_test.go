@@ -14,7 +14,7 @@ func TestModeApplication(t *testing.T) {
 	}{
 		{mode.Mode{ModeChar: 'i', Type: mode.Add}, true, Invisible},
 		{mode.Mode{ModeChar: 'r', Type: mode.Add}, true, Registered},
-		{mode.Mode{ModeChar: 'a', Type: mode.Add}, false, None}, //nonexistant modes
+		{mode.Mode{ModeChar: 'a', Type: mode.Add}, false, 0}, //nonexistant modes
 	}
 
 	for _, v := range tests {

@@ -8,8 +8,7 @@ type Mode uint8
 
 // Modes are represented as bit masks
 const (
-	None Mode = 1 << iota
-	Registered
+	Registered = 1 << iota
 	Invisible
 	Wallops
 	// away can stay here as long as it is never allowed to be set with
