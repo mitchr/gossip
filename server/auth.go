@@ -76,7 +76,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	var decodedResp []byte
+	decodedResp := make([]byte, base64.StdEncoding.DecodedLen(len(m.Params[0])))
 	// if this was not a continuation request (a request containing just '+')
 	if m.Params[0] != "+" {
 		// TODO: this kind of request can have a continuation if the initial
@@ -84,12 +84,11 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		// have a situation like this and append the messages together before
 		// decoding
 		// *("AUTHENTICATE" SP 400BASE64 CRLF) "AUTHENTICATE" SP (1*399BASE64 / "+") CRLF
-		resp, err := base64.StdEncoding.DecodeString(m.Params[0])
+		_, err := base64.StdEncoding.Decode(decodedResp, []byte(m.Params[0]))
 		if err != nil {
 			s.writeReply(c, ERR_SASLFAIL)
 			return
 		}
-		decodedResp = resp
 	}
 
 	challenge, err := c.SASLMech.Next(decodedResp)

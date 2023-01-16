@@ -107,11 +107,11 @@ func (s *Scram) ParseClientFinal(m string) error {
 		return errors.New("e=other-error")
 	}
 
-	proof, err := base64.StdEncoding.DecodeString(attrs[2][2:])
+	s.proof = make([]byte, base64.StdEncoding.DecodedLen(len(attrs[2][2:])))
+	_, err := base64.StdEncoding.Decode(s.proof, []byte(attrs[2][2:]))
 	if err != nil {
 		return errors.New("e=invalid-encoding")
 	}
-	s.proof = proof
 
 	s.clientFinalWithoutProof = strings.Join(attrs[:2], ",")
 	return nil
