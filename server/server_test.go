@@ -53,9 +53,8 @@ func TestTLS(t *testing.T) {
 		c.Write([]byte("WHOIS alice\r\n"))
 		resp, _ := readLines(r, 15)
 
-		sha := sha256.New()
-		sha.Write(clientCert.Certificate[0])
-		assertResponse(resp, fmt.Sprintf(":%s 276 alice alice :has client certificate fingerprint %s\r\n", s.Name, hex.EncodeToString(sha.Sum(nil))), t)
+		sha := sha256.Sum256(clientCert.Certificate[0])
+		assertResponse(resp, fmt.Sprintf(":%s 276 alice alice :has client certificate fingerprint %s\r\n", s.Name, hex.EncodeToString(sha[:])), t)
 	})
 
 	t.Run("TestPRIVMSGFromInsecureToSecure", func(t *testing.T) {

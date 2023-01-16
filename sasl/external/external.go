@@ -17,15 +17,13 @@ type Credential struct {
 
 // keeps the sha hash of the certificate (the fingerprint)
 func NewCredential(username string, cert []byte) *Credential {
-	sha := sha256.New()
-	sha.Write(cert)
-	fingerprint := sha.Sum(nil)
+	fingerprint := sha256.Sum256(cert)
 
-	return &Credential{username, fingerprint}
+	return &Credential{username, fingerprint[:]}
 }
 
-func (c *Credential) Check(username string, fingerprint []byte) bool {
-	return c.Username == username && (subtle.ConstantTimeCompare(c.Cert, fingerprint) == 1)
+func (c *Credential) Check(username string, fingerprint [sha256.Size]byte) bool {
+	return c.Username == username && (subtle.ConstantTimeCompare(c.Cert, fingerprint[:]) == 1)
 }
 
 type External struct {

@@ -153,15 +153,13 @@ func (c *Client) Certificate() ([]byte, error) {
 	return certs[0].Raw, nil
 }
 
-func (c *Client) CertificateSha() ([]byte, error) {
+func (c *Client) CertificateSha() ([sha256.Size]byte, error) {
 	cert, err := c.Certificate()
 	if err != nil {
-		return nil, err
+		return [32]byte{}, err
 	}
 
-	sha := sha256.New()
-	sha.Write(cert)
-	return sha.Sum(nil), nil
+	return sha256.Sum256(cert), nil
 }
 
 // return a hex string of the sha256 hash of the client's tls
@@ -173,7 +171,7 @@ func (c *Client) CertificateFingerprint() (string, error) {
 		return "", err
 	}
 
-	return hex.EncodeToString(sha), nil
+	return hex.EncodeToString(sha[:]), nil
 }
 
 func (c *Client) CapsSet() string {

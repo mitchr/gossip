@@ -62,9 +62,7 @@ func TestCredential(t *testing.T) {
 
 	cred := NewCredential("alice", clientCert.Certificate[0])
 
-	sha := sha256.New()
-	sha.Write(clientCert.Certificate[0])
-	if !cred.Check("alice", sha.Sum(nil)) {
+	if !cred.Check("alice", sha256.Sum256(clientCert.Certificate[0])) {
 		t.Fatal("Credential.Check failed")
 	}
 }
@@ -106,9 +104,7 @@ func TestExternal(t *testing.T) {
 	cred := NewCredential("alice", clientCert.Certificate[0])
 	db.Exec("INSERT INTO sasl_external VALUES(?, ?)", cred.Username, cred.Cert)
 
-	sha := sha256.New()
-	sha.Write(clientCert.Certificate[0])
-	if !cred.Check("alice", sha.Sum(nil)) {
+	if !cred.Check("alice", sha256.Sum256(clientCert.Certificate[0])) {
 		t.Error("check failed")
 	}
 }
