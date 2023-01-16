@@ -76,22 +76,26 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
-	decodedResp := make([]byte, base64.StdEncoding.DecodedLen(len(m.Params[0])))
-	// if this was not a continuation request (a request containing just '+')
+	// if this was not a continuation request
+	// *("AUTHENTICATE" SP 400BASE64 CRLF) "AUTHENTICATE" SP (1*399BASE64 / "+") CRLF
 	if m.Params[0] != "+" {
-		// TODO: this kind of request can have a continuation if the initial
-		// request byte count is over 400, so we should check to see if we
-		// have a situation like this and append the messages together before
-		// decoding
-		// *("AUTHENTICATE" SP 400BASE64 CRLF) "AUTHENTICATE" SP (1*399BASE64 / "+") CRLF
-		_, err := base64.StdEncoding.Decode(decodedResp, []byte(m.Params[0]))
-		if err != nil {
-			s.writeReply(c, ERR_SASLFAIL)
-			return
-		}
+		c.AuthCtx = append(c.AuthCtx, []byte(m.Params[0])...)
+	}
+	if len(m.Params[0]) == 400 {
+		return
 	}
 
-	challenge, err := c.SASLMech.Next(decodedResp)
+	// clear authorization context
+	defer func() { c.AuthCtx = c.AuthCtx[:0] }()
+
+	decodedResp := make([]byte, base64.StdEncoding.DecodedLen(len(c.AuthCtx)))
+	n, err := base64.StdEncoding.Decode(decodedResp, c.AuthCtx)
+	if err != nil {
+		s.writeReply(c, ERR_SASLFAIL)
+		return
+	}
+
+	challenge, err := c.SASLMech.Next(decodedResp[:n])
 	if err != nil {
 		s.writeReply(c, ERR_SASLFAIL)
 		return
