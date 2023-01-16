@@ -1,0 +1,46 @@
+name: irctest
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  irctest:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout gossip
+      uses: actions/checkout@v3
+      with:
+        path: gossip
+
+    - name: checkout irctest
+      uses: actions/checkout@v3
+      with:
+        repository: mitchr/irctest
+        ref: gossip
+        path: irctest
+    
+    - uses: actions/setup-go@v3
+      with:
+        go-version: 1.17
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: irctest
+      run: |
+        apt update
+        apt install -y faketime
+        export PATH="$(pwd)/gossip/:$PATH"
+
+        cd gossip
+        go build
+        cd ..
+
+        cd irctest
+        pip3 install -r requirements.txt
+        pytest --controller irctest.controllers.gossip -k 'not Ergo and not deprecated and not strict'
