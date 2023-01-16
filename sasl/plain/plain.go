@@ -3,6 +3,7 @@ package plain
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 
@@ -15,14 +16,21 @@ type Credential struct {
 	Pass     []byte
 }
 
-// A plain credential stores the bcrypt of the password
+// A plain credential stores the bcrypted sha256 hash of pass
+// https://security.stackexchange.com/questions/39849/does-bcrypt-have-a-maximum-password-length/184090#184090
 func NewCredential(username string, pass string) *Credential {
-	b, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+	h := sha256.New()
+	h.Write([]byte(pass))
+
+	b, _ := bcrypt.GenerateFromPassword(h.Sum(nil), bcrypt.DefaultCost)
 	return &Credential{username, b}
 }
 
 func (c *Credential) Check(username string, pass []byte) bool {
-	success := bcrypt.CompareHashAndPassword(c.Pass, pass)
+	h := sha256.New()
+	h.Write([]byte(pass))
+
+	success := bcrypt.CompareHashAndPassword(c.Pass, h.Sum(nil))
 	return c.Username == username && success == nil
 }
 
