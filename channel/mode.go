@@ -5,16 +5,62 @@ import (
 	"strconv"
 )
 
-type prefix rune
+type prefix uint8
 
 const (
 	// member
-	Founder   prefix = '~'
-	Protected prefix = '&'
-	Operator  prefix = '@'
-	Halfop    prefix = '%'
-	Voice     prefix = '+'
+	Founder prefix = 1 << iota
+	Protected
+	Operator
+	Halfop
+	Voice
 )
+
+func (p prefix) String() string {
+	switch p {
+	case Founder:
+		return "~"
+	case Protected:
+		return "&"
+	case Operator:
+		return "@"
+	case Halfop:
+		return "%"
+	case Voice:
+		return "+"
+	}
+
+	var s string
+	for i := Founder; i <= Voice; i <<= 1 {
+		if p&i != 0 {
+			s += i.String()
+		}
+	}
+	return s
+}
+
+func (p prefix) modeLetters() string {
+	switch p {
+	case Founder:
+		return "q"
+	case Protected:
+		return "a"
+	case Operator:
+		return "o"
+	case Halfop:
+		return "h"
+	case Voice:
+		return "v"
+	}
+
+	var s string
+	for i := Founder; i <= Voice; i <<= 1 {
+		if p&i != 0 {
+			s += i.modeLetters()
+		}
+	}
+	return s
+}
 
 var memberLetter = map[byte]prefix{
 	'q': Founder,

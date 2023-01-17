@@ -438,7 +438,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 
 			newChan := channel.New(chanName, chanChar)
 			s.setChannel(newChan)
-			newChan.SetMember(&channel.Member{Client: c, Prefix: string(channel.Founder)})
+			newChan.SetMember(&channel.Member{Client: c, Prefix: channel.Founder})
 			c.WriteMessage(msg.New(nil, c.String(), "", "", "JOIN", []string{newChan.String()}, false))
 
 			NAMES(s, c, &msg.Message{Params: []string{newChan.String()}})
@@ -1289,7 +1289,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 					}
 					continue
 				}
-			} else if ch.Moderated && self.Prefix == "" {
+			} else if ch.Moderated && self.Prefix == 0 {
 				// member has no mode, so they cannot speak in a moderated chan
 				if !skipReplies {
 					s.writeReply(c, ERR_CANNOTSENDTOCHAN, ch)

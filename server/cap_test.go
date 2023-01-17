@@ -295,7 +295,7 @@ func TestMultiPrefix(t *testing.T) {
 	local := channel.New("local", channel.Remote)
 	// a, _ := s.getClient("a")
 	b, _ := s.getClient("b")
-	local.SetMember(&channel.Member{Client: b, Prefix: "~&@%+"})
+	local.SetMember(&channel.Member{Client: b, Prefix: 0b11111}) // all modes set
 	s.setChannel(local)
 
 	c1.Write([]byte("NAMES #local\r\n"))

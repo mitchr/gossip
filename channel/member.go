@@ -1,9 +1,6 @@
 package channel
 
 import (
-	"sort"
-	"strings"
-
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/mode"
 )
@@ -12,66 +9,40 @@ import (
 // Clients, have the capability to be given a mode/prefix.
 type Member struct {
 	*client.Client
-	Prefix string
+	Prefix prefix
 }
 
 func (m Member) Is(p prefix) bool {
-	if (p == Operator || p == Halfop) && strings.ContainsRune(m.Prefix, rune(Founder)) {
+	if (p == Operator || p == Halfop) && m.Prefix&Founder == Founder {
 		return true
 	} else {
-		return strings.ContainsRune(m.Prefix, rune(p))
+		return m.Prefix&p == p
 	}
 }
 
 // Returns the highest prefix that the member has. If multiPrefix is
 // true, returns all the modes that this member has in order of rank.
 func (m Member) HighestPrefix(multiPrefix bool) string {
-	modes := map[rune]uint8{
-		rune(Founder):   4,
-		rune(Protected): 3,
-		rune(Operator):  2,
-		rune(Halfop):    1,
-		rune(Voice):     0,
+	if m.Prefix == 0 {
+		return ""
+	} else if multiPrefix {
+		return m.Prefix.String()
+	} else {
+		return string(m.Prefix.String()[0])
 	}
-	prefix := []rune(m.Prefix)
-	sort.Slice(prefix, func(i, j int) bool {
-		return modes[prefix[i]] > modes[prefix[j]]
-	})
-
-	if multiPrefix {
-		return string(prefix)
-	}
-	if len(prefix) > 0 {
-		return string(prefix[0])
-	}
-	return ""
 }
 
 // Reconstruct this member's prefix string as a string of each prefix
 // matched to its corresponding mode letter
-func (m Member) ModeLetters() string {
-	prefixToLetter := make(map[prefix]byte)
-	for k, v := range memberLetter {
-		prefixToLetter[v] = k
-	}
-
-	s := ""
-	for _, l := range m.Prefix {
-		letter, ok := prefixToLetter[prefix(l)]
-		if ok {
-			s += string(letter)
-		}
-	}
-	return s
-}
+func (m Member) ModeLetters() string { return m.Prefix.modeLetters() }
 
 func (c *Member) ApplyMode(m mode.Mode) bool {
 	r, ok := memberLetter[m.ModeChar]
 	if ok {
 		if m.Type == mode.Add {
-			c.Prefix += string(r)
+			c.Prefix |= r
 		} else {
-			c.Prefix = strings.Replace(c.Prefix, string(r), "", -1)
+			c.Prefix &^= r
 		}
 	}
 	return ok
