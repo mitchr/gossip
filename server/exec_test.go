@@ -399,7 +399,7 @@ func TestChannelCreation(t *testing.T) {
 	endNames, _ := r1.ReadBytes('\n')
 
 	assertResponse(joinResp, ":alice!alice@localhost JOIN #local\r\n", t)
-	assertResponse(namreply, fmt.Sprintf(":%s 353 alice = #local :~alice\r\n", s.Name), t)
+	assertResponse(namreply, fmt.Sprintf(":%s 353 alice = #local :@alice\r\n", s.Name), t)
 	assertResponse(endNames, fmt.Sprintf(":%s 366 alice #local :End of /NAMES list\r\n", s.Name), t)
 
 	t.Run("TestJoinNoParam", func(t *testing.T) {
@@ -656,7 +656,7 @@ func TestNAMES(t *testing.T) {
 	namreply, _ := r.ReadBytes('\n')
 	end, _ := r.ReadBytes('\n')
 
-	assertResponse(namreply, fmt.Sprintf(":%s 353 alice = &test :~alice\r\n", s.Name), t)
+	assertResponse(namreply, fmt.Sprintf(":%s 353 alice = &test :@alice\r\n", s.Name), t)
 	assertResponse(end, fmt.Sprintf(":%s 366 alice &test :End of /NAMES list\r\n", s.Name), t)
 
 	t.Run("TestNoParam", func(t *testing.T) {
