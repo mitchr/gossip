@@ -76,10 +76,10 @@ func TestMessageSize(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r, p := connect(s)
-	defer p()
-
 	t.Run("TooLong", func(t *testing.T) {
+		c, r, p := connect(s)
+		defer p()
+
 		longMsg := make([]byte, 513)
 		c.Write(longMsg)
 		resp, _ := r.ReadBytes('\n')
@@ -87,8 +87,8 @@ func TestMessageSize(t *testing.T) {
 	})
 
 	t.Run("JustRight", func(t *testing.T) {
-		b, r2, p2 := connect(s)
-		defer p2()
+		c, r, p := connect(s)
+		defer p()
 
 		msg := []byte("PING ")
 		zeros := make([]byte, 510-len(msg))
@@ -97,16 +97,16 @@ func TestMessageSize(t *testing.T) {
 		}
 		msg = append(msg, zeros...)
 		msg = append(msg, '\r', '\n')
-		b.Write(msg)
-		resp, _ := r2.ReadBytes('\n')
+		c.Write(msg)
+		resp, _ := r.ReadBytes('\n')
 
 		assertResponse(resp, fmt.Sprintf(":gossip PONG gossip %s\r\n", zeros), t)
 	})
 
 	t.Run("HugeTags", func(t *testing.T) {
-		d, r2 := connectAndRegister("d")
-		d.Write([]byte("CAP REQ message-tags\r\n"))
-		r2.ReadBytes('\n')
+		c, r := connectAndRegister("d")
+		c.Write([]byte("CAP REQ message-tags\r\n"))
+		r.ReadBytes('\n')
 
 		tags := make([]byte, 8190)
 		for i := range tags {
@@ -120,8 +120,8 @@ func TestMessageSize(t *testing.T) {
 		command = append(command, []byte(" TIME\r\n")...)
 		tags = append(tags, command...)
 
-		d.Write(tags)
-		resp, _ := r2.ReadBytes('\n')
+		c.Write(tags)
+		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(ERR_INPUTTOOLONG, s.Name, "d"), t)
 	})
 }
