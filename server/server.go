@@ -195,23 +195,14 @@ func (s *Server) handleConn(u net.Conn, ctx context.Context) {
 		case <-grantTick.C:
 			c.AddGrant()
 		case err := <-errs:
-			switch err {
-			case msg.ErrMsgSizeOverflow:
-				s.writeReply(c, ERR_INPUTTOOLONG)
-				continue
-			case msg.ErrParse:
-				// silently ignore parse errors
-				continue
-			default:
-				if errors.Is(err, net.ErrClosed) {
-					if _, ok := s.getClient(c.Nick); !ok {
-						// network closed and client was already removed (or never
-						// was added to begin with); no work to be done here
-						return
-					}
+			if errors.Is(err, net.ErrClosed) {
+				if _, ok := s.getClient(c.Nick); !ok {
+					// network closed and client was already removed (or never
+					// was added to begin with); no work to be done here
+					return
 				}
-				QUIT(s, c, &msg.Message{Params: []string{err.Error()}})
 			}
+			QUIT(s, c, &msg.Message{Params: []string{err.Error()}})
 			return
 		}
 	}
@@ -249,8 +240,10 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, errs chan<- e
 			if s.Debug && len(buff) != 0 {
 				log.Printf("[%s]: %s\n", c.RemoteAddr(), string(bytes.TrimRight(buff, "\r\n")))
 			}
-
-			if err != nil {
+			if err == msg.ErrMsgSizeOverflow {
+				s.writeReply(c, ERR_INPUTTOOLONG)
+				continue
+			} else if err != nil {
 				errs <- err
 				continue
 			}
@@ -262,15 +255,15 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, errs chan<- e
 			}
 
 			m, err := msg.Parse(tokens)
-			if err != nil {
+			if err == msg.ErrMsgSizeOverflow {
+				s.writeReply(c, ERR_INPUTTOOLONG)
+			} else if err == msg.ErrParse {
+				// silently ignore parse errors
+			} else if err != nil {
 				errs <- err
-				continue
 			}
+
 			if m != nil {
-				if m.SizeOfTags() > 4096 {
-					errs <- msg.ErrMsgSizeOverflow
-					continue
-				}
 				s.executeMessage(m, c)
 			}
 		}
