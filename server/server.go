@@ -257,7 +257,7 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, errs chan<- e
 			m, err := msg.Parse(tokens)
 			if err == msg.ErrMsgSizeOverflow {
 				s.writeReply(c, ERR_INPUTTOOLONG)
-			} else if err == msg.ErrParse {
+			} else if errors.Unwrap(err) == msg.ErrParse {
 				// silently ignore parse errors
 			} else if err != nil {
 				errs <- err

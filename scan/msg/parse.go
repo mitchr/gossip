@@ -32,7 +32,7 @@ func Parse(t *scan.TokQueue) (*Message, error) {
 		p.Next() // consume '@'
 		m.tags = tags(p)
 		if !p.Expect(space) {
-			return nil, fmt.Errorf("%v: expected space", ErrParse)
+			return nil, fmt.Errorf("%w: expected space", ErrParse)
 		}
 	}
 	tagBytes := p.BytesRead
@@ -44,7 +44,7 @@ func Parse(t *scan.TokQueue) (*Message, error) {
 		p.Next() // consume colon
 		m.Nick, m.User, m.Host = source(p)
 		if !p.Expect(space) {
-			return nil, fmt.Errorf("%v: expected space", ErrParse)
+			return nil, fmt.Errorf("%w: expected space", ErrParse)
 		}
 	}
 	m.Command = command(p)
@@ -52,10 +52,10 @@ func Parse(t *scan.TokQueue) (*Message, error) {
 
 	// expect a crlf ending
 	if !p.Expect(cr) {
-		return nil, fmt.Errorf("%v: no cr; ignoring", ErrParse)
+		return nil, fmt.Errorf("%w: no cr; ignoring", ErrParse)
 	}
 	if !p.Expect(lf) {
-		return nil, fmt.Errorf("%v: no lf; ignoring", ErrParse)
+		return nil, fmt.Errorf("%w: no lf; ignoring", ErrParse)
 	}
 
 	return m, nil
