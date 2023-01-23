@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	maxTags = 8191
+	maxTags = 4096
 	maxMsg  = 512
 )
 
@@ -56,10 +56,6 @@ func Parse(t *scan.TokQueue) (*Message, error) {
 	}
 	if !p.Expect(lf) {
 		return nil, fmt.Errorf("%v: no lf; ignoring", ErrParse)
-	}
-
-	if p.BytesRead-tagBytes > maxMsg {
-		return nil, ErrMsgSizeOverflow
 	}
 
 	return m, nil
