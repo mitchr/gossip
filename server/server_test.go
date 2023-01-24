@@ -69,7 +69,7 @@ func TestTLS(t *testing.T) {
 }
 
 func TestMessageSize(t *testing.T) {
-	s, err := New(&Config{Network: "cafeteria", Name: "gossip", Port: ":6667"})
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestMessageSize(t *testing.T) {
 		defer p()
 
 		longMsg := make([]byte, 513)
-		c.Write(longMsg)
+		go c.Write(longMsg)
 		resp, _ := r.ReadBytes('\n')
 		assertResponse(resp, fmt.Sprintf(":%s 417 * :Input line was too long\r\n", s.Name), t)
 	})
@@ -360,13 +360,10 @@ func connect(s *Server) (net.Conn, *bufio.Reader, context.CancelFunc) {
 	s.wg.Add(1)
 	go s.handleConn(serverHandle, ctx)
 
-	var p context.CancelFunc = func() {
+	return c, r, func() {
 		cancel()
 		c.Close()
-		// serverHandle.Close()
 	}
-
-	return c, r, p
 }
 
 func assertResponse(resp []byte, eq string, t *testing.T) {
