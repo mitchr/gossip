@@ -72,7 +72,7 @@ func New(conn net.Conn) *Client {
 
 		reader:        bufio.NewReaderSize(conn, 512),
 		msgSizeChange: make(chan int, 1),
-		msgBuf:        make([]byte, 0, 512),
+		msgBuf:        make([]byte, 512),
 
 		PONG: make(chan struct{}, 1),
 		Caps: make(map[string]bool),
@@ -198,8 +198,7 @@ func (c *Client) ReadMsg() ([]byte, error) {
 		return nil, err
 	}
 
-	c.msgBuf = c.msgBuf[:0] // clear
-	for n := 0; n < cap(c.msgBuf); n++ {
+	for n := 0; n < len(c.msgBuf); n++ {
 		// when the client adds or removes the 'message-tags' capability,
 		// the maximum message size will change. by checking this signal
 		// before every byte, we avoid the case where message1 requests
@@ -208,16 +207,17 @@ func (c *Client) ReadMsg() ([]byte, error) {
 		select {
 		case size := <-c.msgSizeChange:
 			c.msgBuf = resizeBuffer(c.msgBuf, size)
+			n-- // backup
 		default:
 			b, err := c.reader.ReadByte()
 			if err != nil {
 				return nil, err
 			}
-			c.msgBuf = append(c.msgBuf, b)
+			c.msgBuf[n] = b
 
 			// accepted if we find a newline
 			if b == '\n' {
-				return c.msgBuf, nil
+				return c.msgBuf[:n+1], nil
 			}
 		}
 	}
@@ -243,7 +243,7 @@ func resizeBuffer(b []byte, size int) []byte {
 		}
 		b = b[:length]
 	}
-	temp := make([]byte, len(b), size)
+	temp := make([]byte, size)
 	copy(temp, b)
 	return temp
 }
