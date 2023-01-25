@@ -1271,6 +1271,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) {
 		msg.Params[0] = v
 
 		// TODO: support sending to only a specific user mode in channel (i.e., PRIVMSG %#buffy)
+		//			 when implemented, re-enable STATUSMSG ISUPPORT
 		if isValidChannelString(v) {
 			ch, _ := s.getChannel(v)
 			if ch == nil { // channel doesn't exist
