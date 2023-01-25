@@ -18,7 +18,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"unicode/utf16"
 
 	"github.com/mitchr/gossip/channel"
 )
@@ -262,20 +261,11 @@ func TestUTF8ONLY(t *testing.T) {
 	c, r, p := connect(s)
 	defer p()
 
-	utf16Encoded := utf16.Encode([]rune("NICK 🎉\r\n"))
-	utf16EncodedToUtf8 := func(s []uint16) []byte {
-		b := make([]byte, 0, len(s)*2)
+	c.Write([]byte("NICK \xaa\r\n"))
 
-		for _, v := range s {
-			high := byte(v >> 8)
-			low := byte(0x00ff & v)
+	stdFailyReply, _ := r.ReadBytes('\n')
+	assertResponse(stdFailyReply, "FAIL NICK INVALID_UTF8 :Message rejected, your IRC software MUST use UTF-8 encoding on this network\r\n", t)
 
-			b = append(b, high, low)
-		}
-		return b
-	}(utf16Encoded)
-
-	c.Write(utf16EncodedToUtf8)
 	errResp, _ := r.ReadBytes('\n')
 	assertResponse(errResp, "ERROR :Messages must be encoded using UTF-8\r\n", t)
 }

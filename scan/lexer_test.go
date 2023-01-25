@@ -2,15 +2,16 @@ package scan
 
 import (
 	"testing"
+	"unicode/utf8"
 )
 
 func TestNextError(t *testing.T) {
 	input := "\xFF normal data"
 	l := &Lexer{input: []byte(input), peeked: -1}
 
-	eof := l.Next()
-	if eof != EOF && l.position != len(l.input) {
-		t.Errorf("could not throw out garbled input stream; got %s\n", string(eof))
+	nonRune := l.Next()
+	if nonRune != utf8.RuneError && l.position != len(l.input) {
+		t.Errorf("could not throw out garbled input stream; got %s\n", string(nonRune))
 	}
 
 	// subsequent call to Next should return EOF

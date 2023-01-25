@@ -240,6 +240,7 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, errs chan<- e
 			if s.Debug && len(buff) != 0 {
 				log.Printf("[%s]: %s\n", c.RemoteAddr(), string(bytes.TrimRight(buff, "\r\n")))
 			}
+
 			if err == msg.ErrMsgSizeOverflow {
 				s.writeReply(c, ERR_INPUTTOOLONG)
 				continue
@@ -250,6 +251,7 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, errs chan<- e
 
 			tokens, err := msg.Lex(buff)
 			if err != nil {
+				s.stdReply(c, FAIL, tokens.TryToExtractCommand(), "INVALID_UTF8", "", "Message rejected, your IRC software MUST use UTF-8 encoding on this network")
 				errs <- err
 				continue
 			}

@@ -61,7 +61,6 @@ func (l *Lexer) Peek() rune {
 	// input is garbled, force execution to end early
 	if l.peeked == utf8.RuneError {
 		l.position = len(l.input) // prevent subsequent calls to Peek/Next
-		return EOF
 	}
 
 	return l.peeked
@@ -71,7 +70,10 @@ func (l *Lexer) Push(t TokenType) {
 	l.tokens.push(Token{TokenType: t, Value: l.current, width: l.width})
 }
 
-// Lex creates a slice of tokens using the given initial state
+// Lex creates a slice of tokens using the given initial state. Even if
+// the returned error is not nil, some data may still be returned in the
+// TokQueue. This is to ensure that proper error messages can be
+// constructed from the invalid data.
 func Lex(b []byte, initState func(*Lexer) error) (*TokQueue, error) {
 	l := &Lexer{
 		input:  b,
@@ -80,10 +82,5 @@ func Lex(b []byte, initState func(*Lexer) error) (*TokQueue, error) {
 		tokens: New(len(b)),
 	}
 
-	err := initState(l)
-	if err != nil {
-		return nil, err
-	}
-
-	return &l.tokens, nil
+	return &l.tokens, initState(l)
 }

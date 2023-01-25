@@ -8,6 +8,17 @@ type TokQueue struct {
 
 func New(size int) TokQueue { return TokQueue{front: -1, end: -1, buf: make([]Token, size)} }
 
+func (t TokQueue) TryToExtractCommand() string {
+	var s string
+	for i := 0; i < int(t.end); i++ {
+		if t.buf[i].Value == ' ' {
+			return s
+		}
+		s += string(t.buf[i].Value)
+	}
+	return s
+}
+
 func (a *TokQueue) Peek() Token {
 	if a.front == -1 || int(a.front) > len(a.buf)-1 {
 		return EOFToken
