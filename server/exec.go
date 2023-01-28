@@ -727,10 +727,11 @@ func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) 
 			}
 		}
 	case 'C':
-		lessThan := pattern[1] == '<'
 		if len(pattern) < 2 {
 			break
 		}
+
+		lessThan := pattern[1] == '<'
 		val, _ := strconv.Atoi(pattern[2:])
 		valMinutes := time.Minute * time.Duration(val)
 
@@ -743,10 +744,11 @@ func (s *Server) applyElistConditions(pattern string, chans []*channel.Channel) 
 			}
 		}
 	case 'T':
-		lessThan := pattern[1] == '<'
 		if len(pattern) < 2 {
 			break
 		}
+
+		lessThan := pattern[1] == '<'
 		val, _ := strconv.Atoi(pattern[2:])
 		valMinutes := time.Minute * time.Duration(val)
 

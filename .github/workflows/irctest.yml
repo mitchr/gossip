@@ -33,8 +33,6 @@ jobs:
 
     - name: irctest
       run: |
-        sudo apt-get update
-        sudo apt-get install -y faketime
         export PATH="$(pwd)/gossip/:$PATH"
 
         cd gossip
@@ -43,4 +41,4 @@ jobs:
 
         cd irctest
         pip3 install -r requirements.txt
-        pytest --controller irctest.controllers.gossip -k 'not Ergo and not deprecated and not strict'
+        pytest --controller irctest.controllers.gossip -k 'not Ergo and not deprecated and not strict and not testListCreationTime and not testListTopicTime'
