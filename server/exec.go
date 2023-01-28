@@ -1432,6 +1432,11 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) {
 		return
 	}
 
+	if !c.Is(client.Op) {
+		s.writeReply(c, ERR_NOPRIVILEGES)
+		return
+	}
+
 	m.Nick = c.Nick
 	m.User = c.User
 	m.Host = c.Host

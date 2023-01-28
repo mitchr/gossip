@@ -1691,10 +1691,11 @@ func TestWALLOPS(t *testing.T) {
 	c2, r2 := connectAndRegister("bob")
 	defer c2.Close()
 
+	alice, _ := s.getClient("alice")
+	alice.SetMode(client.Op)
+
 	c2.Write([]byte("MODE bob +w\r\n"))
 	r2.ReadBytes('\n')
-
-	alice, _ := s.getClient("alice")
 
 	c1.Write([]byte("WALLOPS test\r\n"))
 	resp, _ := r2.ReadBytes('\n')
