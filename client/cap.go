@@ -34,12 +34,12 @@ func messageTags(c *Client, remove bool) {
 	hasMessageTags := c.HasMessageTags()
 
 	if !remove && !hasMessageTags {
-		c.msgSizeChange <- 4096 + 512
+		c.msgBuf = resizeBuffer(c.msgBuf, 4096+512)
 	}
 
 	// request to remove, and client has no other caps that require message-tags
 	if remove && !hasMessageTags {
-		c.msgSizeChange <- 512
+		c.msgBuf = resizeBuffer(c.msgBuf, 512)
 	}
 }
 

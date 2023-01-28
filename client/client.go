@@ -32,9 +32,8 @@ type Client struct {
 	// last time that client sent a succcessful message
 	Idle time.Time
 
-	reader        *bufio.Reader
-	msgSizeChange chan int
-	msgBuf        []byte
+	reader *bufio.Reader
+	msgBuf []byte
 
 	modeLock          sync.Mutex
 	Mode              Mode
@@ -70,9 +69,8 @@ func New(conn net.Conn) *Client {
 		JoinTime: now.Unix(),
 		Idle:     now,
 
-		reader:        bufio.NewReaderSize(conn, 512),
-		msgSizeChange: make(chan int, 1),
-		msgBuf:        make([]byte, 512),
+		reader: bufio.NewReaderSize(conn, 512),
+		msgBuf: make([]byte, 512),
 
 		PONG: make(chan struct{}, 1),
 		Caps: make(map[string]bool),
@@ -199,26 +197,15 @@ func (c *Client) ReadMsg() ([]byte, error) {
 	}
 
 	for n := 0; n < len(c.msgBuf); n++ {
-		// when the client adds or removes the 'message-tags' capability,
-		// the maximum message size will change. by checking this signal
-		// before every byte, we avoid the case where message1 requests
-		// message-tags, and the reading of a possible message2 is blocked
-		// on Read before the buffer has been increased.
-		select {
-		case size := <-c.msgSizeChange:
-			c.msgBuf = resizeBuffer(c.msgBuf, size)
-			n-- // backup
-		default:
-			b, err := c.reader.ReadByte()
-			if err != nil {
-				return nil, err
-			}
-			c.msgBuf[n] = b
+		b, err := c.reader.ReadByte()
+		if err != nil {
+			return nil, err
+		}
+		c.msgBuf[n] = b
 
-			// accepted if we find a newline
-			if b == '\n' {
-				return c.msgBuf[:n+1], nil
-			}
+		// accepted if we find a newline
+		if b == '\n' {
+			return c.msgBuf[:n+1], nil
 		}
 	}
 	return nil, msg.ErrMsgSizeOverflow
