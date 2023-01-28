@@ -28,6 +28,26 @@ func TestREGISTER(t *testing.T) {
 	assertResponse(resp, "NOTICE :Registered\r\n", t)
 }
 
+func TestChannelREGISTER(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c, r := connectAndRegister("alice")
+	defer c.Close()
+
+	c.Write([]byte("JOIN #test\r\nREGISTER #test\r\n"))
+	readLines(r, 3)
+
+	founderMode, _ := r.ReadBytes('\n')
+	regResp, _ := r.ReadBytes('\n')
+	assertResponse(founderMode, fmt.Sprintf(":%s MODE #test +q alice\r\n", s.Name), t)
+	assertResponse(regResp, "NOTICE :Registered\r\n", t)
+}
+
 func TestAUTHENTICATE(t *testing.T) {
 	s, err := New(conf)
 	if err != nil {

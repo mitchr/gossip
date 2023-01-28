@@ -123,7 +123,12 @@ func (s *Server) loadDatabase(datasource string) error {
 		salt BLOB,
 		iterations INTEGER,
 		PRIMARY KEY(username)
-	);`)
+	);
+	
+	CREATE TABLE IF NOT EXISTS channels(
+		owner TEXT,
+		chan TEXT
+	)`)
 
 	return err
 }

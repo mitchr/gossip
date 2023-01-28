@@ -23,14 +23,13 @@ func (m Member) Is(p prefix) bool {
 // Returns the highest prefix that the member has. If multiPrefix is
 // true, returns all the modes that this member has in order of rank.
 func (m Member) HighestPrefix(multiPrefix bool) string {
+	if m.Prefix == 0 {
+		return ""
+	}
 	if multiPrefix {
 		return m.Prefix.String()
-	} else if m.Is(Founder) {
-		return "@"
-	} else if m.Is(Voice) {
-		return "+"
 	}
-	return ""
+	return string(m.Prefix.String()[0])
 }
 
 // Reconstruct this member's prefix string as a string of each prefix

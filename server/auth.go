@@ -3,7 +3,9 @@ package server
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
+	"fmt"
 	"strings"
 
 	cap "github.com/mitchr/gossip/capability"
@@ -137,14 +139,15 @@ func (s *Server) accountNotify(c *client.Client) {
 // for now, username is assumed to be the same as the current client's nick
 // REGISTER PASS <pass>
 // REGISTER CERT
+// REGISTER <channel>
 func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) == 0 {
 		s.writeReply(c, ERR_NEEDMOREPARAMS, "REGISTER")
 		return
 	}
 
-	switch strings.ToUpper(m.Params[0]) {
-	case "PASS":
+	switch arg := strings.ToUpper(m.Params[0]); {
+	case arg == "PASS":
 		if len(m.Params) < 2 {
 			s.writeReply(c, ERR_NEEDMOREPARAMS, "REGISTER PASS")
 			return
@@ -159,7 +162,7 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 		scramCred := scram.NewCredential(sha256.New, c.Id(), pass, salt, 4096)
 		s.persistScram(scramCred.Username, c.Nick, scramCred.ServerKey, scramCred.StoredKey, scramCred.Salt, scramCred.Iteration)
 
-	case "CERT":
+	case arg == "CERT":
 		cert, err := c.Certificate()
 		if err != nil {
 			s.NOTICE(c, err.Error())
@@ -167,6 +170,30 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 		}
 		cred := external.NewCredential(c.Id(), cert)
 		s.persistExternal(cred.Username, c.Nick, cred.Cert)
+
+	case isValidChannelString(arg):
+		// channel must exist already, sender must be an op in that channel,
+		// and the channel should not already be registered
+		ch, exists := s.getChannel(arg)
+		if !exists {
+			s.NOTICE(c, fmt.Sprintf("Channel %s does not exist", arg))
+			return
+		}
+
+		m, belongs := ch.GetMember(c.Id())
+		if !belongs || !m.Is(channel.Operator) {
+			s.NOTICE(c, "You are not a channel operator")
+			return
+		}
+
+		if s.chanAlreadyRegistered(arg) {
+			s.NOTICE(c, "Channel already registered")
+			return
+		}
+
+		s.persistChan(c.Id(), arg)
+		MODE(s, c, msg.New(nil, c.Nick, c.User, c.Host, "MODE", []string{arg, "+q", c.Nick}, false))
+
 	default:
 		s.NOTICE(c, "Unsupported registration type "+m.Params[0])
 		return
@@ -185,6 +212,15 @@ func (s *Server) persistScram(username, nick string, serverKey, storedKey, salt 
 
 func (s *Server) persistExternal(username, nick string, cert []byte) {
 	s.db.Exec("INSERT INTO sasl_external VALUES(?, ?, ?)", username, nick, cert)
+}
+
+func (s *Server) persistChan(owner, channel string) {
+	s.db.Exec("INSERT INTO channels VALUES(?, ?)", owner, channel)
+}
+
+func (s *Server) chanAlreadyRegistered(channel string) bool {
+	r := s.db.QueryRow("select chan from channels where chan=?", channel)
+	return r.Err() == sql.ErrNoRows
 }
 
 func (s *Server) userAccountForNickExists(n string) (username string) {
