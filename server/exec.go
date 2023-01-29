@@ -886,6 +886,12 @@ func MODE(s *Server, c *client.Client, m *msg.Message) {
 			s.writeReply(c, RPL_CHANNELMODEIS, ch, modeStr, strings.Join(params, " "))
 			s.writeReply(c, RPL_CREATIONTIME, ch, ch.CreatedAt)
 		} else { // modeStr given
+			self, belongs := ch.GetMember(c.Id())
+			if !belongs || !self.Is(channel.Operator) {
+				s.writeReply(c, ERR_CHANOPRIVSNEEDED, ch)
+				return
+			}
+
 			modes := mode.Parse([]byte(m.Params[1]))
 			channel.PrepareModes(modes, m.Params[2:])
 			appliedModes := []mode.Mode{}

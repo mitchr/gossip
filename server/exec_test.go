@@ -850,17 +850,17 @@ func TestMODEChannel(t *testing.T) {
 
 	c1, r1 := connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob")
+	c2, _ := connectAndRegister("bob")
 	defer c2.Close()
 
 	local := channel.New("local", '#')
 	s.setChannel(local)
-	local.SetMember(&channel.Member{Client: s.clients["alice"]})
+	local.SetMember(&channel.Member{Client: s.clients["alice"], Prefix: channel.Operator})
 
 	t.Run("TestUserNotInChan", func(t *testing.T) {
-		c2.Write([]byte("MODE #local +o bob\r\n"))
-		resp, _ := r2.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 441 bob bob #local :They aren't on that channel\r\n", s.Name), t)
+		c1.Write([]byte("MODE #local +o bob\r\n"))
+		resp, _ := r1.ReadBytes('\n')
+		assertResponse(resp, fmt.Sprintf(":%s 441 alice bob #local :They aren't on that channel\r\n", s.Name), t)
 	})
 
 	bob := &channel.Member{Client: s.clients["bob"]}
@@ -986,6 +986,26 @@ func TestMODEChannel(t *testing.T) {
 		assertResponse(def, fmt.Sprintf(":%s 346 alice #local def\r\n", s.Name), t)
 		assertResponse(ghi, fmt.Sprintf(":%s 346 alice #local ghi\r\n", s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 347 alice #local :End of channel invite list\r\n", s.Name), t)
+	})
+
+	t.Run("TestMODE+oWithoutPrivileges", func(t *testing.T) {
+		c1, r1 := connectAndRegister("foo")
+		defer c1.Close()
+		c2, r2 := connectAndRegister("bar")
+		defer c2.Close()
+
+		c1.Write([]byte("JOIN #test\r\n"))
+		readLines(r1, 3)
+		c2.Write([]byte("JOIN #test\r\nMODE #test +o bar\r\n"))
+
+		resp, _ := readLines(r2, 4)
+		assertResponse(resp, fmt.Sprintf(ERR_CHANOPRIVSNEEDED, s.Name, "bar", "#test"), t)
+
+		test, _ := s.getChannel("#test")
+		bar, _ := test.GetMember("bar")
+		if bar.Is(channel.Operator) {
+			t.Error("bar was made op even though they have no privileges")
+		}
 	})
 
 	t.Run("TestRemoveModes", func(t *testing.T) {
