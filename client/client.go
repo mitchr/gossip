@@ -219,22 +219,6 @@ func (c *Client) Write(b []byte) (int, error) {
 	return c.conn.Write(b)
 }
 
-func resizeBuffer(b []byte, size int) []byte {
-	// requesting a smaller capacity
-	if size < cap(b) {
-		length := len(b)
-
-		// truncate existing data in buffer to number of bytes specified by 'size'
-		if length > size {
-			length = size
-		}
-		b = b[:length]
-	}
-	temp := make([]byte, size)
-	copy(temp, b)
-	return temp
-}
-
 const timeFormat string = "2006-01-02T15:04:05.999Z"
 
 func (c *Client) WriteMessage(m *msg.Message) {
