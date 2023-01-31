@@ -8,7 +8,7 @@ type Mode uint8
 
 // Modes are represented as bit masks
 const (
-	Registered = 1 << iota
+	Registered Mode = 1 << iota
 	Invisible
 	Wallops
 	// away can stay here as long as it is never allowed to be set with
@@ -29,10 +29,25 @@ var letter = map[byte]Mode{
 }
 
 func (m Mode) String() string {
+	switch m {
+	case Registered:
+		return "r"
+	case Invisible:
+		return "i"
+	case Wallops:
+		return "w"
+	case Op:
+		return "o"
+	case LocalOp:
+		return "O"
+	case Bot:
+		return "b"
+	}
+
 	s := ""
-	for k, v := range letter {
-		if m&v == v {
-			s += string(k)
+	for i := Registered; i < Bot; i <<= 1 {
+		if m&i == 0 {
+			s += i.String()
 		}
 	}
 	return s
