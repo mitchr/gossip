@@ -93,7 +93,7 @@ func populateHostname(addr string) string {
 		return addr
 	}
 
-	timeoutCtx, cancel := context.WithTimeout(context.TODO(), time.Millisecond*300)
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Millisecond*300)
 	defer cancel()
 	if err != nil {
 		return host
@@ -156,7 +156,7 @@ func (c *Client) Certificate() ([]byte, error) {
 func (c *Client) CertificateSha() ([sha256.Size]byte, error) {
 	cert, err := c.Certificate()
 	if err != nil {
-		return [32]byte{}, err
+		return [sha256.Size]byte{}, err
 	}
 
 	return sha256.Sum256(cert), nil
