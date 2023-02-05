@@ -224,7 +224,7 @@ func (ch *Channel) Admit(c *client.Client, key string) error {
 	for _, v := range ch.Ban {
 		if wild.Match(strings.ToLower(v), strings.ToLower(c.String())) { // nickmask found in banlist
 			for _, k := range ch.BanExcept {
-				if wild.Match(strings.ToLower(k), strings.ToLower(c.Nick)) { // nickmask is an exception, so admit
+				if wild.Match(strings.ToLower(k), strings.ToLower(c.String())) { // nickmask is an exception, so admit
 					ch.SetMember(&Member{Client: c})
 					return nil
 				}
