@@ -573,6 +573,7 @@ func (s *Server) clientBelongstoChan(c *client.Client, chanName string) *channel
 	return ch
 }
 
+// either one chan with many nicks, or 1 chan per nick
 func KICK(s *Server, c *client.Client, m *msg.Message) {
 	if len(m.Params) < 2 {
 		s.writeReply(c, ERR_NEEDMOREPARAMS, "KICK")
@@ -586,15 +587,25 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 
 	chans := strings.Split(m.Params[0], ",")
 	users := strings.Split(m.Params[1], ",")
-	if len(chans) != 1 || len(chans) != len(users) {
+	if !(len(chans) == 1 && len(users) > 0) && !(len(chans) == len(users)) {
 		s.writeReply(c, ERR_NEEDMOREPARAMS, "KICK")
 		return
 	}
 
-	for i, v := range chans {
-		ch, _ := s.getChannel(v)
+	// fill chans with copies of itself
+	if len(chans) == 1 {
+		singleChan := chans[0]
+		chans = make([]string, len(users))
+		for i := range chans {
+			chans[i] = singleChan
+		}
+	}
+
+	// len(chans)==len(users) here
+	for i := 0; i < len(chans); i++ {
+		ch, _ := s.getChannel(chans[i])
 		if ch == nil {
-			s.writeReply(c, ERR_NOSUCHCHANNEL, v)
+			s.writeReply(c, ERR_NOSUCHCHANNEL, chans[i])
 			return
 		}
 		self, _ := ch.GetMember(c.Nick)
@@ -606,16 +617,7 @@ func KICK(s *Server, c *client.Client, m *msg.Message) {
 			return
 		}
 
-		// If there are multiple channels, pair up the chans and users so
-		// that one user is kicked per each chan
-		if len(chans) != 1 {
-			s.kickMember(c, ch, users[i], comment)
-		} else {
-			// If we are only given one channel, kick all listed users from it
-			for _, u := range users {
-				s.kickMember(c, ch, u, comment)
-			}
-		}
+		s.kickMember(c, ch, users[i], comment)
 	}
 }
 
