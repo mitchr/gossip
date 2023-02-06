@@ -31,10 +31,10 @@ func (l *whowasStack) push(nick, user, host, realname string) {
 	l.size++
 }
 
-// search searches the stack for occurences of nick, starting with the
-// most recent entries first. If count > 1, up to a count number of
-// entries will be returned.
-func (l *whowasStack) search(nick string, count int) []*whowasInfo {
+// search searches the stack for any occurence of any nick in nicks,
+// starting with the most recent entries first. If count > 1, up to a
+// count number of entries will be returned.
+func (l *whowasStack) search(nicks []string, count int) []*whowasInfo {
 	matches := make([]*whowasInfo, 0, count)
 
 	l.m.RLock()
@@ -43,11 +43,12 @@ func (l *whowasStack) search(nick string, count int) []*whowasInfo {
 	i := 1
 	current := l.head
 	for current != nil && i <= count {
-		if current.data.nick == nick {
-			matches = append(matches, &current.data)
-			i++
+		for _, n := range nicks {
+			if current.data.nick == n {
+				matches = append(matches, &current.data)
+				i++
+			}
 		}
-
 		current = current.next
 	}
 

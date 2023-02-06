@@ -174,7 +174,7 @@ var isupportTokens = func() []string {
 		"PREFIX=(qaohv)~&@%+",
 		"WHOX",
 		"UTF8ONLY",
-		"TARGMAX=NAMES:,PRIVMSG:,WHOIS:",
+		"TARGMAX=NAMES:,PRIVMSG:,WHOIS:,WHOWAS:",
 
 		// TODO: honor the below values
 		"AWAYLEN=200",

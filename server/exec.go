@@ -1237,19 +1237,17 @@ func WHOWAS(s *Server, c *client.Client, m *msg.Message) {
 	}
 
 	nicks := strings.Split(m.Params[0], ",")
-	for _, nick := range nicks {
-		info := s.whowasHistory.search(nick, count)
-		if len(info) == 0 {
-			s.writeReply(c, ERR_WASNOSUCHNICK, nick)
-			s.writeReply(c, RPL_ENDOFWHOWAS, nick)
-			continue
-		}
-
-		for _, v := range info {
-			s.writeReply(c, RPL_WHOWASUSER, v.nick, v.user, v.host, v.realname)
-		}
-		s.writeReply(c, RPL_ENDOFWHOWAS, nick)
+	info := s.whowasHistory.search(nicks, count)
+	if len(info) == 0 {
+		s.writeReply(c, ERR_WASNOSUCHNICK, m.Params[0])
+		s.writeReply(c, RPL_ENDOFWHOWAS, m.Params[0])
+		return
 	}
+
+	for _, v := range info {
+		s.writeReply(c, RPL_WHOWASUSER, v.nick, v.user, v.host, v.realname)
+	}
+	s.writeReply(c, RPL_ENDOFWHOWAS, m.Params[0])
 }
 
 func PRIVMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }
