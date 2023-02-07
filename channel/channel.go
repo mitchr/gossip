@@ -50,7 +50,7 @@ type Channel struct {
 
 	// map of Nick to undelying client
 	Members     map[string]*Member
-	MembersLock sync.RWMutex
+	membersLock sync.RWMutex
 }
 
 func New(name string, t ChanType) *Channel {
@@ -68,42 +68,48 @@ func (c *Channel) String() string {
 }
 
 func (c *Channel) Len() int {
-	c.MembersLock.RLock()
-	defer c.MembersLock.RUnlock()
+	c.membersLock.RLock()
+	defer c.membersLock.RUnlock()
 
 	return len(c.Members)
 }
 
 func (c *Channel) GetMember(m string) (*Member, bool) {
-	c.MembersLock.RLock()
-	defer c.MembersLock.RUnlock()
+	c.membersLock.RLock()
+	defer c.membersLock.RUnlock()
 
 	mem, ok := c.Members[strings.ToLower(m)]
 	return mem, ok
 }
 func (c *Channel) SetMember(v *Member) {
-	c.MembersLock.Lock()
-	defer c.MembersLock.Unlock()
+	c.membersLock.Lock()
+	defer c.membersLock.Unlock()
 
 	c.Members[strings.ToLower(v.Nick)] = v
 }
 
 func (c *Channel) DeleteMember(m string) {
-	c.MembersLock.Lock()
-	defer c.MembersLock.Unlock()
+	c.membersLock.Lock()
+	defer c.membersLock.Unlock()
 
 	delete(c.Members, strings.ToLower(m))
 }
 
-func (ch *Channel) ForAllMembersExcept(c *client.Client, f func(m *Member)) {
-	ch.MembersLock.RLock()
-	defer ch.MembersLock.RUnlock()
+func (ch *Channel) ForAllMembers(f func(m *Member)) {
+	ch.membersLock.RLock()
+	defer ch.membersLock.RUnlock()
 	for _, v := range ch.Members {
-		if v.Client == c {
-			continue
-		}
 		f(v)
 	}
+}
+
+func (ch *Channel) ForAllMembersExcept(c *client.Client, f func(m *Member)) {
+	ch.ForAllMembers(func(m *Member) {
+		if m.Client == c {
+			return
+		}
+		f(m)
+	})
 }
 
 func (c *Channel) Modes() (modestr string, params []string) {
@@ -163,8 +169,8 @@ func (c *Channel) Modes() (modestr string, params []string) {
 // }
 
 func (c *Channel) WriteMessage(m *msg.Message) {
-	c.MembersLock.RLock()
-	defer c.MembersLock.RUnlock()
+	c.membersLock.RLock()
+	defer c.membersLock.RUnlock()
 
 	for _, v := range c.Members {
 		v.WriteMessage(m)
@@ -172,8 +178,8 @@ func (c *Channel) WriteMessage(m *msg.Message) {
 }
 
 func (c *Channel) WriteMessageFrom(m *msg.Message, from *client.Client) {
-	c.MembersLock.RLock()
-	defer c.MembersLock.RUnlock()
+	c.membersLock.RLock()
+	defer c.membersLock.RUnlock()
 
 	for _, v := range c.Members {
 		v.WriteMessageFrom(m, from)

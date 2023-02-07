@@ -134,31 +134,29 @@ func (s *Server) NOTICE(c *client.Client, m string) {
 // invisibles is true, include invisible members in the response; this
 // should only be done if the requesting client is also a member of the
 // channel
-func constructNAMREPLY(c *channel.Channel, invisibles bool, multiPrefix bool, userhostInNames bool) (symbol string, members string) {
+func constructNAMREPLY(ch *channel.Channel, invisibles bool, multiPrefix bool, userhostInNames bool) (symbol string, members string) {
 	symbol = "="
-	if c.Secret {
+	if ch.Secret {
 		symbol = "@"
 	}
 
-	c.MembersLock.RLock()
-	defer c.MembersLock.RUnlock()
-	for _, v := range c.Members {
+	ch.ForAllMembers(func(m *channel.Member) {
 		// if not inluding invisible clients, and this client is invisible
-		if !invisibles && v.Client.Is(client.Invisible) {
-			continue
+		if !invisibles && m.Client.Is(client.Invisible) {
+			return
 		}
 
-		highest := v.HighestPrefix(multiPrefix)
+		highest := m.HighestPrefix(multiPrefix)
 		if highest != "" {
 			members += highest
 		}
 
-		identifier := v.Nick
+		identifier := m.Nick
 		if userhostInNames {
-			identifier = v.String()
+			identifier = m.String()
 		}
 		members += identifier + " "
-	}
+	})
 	return symbol, members[:len(members)-1]
 }
 

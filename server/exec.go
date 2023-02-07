@@ -409,8 +409,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 
 			// send JOIN to all participants of channel
 			joinMsgParams := []string{ch.String(), c.SASLMech.Authn(), c.Realname}
-			ch.MembersLock.Lock()
-			for _, m := range ch.Members {
+			ch.ForAllMembers(func(m *channel.Member) {
 				joinMsg := msg.New(nil, c.Nick, c.User, c.Host, "JOIN", nil, false)
 				if m.Caps[cap.ExtendedJoin.Name] {
 					joinMsg.Params = joinMsgParams
@@ -418,8 +417,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 					joinMsg.Params = joinMsgParams[:1]
 				}
 				m.WriteMessage(joinMsg)
-			}
-			ch.MembersLock.Unlock()
+			})
 
 			if ch.Topic != "" {
 				// only send topic if it exists
@@ -992,19 +990,16 @@ func WHO(s *Server, c *client.Client, m *msg.Message) {
 	// first, try to match channels exactly against the mask. if exists,
 	// returns WHOREPLY for every member in channel. else, we will match
 	// exactly against the client name.
-	ch, ok := s.getChannel(mask)
-	if ok {
-		ch.MembersLock.RLock()
-		for _, member := range ch.Members {
+	if ch, ok := s.getChannel(mask); ok {
+		ch.ForAllMembers(func(m *channel.Member) {
 			if whox {
-				resp := constructSpcrplResponse(fields, member.Client, s)
+				resp := constructSpcrplResponse(fields, m.Client, s)
 				s.writeReply(c, RPL_WHOSPCRPL, resp)
 			} else {
-				flags := whoreplyFlagsForMember(member, c.Caps[cap.MultiPrefix.Name])
-				s.writeReply(c, RPL_WHOREPLY, ch, member.User, member.Host, s.Name, member.Nick, flags, member.Realname)
+				flags := whoreplyFlagsForMember(m, c.Caps[cap.MultiPrefix.Name])
+				s.writeReply(c, RPL_WHOREPLY, ch, m.User, m.Host, s.Name, m.Nick, flags, m.Realname)
 			}
-		}
-		ch.MembersLock.RUnlock()
+		})
 		s.writeReply(c, RPL_ENDOFWHO, mask)
 		return
 	}
