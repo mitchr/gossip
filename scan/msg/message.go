@@ -43,6 +43,13 @@ func (t Tag) Raw() string {
 	return string(escaped)
 }
 
+type Msg interface {
+	Bytes() []byte
+	AddTag(k, v string)
+	SetMsgid()
+	RemoveAllTags() Msg
+}
+
 // Message represents a single irc message
 type Message struct {
 	tags             []Tag
@@ -195,7 +202,7 @@ func (m *Message) TrimNonClientTags() {
 
 // Return a copy of the message with the tags removed. Used for sending
 // messages to clients that do not support message-tags
-func (m Message) RemoveAllTags() *Message {
+func (m Message) RemoveAllTags() Msg {
 	m.tags = nil
 	return &m
 }

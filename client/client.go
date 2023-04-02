@@ -221,15 +221,23 @@ func (c *Client) Write(b []byte) (int, error) {
 
 const timeFormat string = "2006-01-02T15:04:05.999Z"
 
-func (c *Client) WriteMessage(m *msg.Message) {
+func (c *Client) WriteMessage(m msg.Msg) {
 	if c.Caps[capability.ServerTime.Name] {
 		m.AddTag("time", time.Now().UTC().Format(timeFormat))
+	}
+
+	if c.Caps[capability.LabeledResponses.Name] {
+		if batched, ok := m.(*msg.MsgBuffer); ok {
+			if batched.Len() > 1 {
+				batched.WrapInBatch(msg.Label)
+			}
+		}
 	}
 
 	c.Write(m.Bytes())
 }
 
-func (c *Client) WriteMessageFrom(m *msg.Message, from *Client) {
+func (c *Client) WriteMessageFrom(m msg.Msg, from *Client) {
 	if from.Is(Bot) {
 		m.AddTag("bot", "")
 	}
