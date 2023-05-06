@@ -410,13 +410,13 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) {
 			// send JOIN to all participants of channel
 			joinMsgParams := []string{ch.String(), c.SASLMech.Authn(), c.Realname}
 			ch.ForAllMembers(func(m *channel.Member) {
-				joinMsg := msg.New(nil, c.Nick, c.User, c.Host, "JOIN", nil, false)
 				if m.Caps[cap.ExtendedJoin.Name] {
-					joinMsg.Params = joinMsgParams
+					joinMsg := msg.New(nil, c.Nick, c.User, c.Host, "JOIN", joinMsgParams, false)
+					m.WriteMessage(joinMsg)
 				} else {
-					joinMsg.Params = joinMsgParams[:1]
+					joinMsg := msg.New(nil, c.Nick, c.User, c.Host, "JOIN", joinMsgParams[:1], false)
+					m.WriteMessage(joinMsg)
 				}
-				m.WriteMessage(joinMsg)
 			})
 
 			if ch.Topic != "" {
@@ -959,7 +959,7 @@ func buildModestr(modes []mode.Mode) string {
 }
 
 // used for responding to requests to list the various channel mode lists
-func (s *Server) sendChannelModeList(c *client.Client, ch *channel.Channel, list []string, dataResponse string, endResponse string) {
+func (s *Server) sendChannelModeList(c *client.Client, ch *channel.Channel, list []string, dataResponse *msg.Message, endResponse *msg.Message) {
 	for _, v := range list {
 		s.writeReply(c, dataResponse, ch, v)
 	}

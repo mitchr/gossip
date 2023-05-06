@@ -211,6 +211,23 @@ func TestTagRaw(t *testing.T) {
 	}
 }
 
+func TestMessageFormat(t *testing.T) {
+	m := &Message{
+		Nick:        "dan",
+		User:        "d",
+		Host:        "localhost",
+		Command:     "PRIVMSG",
+		Params:      []string{"%s%s", "%s!"},
+		trailingSet: true,
+	}
+
+	formattedM := m.Format("#chan", "b", "Hey")
+	if formattedM.String() != ":dan!d@localhost PRIVMSG #chanb :Hey!\r\n" {
+		t.Log(formattedM.String())
+		t.Fail()
+	}
+}
+
 var testInput []byte = []byte("@a=b :bob!Bob@example.com PRIVMSG alice :Welcome to the server!\r\n")
 
 func BenchmarkLex(b *testing.B) {

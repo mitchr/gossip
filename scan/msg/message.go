@@ -2,6 +2,8 @@ package msg
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -62,11 +64,9 @@ type Message struct {
 }
 
 func New(tags []Tag, nick, user, host, command string, params []string, trailing bool) *Message {
-	// cleanedTags := make(map[string]TagVal, len(tags))
-	// for k, v := range tags {
-	// 	cleanedTags[k] = TagVal{Value: v}
-	// }
-	return &Message{tags, nick, user, host, command, params, trailing}
+	tagCopy := make([]Tag, len(tags))
+	copy(tagCopy, tags)
+	return &Message{tagCopy, nick, user, host, command, params, trailing}
 }
 
 func (m Message) estimateMessageSize() int {
@@ -204,5 +204,27 @@ func (m *Message) TrimNonClientTags() {
 // messages to clients that do not support message-tags
 func (m Message) RemoveAllTags() Msg {
 	m.tags = nil
+	return &m
+}
+
+func (m Message) Format(a ...interface{}) *Message {
+	aPos := 0
+	newParams := make([]string, len(m.Params))
+
+	for i := 0; i < len(m.Params); i++ {
+		c := strings.Count(m.Params[i], "%")
+
+		if aPos+c > len(a) {
+			newParams[i] = fmt.Sprintf(m.Params[i], a[aPos:]...)
+			m.Params = newParams
+			return &m
+		} else {
+			newParams[i] = fmt.Sprintf(m.Params[i], a[aPos:aPos+c]...)
+		}
+
+		aPos += c
+	}
+
+	m.Params = newParams
 	return &m
 }

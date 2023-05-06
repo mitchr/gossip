@@ -87,7 +87,7 @@ func TestAUTHENTICATE(t *testing.T) {
 		c.Write([]byte("AUTHENTICATE PLAIN\r\n"))
 		resp, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(ERR_SASLALREADY, s.Name, "*"), t)
+		assertResponse(resp, prepMessage(ERR_SASLALREADY, s.Name, "*").String(), t)
 	})
 
 	t.Run("TestAUTHENTICATEAbort", func(t *testing.T) {
@@ -105,7 +105,7 @@ func TestAUTHENTICATE(t *testing.T) {
 		c.Write([]byte("AUTHENTICATE anything\r\n"))
 		resp, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(ERR_SASLABORTED, s.Name, "c"), t)
+		assertResponse(resp, prepMessage(ERR_SASLABORTED, s.Name, "c").String(), t)
 	})
 
 	t.Run("TestMissingParams", func(t *testing.T) {
@@ -139,8 +139,8 @@ func TestAUTHENTICATE(t *testing.T) {
 		mechList, _ := r.ReadBytes('\n')
 		fail, _ := r.ReadBytes('\n')
 
-		assertResponse(mechList, fmt.Sprintf(RPL_SASLMECHS, s.Name, "*", "PLAIN,EXTERNAL,SCRAM-SHA-256"), t)
-		assertResponse(fail, fmt.Sprintf(ERR_SASLFAIL, s.Name, "*"), t)
+		assertResponse(mechList, prepMessage(RPL_SASLMECHS, s.Name, "*", "PLAIN,EXTERNAL,SCRAM-SHA-256").String(), t)
+		assertResponse(fail, prepMessage(ERR_SASLFAIL, s.Name, "*").String(), t)
 	})
 }
 
@@ -201,10 +201,10 @@ func TestAUTHENTICATEEXTERNAL(t *testing.T) {
 
 	c.Write([]byte("AUTHENTICATE +\r\n"))
 	resp, _ = r.ReadBytes('\n')
-	assertResponse(resp, fmt.Sprintf(RPL_LOGGEDIN, s.Name, "a", "a!a@localhost", "a", "a"), t)
+	assertResponse(resp, prepMessage(RPL_LOGGEDIN, s.Name, "a", "a!a@localhost", "a", "a").String(), t)
 
 	resp, _ = r.ReadBytes('\n')
-	assertResponse(resp, fmt.Sprintf(RPL_SASLSUCCESS, s.Name, "a"), t)
+	assertResponse(resp, prepMessage(RPL_SASLSUCCESS, s.Name, "a").String(), t)
 }
 
 func TestAUTHENTICATESCRAM(t *testing.T) {
@@ -242,5 +242,5 @@ func TestEndRegistrationWithANickBelongingToRegisteredAccount(t *testing.T) {
 
 	c.Write([]byte("nick m\r\nuser u s e r\r\n"))
 	resp, _ := r.ReadBytes('\n')
-	assertResponse(resp, fmt.Sprintf(ERR_NICKNAMEINUSE, s.Name, "m", "m"), t)
+	assertResponse(resp, prepMessage(ERR_NICKNAMEINUSE, s.Name, "m", "m").String(), t)
 }

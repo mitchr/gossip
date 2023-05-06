@@ -129,7 +129,7 @@ func (s *Server) accountNotify(c *client.Client) {
 			}
 			clients[m.Client] = true
 			m.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false))
-			s.writeReply(m.Client, "ACCOUNT %s", c.SASLMech.Authn())
+			s.writeReply(m.Client, msg.New(nil, "", "", "", "ACCOUNT", []string{c.SASLMech.Authn()}, false))
 		})
 	}
 

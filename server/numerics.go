@@ -1,122 +1,122 @@
 package server
 
 import (
-	"fmt"
-
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
 )
 
-const (
-	RPL_WELCOME          = ":%s 001 %s :Welcome to the %s IRC Network %s\r\n"
-	RPL_YOURHOST         = ":%s 002 %s :Your host is %s\r\n"
-	RPL_CREATED          = ":%s 003 %s :This server was created %s\r\n"
-	RPL_MYINFO           = ":%s 004 %s %s %s %s %s\r\n"
-	RPL_ISUPPORT         = ":%s 005 %s %s :are supported by this server\r\n"
-	RPL_UMODEIS          = ":%s 221 %s %s\r\n"
-	RPL_LUSERCLIENT      = ":%s 251 %s :There are %d users and %d invisible on %d servers\r\n"
-	RPL_LUSEROP          = ":%s 252 %s %d :operator(s) online\r\n"
-	RPL_LUSERUNKNOWN     = ":%s 253 %s %d :unknown connection(s)\r\n"
-	RPL_LUSERCHANNELS    = ":%s 254 %s %d :channels formed\r\n"
-	RPL_LUSERME          = ":%s 255 %s :I have %d clients and %d servers\r\n"
-	RPL_LOCALUSERS       = ":%s 265 %s %v %v :Current local users %v, max %v\r\n"
-	RPL_GLOBALUSERS      = ":%s 266 %s %v %v :Current global users %v, max %v\r\n"
-	RPL_WHOISCERTFP      = ":%s 276 %s %s :has client certificate fingerprint %s\r\n"
-	RPL_AWAY             = ":%s 301 %s %s :%s\r\n"
-	RPL_USERHOST         = ":%s 302 %s :%s\r\n"
-	RPL_UNAWAY           = ":%s 305 %s :You are no longer marked as being away\r\n"
-	RPL_NOWAWAY          = ":%s 306 %s :You have been marked as being away\r\n"
-	RPL_WHOISUSER        = ":%s 311 %s %s %s %s * :%s\r\n"
-	RPL_WHOISSERVER      = ":%s 312 %s %s %s :%s\r\n"
-	RPL_WHOISOPERATOR    = ":%s 313 %s %s :is an IRC operator\r\n"
-	RPL_WHOWASUSER       = ":%s 314 %s %s %s %s * %s\r\n"
-	RPL_WHOISIDLE        = ":%s 317 %s %s %v %v :seconds idle, signon time\r\n"
-	RPL_ENDOFWHOIS       = ":%s 318 %s %s :End of /WHOIS list\r\n"
-	RPL_WHOISCHANNELS    = ":%s 319 %s %s%s\r\n"
-	RPL_ENDOFWHO         = ":%s 315 %s %s :End of WHO list\r\n"
-	RPL_LIST             = ":%s 322 %s %s %v :%s\r\n"
-	RPL_LISTEND          = ":%s 323 %s :End of /LIST\r\n"
-	RPL_CHANNELMODEIS    = ":%s 324 %s %s %s%s\r\n"
-	RPL_CREATIONTIME     = ":%s 329 %s %s %s\r\n"
-	RPL_WHOISACCOUNT     = ":%s 330 %s %s %s :is logged in as\r\n"
-	RPL_NOTOPIC          = ":%s 331 %s %s :No topic is set\r\n"
-	RPL_TOPIC            = ":%s 332 %s %s :%s\r\n"
-	RPL_TOPICWHOTIME     = ":%s 333 %s %s %s %v\r\n"
-	RPL_WHOISBOT         = ":%s 335 %s %s :bot\r\n"
-	RPL_INVITING         = ":%s 341 %s %s %s\r\n"
-	RPL_INVITELIST       = ":%s 346 %s %s %s\r\n"
-	RPL_ENDOFINVITELIST  = ":%s 347 %s %s :End of channel invite list\r\n"
-	RPL_EXCEPTLIST       = ":%s 348 %s %s %s\r\n"
-	RPL_ENDOFEXCEPTLIST  = ":%s 349 %s %s :End of channel exception list\r\n"
-	RPL_WHOREPLY         = ":%s 352 %s %s %s %s %s %s %s :0 %s\r\n"
-	RPL_NAMREPLY         = ":%s 353 %s %s %s :%s\r\n"
-	RPL_WHOSPCRPL        = ":%s 354 %s %s\r\n"
-	RPL_ENDOFNAMES       = ":%s 366 %s %s :End of /NAMES list\r\n"
-	RPL_BANLIST          = ":%s 367 %s %s %s\r\n"
-	RPL_ENDOFBANLIST     = ":%s 368 %s %s :End of channel ban list\r\n"
-	RPL_ENDOFWHOWAS      = ":%s 369 %s %s :End of WHOWAS\r\n"
-	RPL_MOTDSTART        = ":%s 375 %s :- %s Message of the Day -\r\n"
-	RPL_INFO             = ":%s 371 %s :%s\r\n"
-	RPL_MOTD             = ":%s 372 %s :%s\r\n"
-	RPL_ENDOFINFO        = ":%s 374 %s :End of INFO list\r\n"
-	RPL_ENDOFMOTD        = ":%s 376 %s :End of /MOTD command\r\n"
-	RPL_YOUREOPER        = ":%s 381 %s :You are now an IRC operator\r\n"
-	RPL_REHASHING        = ":%s 382 %s %s :Rehashing\r\n"
-	RPL_TIME             = ":%s 391 %s %s :%s\r\n"
-	ERR_NOSUCHNICK       = ":%s 401 %s %s :No such nick/channel\r\n"
-	ERR_NOSUCHCHANNEL    = ":%s 403 %s %s :No such channel\r\n"
-	ERR_CANNOTSENDTOCHAN = ":%s 404 %s %s :Cannot send to channel\r\n"
-	ERR_WASNOSUCHNICK    = ":%s 406 %s %s :There was no such nickname\r\n"
-	ERR_INVALIDCAPCMD    = ":%s 410 %s %s :Invalid CAP command\r\n"
-	ERR_NORECIPIENT      = ":%s 411 %s :No recipient given (%s)\r\n"
-	ERR_NOTEXTTOSEND     = ":%s 412 %s :No text to send\r\n"
-	ERR_INPUTTOOLONG     = ":%s 417 %s :Input line was too long\r\n"
-	ERR_UNKNOWNCOMMAND   = ":%s 421 %s %s :Unknown command\r\n"
-	ERR_NOMOTD           = ":%s 422 %s :MOTD file is missing\r\n"
-	ERR_NONICKNAMEGIVEN  = ":%s 431 %s :No nickname given\r\n"
-	ERR_ERRONEUSNICKNAME = ":%s 432 %s :Erroneous nickname\r\n"
-	ERR_NICKNAMEINUSE    = ":%s 433 %s %s :Nickname is already in use\r\n"
-	ERR_USERNOTINCHANNEL = ":%s 441 %s %s %s :They aren't on that channel\r\n"
-	ERR_NOTONCHANNEL     = ":%s 442 %s %s :You're not on that channel\r\n"
-	ERR_USERONCHANNEL    = ":%s 443 %s %s %s :is already on channel\r\n"
-	ERR_NOTREGISTERED    = ":%s 451 %s :You have not registered\r\n"
-	ERR_NEEDMOREPARAMS   = ":%s 461 %s %s :Not enough parameters\r\n"
-	ERR_ALREADYREGISTRED = ":%s 462 %s :You may not reregister\r\n"
-	ERR_PASSWDMISMATCH   = ":%s 464 %s :Password Incorrect\r\n"
-	ERR_CHANNELISFULL    = ":%s 471 %s %s :Cannot join channel (+l)\r\n"
-	ERR_UNKNOWNMODE      = ":%s 472 %s %s :is unknown mode char to me for %s\r\n"
-	ERR_INVITEONLYCHAN   = ":%s 473 %s %s :Cannot join channel (+i)\r\n"
-	ERR_BANNEDFROMCHAN   = ":%s 474 %s %s :Cannot join channel (+b)\r\n"
-	ERR_BADCHANNELKEY    = ":%s 475 %s %s :Cannot join channel (+k)\r\n"
-	ERR_NOPRIVILEGES     = ":%s 481 %s :Permission Denied - You're not an IRC operator\r\n"
-	ERR_CHANOPRIVSNEEDED = ":%s 482 %s %s :You're not a channel operator\r\n"
-	ERR_UMODEUNKNOWNFLAG = ":%s 501 %s :Unknown MODE flag\r\n"
-	ERR_USERSDONTMATCH   = ":%s 502 %s :Can't change mode for other users\r\n"
-	ERR_INVALIDKEY       = ":%s 525 %s %s :Key is not well-formed\r\n"
-	RPL_MONONLINE        = ":%s 730 %s :%s\r\n"
-	RPL_MONOFFLINE       = ":%s 731 %s :%s\r\n"
-	RPL_MONLIST          = ":%s 732 %s :%s\r\n"
-	RPL_ENDOFMONLIST     = ":%s 733 %s :End of MONITOR list\r\n"
+var (
+	RPL_WELCOME          = msg.New(nil, "", "", "", "001", []string{"%s", "Welcome to the %s IRC Network %s"}, true)
+	RPL_YOURHOST         = msg.New(nil, "", "", "", "002", []string{"%s", "Your host is %s"}, true)
+	RPL_CREATED          = msg.New(nil, "", "", "", "003", []string{"%s", "This server was created %s"}, true)
+	RPL_MYINFO           = msg.New(nil, "", "", "", "004", []string{"%s", "%s", "%s", "%s", "%s"}, false)
+	RPL_ISUPPORT         = msg.New(nil, "", "", "", "005", []string{"%s", "%s", "are supported by this server"}, true)
+	RPL_UMODEIS          = msg.New(nil, "", "", "", "221", []string{"%s", "%s"}, false)
+	RPL_LUSERCLIENT      = msg.New(nil, "", "", "", "251", []string{"%s", "There are %d users and %d invisible on %d servers"}, true)
+	RPL_LUSEROP          = msg.New(nil, "", "", "", "252", []string{"%s", "%d", "operator(s) online"}, true)
+	RPL_LUSERUNKNOWN     = msg.New(nil, "", "", "", "253", []string{"%s", "%d", "unknown connection(s)"}, true)
+	RPL_LUSERCHANNELS    = msg.New(nil, "", "", "", "254", []string{"%s", "%d", "channels formed"}, true)
+	RPL_LUSERME          = msg.New(nil, "", "", "", "255", []string{"%s", "I have %d clients and %d servers"}, true)
+	RPL_LOCALUSERS       = msg.New(nil, "", "", "", "265", []string{"%s", "%v", "%v", "Current local users %v, max %v"}, true)
+	RPL_GLOBALUSERS      = msg.New(nil, "", "", "", "266", []string{"%s", "%v", "%v", "Current global users %v, max %v"}, true)
+	RPL_WHOISCERTFP      = msg.New(nil, "", "", "", "276", []string{"%s", "%s", "has client certificate fingerprint %s"}, true)
+	RPL_AWAY             = msg.New(nil, "", "", "", "301", []string{"%s", "%s", "%s"}, true)
+	RPL_USERHOST         = msg.New(nil, "", "", "", "302", []string{"%s", "%s"}, true)
+	RPL_UNAWAY           = msg.New(nil, "", "", "", "305", []string{"%s", "You are no longer marked as being away"}, true)
+	RPL_NOWAWAY          = msg.New(nil, "", "", "", "306", []string{"%s", "You have been marked as being away"}, true)
+	RPL_WHOISUSER        = msg.New(nil, "", "", "", "311", []string{"%s", "%s", "%s", "%s", "*", "%s"}, true)
+	RPL_WHOISSERVER      = msg.New(nil, "", "", "", "312", []string{"%s", "%s", "%s", "%s"}, true)
+	RPL_WHOISOPERATOR    = msg.New(nil, "", "", "", "313", []string{"%s", "%s", "is an IRC operator"}, true)
+	RPL_WHOWASUSER       = msg.New(nil, "", "", "", "314", []string{"%s", "%s", "%s", "%s", "*", "%s"}, false)
+	RPL_WHOISIDLE        = msg.New(nil, "", "", "", "317", []string{"%s", "%s", "%v", "%v", "seconds idle, signon time"}, true)
+	RPL_ENDOFWHOIS       = msg.New(nil, "", "", "", "318", []string{"%s", "%s", "End of /WHOIS list"}, true)
+	RPL_WHOISCHANNELS    = msg.New(nil, "", "", "", "319", []string{"%s", "%s%s"}, false)
+	RPL_ENDOFWHO         = msg.New(nil, "", "", "", "315", []string{"%s", "%s", "End of WHO list"}, true)
+	RPL_LIST             = msg.New(nil, "", "", "", "322", []string{"%s", "%s", "%v", "%s"}, true)
+	RPL_LISTEND          = msg.New(nil, "", "", "", "323", []string{"%s", "End of /LIST"}, true)
+	RPL_CHANNELMODEIS    = msg.New(nil, "", "", "", "324", []string{"%s", "%s", "%s%s"}, false)
+	RPL_CREATIONTIME     = msg.New(nil, "", "", "", "329", []string{"%s", "%s", "%s"}, false)
+	RPL_WHOISACCOUNT     = msg.New(nil, "", "", "", "330", []string{"%s", "%s", "%s", "is logged in as"}, true)
+	RPL_NOTOPIC          = msg.New(nil, "", "", "", "331", []string{"%s", "%s", "No topic is set"}, true)
+	RPL_TOPIC            = msg.New(nil, "", "", "", "332", []string{"%s", "%s", "%s"}, true)
+	RPL_TOPICWHOTIME     = msg.New(nil, "", "", "", "333", []string{"%s", "%s", "%s", "%v"}, false)
+	RPL_WHOISBOT         = msg.New(nil, "", "", "", "335", []string{"%s", "%s", "bot"}, true)
+	RPL_INVITING         = msg.New(nil, "", "", "", "341", []string{"%s", "%s", "%s"}, false)
+	RPL_INVITELIST       = msg.New(nil, "", "", "", "346", []string{"%s", "%s", "%s"}, false)
+	RPL_ENDOFINVITELIST  = msg.New(nil, "", "", "", "347", []string{"%s", "%s", "End of channel invite list"}, true)
+	RPL_EXCEPTLIST       = msg.New(nil, "", "", "", "348", []string{"%s", "%s", "%s"}, false)
+	RPL_ENDOFEXCEPTLIST  = msg.New(nil, "", "", "", "349", []string{"%s", "%s", "End of channel exception list"}, true)
+	RPL_WHOREPLY         = msg.New(nil, "", "", "", "352", []string{"%s", "%s", "%s", "%s", "%s", "%s", "%s", "0 %s"}, true)
+	RPL_NAMREPLY         = msg.New(nil, "", "", "", "353", []string{"%s", "%s", "%s", "%s"}, true)
+	RPL_WHOSPCRPL        = msg.New(nil, "", "", "", "354", []string{"%s", "%s"}, false)
+	RPL_ENDOFNAMES       = msg.New(nil, "", "", "", "366", []string{"%s", "%s", "End of /NAMES list"}, true)
+	RPL_BANLIST          = msg.New(nil, "", "", "", "367", []string{"%s", "%s", "%s"}, false)
+	RPL_ENDOFBANLIST     = msg.New(nil, "", "", "", "368", []string{"%s", "%s", "End of channel ban list"}, true)
+	RPL_ENDOFWHOWAS      = msg.New(nil, "", "", "", "369", []string{"%s", "%s", "End of WHOWAS"}, true)
+	RPL_MOTDSTART        = msg.New(nil, "", "", "", "375", []string{"%s", "- %s Message of the Day -"}, true)
+	RPL_INFO             = msg.New(nil, "", "", "", "371", []string{"%s", "%s"}, true)
+	RPL_MOTD             = msg.New(nil, "", "", "", "372", []string{"%s", "%s"}, true)
+	RPL_ENDOFINFO        = msg.New(nil, "", "", "", "374", []string{"%s", "End of INFO list"}, true)
+	RPL_ENDOFMOTD        = msg.New(nil, "", "", "", "376", []string{"%s", "End of /MOTD command"}, true)
+	RPL_YOUREOPER        = msg.New(nil, "", "", "", "381", []string{"%s", "You are now an IRC operator"}, true)
+	RPL_REHASHING        = msg.New(nil, "", "", "", "382", []string{"%s", "%s", "Rehashing"}, true)
+	RPL_TIME             = msg.New(nil, "", "", "", "391", []string{"%s", "%s", "%s"}, true)
+	ERR_NOSUCHNICK       = msg.New(nil, "", "", "", "401", []string{"%s", "%s", "No such nick/channel"}, true)
+	ERR_NOSUCHCHANNEL    = msg.New(nil, "", "", "", "403", []string{"%s", "%s", "No such channel"}, true)
+	ERR_CANNOTSENDTOCHAN = msg.New(nil, "", "", "", "404", []string{"%s", "%s", "Cannot send to channel"}, true)
+	ERR_WASNOSUCHNICK    = msg.New(nil, "", "", "", "406", []string{"%s", "%s", "There was no such nickname"}, true)
+	ERR_INVALIDCAPCMD    = msg.New(nil, "", "", "", "410", []string{"%s", "%s", "Invalid CAP command"}, true)
+	ERR_NORECIPIENT      = msg.New(nil, "", "", "", "411", []string{"%s", "No recipient given (%s)"}, true)
+	ERR_NOTEXTTOSEND     = msg.New(nil, "", "", "", "412", []string{"%s", "No text to send"}, true)
+	ERR_INPUTTOOLONG     = msg.New(nil, "", "", "", "417", []string{"%s", "Input line was too long"}, true)
+	ERR_UNKNOWNCOMMAND   = msg.New(nil, "", "", "", "421", []string{"%s", "%s", "Unknown command"}, true)
+	ERR_NOMOTD           = msg.New(nil, "", "", "", "422", []string{"%s", "MOTD file is missing"}, true)
+	ERR_NONICKNAMEGIVEN  = msg.New(nil, "", "", "", "431", []string{"%s", "No nickname given"}, true)
+	ERR_ERRONEUSNICKNAME = msg.New(nil, "", "", "", "432", []string{"%s", "Erroneous nickname"}, true)
+	ERR_NICKNAMEINUSE    = msg.New(nil, "", "", "", "433", []string{"%s", "%s", "Nickname is already in use"}, true)
+	ERR_USERNOTINCHANNEL = msg.New(nil, "", "", "", "441", []string{"%s", "%s", "%s", "They aren't on that channel"}, true)
+	ERR_NOTONCHANNEL     = msg.New(nil, "", "", "", "442", []string{"%s", "%s", "You're not on that channel"}, true)
+	ERR_USERONCHANNEL    = msg.New(nil, "", "", "", "443", []string{"%s", "%s", "%s", "is already on channel"}, true)
+	ERR_NOTREGISTERED    = msg.New(nil, "", "", "", "451", []string{"%s", "You have not registered"}, true)
+	ERR_NEEDMOREPARAMS   = msg.New(nil, "", "", "", "461", []string{"%s", "%s", "Not enough parameters"}, true)
+	ERR_ALREADYREGISTRED = msg.New(nil, "", "", "", "462", []string{"%s", "You may not reregister"}, true)
+	ERR_PASSWDMISMATCH   = msg.New(nil, "", "", "", "464", []string{"%s", "Password Incorrect"}, true)
+	ERR_CHANNELISFULL    = msg.New(nil, "", "", "", "471", []string{"%s", "%s", "Cannot join channel (+l)"}, true)
+	ERR_UNKNOWNMODE      = msg.New(nil, "", "", "", "472", []string{"%s", "%s", "is unknown mode char to me for %s"}, true)
+	ERR_INVITEONLYCHAN   = msg.New(nil, "", "", "", "473", []string{"%s", "%s", "Cannot join channel (+i)"}, true)
+	ERR_BANNEDFROMCHAN   = msg.New(nil, "", "", "", "474", []string{"%s", "%s", "Cannot join channel (+b)"}, true)
+	ERR_BADCHANNELKEY    = msg.New(nil, "", "", "", "475", []string{"%s", "%s", "Cannot join channel (+k)"}, true)
+	ERR_NOPRIVILEGES     = msg.New(nil, "", "", "", "481", []string{"%s", "Permission Denied - You're not an IRC operator"}, true)
+	ERR_CHANOPRIVSNEEDED = msg.New(nil, "", "", "", "482", []string{"%s", "%s", "You're not a channel operator"}, true)
+	ERR_UMODEUNKNOWNFLAG = msg.New(nil, "", "", "", "501", []string{"%s", "Unknown MODE flag"}, true)
+	ERR_USERSDONTMATCH   = msg.New(nil, "", "", "", "502", []string{"%s", "Can't change mode for other users"}, true)
+	ERR_INVALIDKEY       = msg.New(nil, "", "", "", "525", []string{"%s", "%s", "Key is not well-formed"}, true)
+	RPL_MONONLINE        = msg.New(nil, "", "", "", "730", []string{"%s", "%s"}, true)
+	RPL_MONOFFLINE       = msg.New(nil, "", "", "", "731", []string{"%s", "%s"}, true)
+	RPL_MONLIST          = msg.New(nil, "", "", "", "732", []string{"%s", "%s"}, true)
+	RPL_ENDOFMONLIST     = msg.New(nil, "", "", "", "733", []string{"%s", "End of MONITOR list"}, true)
 	// ERR_MONLISTFULL      = ":%s 734 %s %v %v :Monitor list is full"
 
-	RPL_LOGGEDIN    = ":%s 900 %s %s %s :You are now logged in as %s\r\n"
-	RPL_LOGGEDOUT   = ":%s 901 %s %s :You are not logged out\r\n"
-	ERR_NICKLOCKED  = ":%s 902 %s :You must use a nick assigned to you\r\n"
-	RPL_SASLSUCCESS = ":%s 903 %s :SASL authentication successful\r\n"
-	ERR_SASLFAIL    = ":%s 904 %s :SASL authentication failed\r\n"
-	ERR_SASLTOOLONG = ":%s 905 %s :SASL message too long\r\n"
-	ERR_SASLABORTED = ":%s 906 %s :SASL authentication aborted\r\n"
-	ERR_SASLALREADY = ":%s 907 %s :You have already authenticated using SASL\r\n"
-	RPL_SASLMECHS   = ":%s 908 %s %s :are available SASL mechanisms\r\n"
+	RPL_LOGGEDIN    = msg.New(nil, "", "", "", "900", []string{"%s", "%s", "%s", "You are now logged in as %s"}, true)
+	RPL_LOGGEDOUT   = msg.New(nil, "", "", "", "901", []string{"%s", "%s", "You are not logged out"}, true)
+	ERR_NICKLOCKED  = msg.New(nil, "", "", "", "902", []string{"%s", "You must use a nick assigned to you"}, true)
+	RPL_SASLSUCCESS = msg.New(nil, "", "", "", "903", []string{"%s", "SASL authentication successful"}, true)
+	ERR_SASLFAIL    = msg.New(nil, "", "", "", "904", []string{"%s", "SASL authentication failed"}, true)
+	ERR_SASLTOOLONG = msg.New(nil, "", "", "", "905", []string{"%s", "SASL message too long"}, true)
+	ERR_SASLABORTED = msg.New(nil, "", "", "", "906", []string{"%s", "SASL authentication aborted"}, true)
+	ERR_SASLALREADY = msg.New(nil, "", "", "", "907", []string{"%s", "You have already authenticated using SASL"}, true)
+	RPL_SASLMECHS   = msg.New(nil, "", "", "", "908", []string{"%s", "%s", "are available SASL mechanisms"}, true)
 )
 
-func (s *Server) writeReply(c *client.Client, format string, f ...interface{}) {
-	args := make([]interface{}, 2+len(f))
-	args[0] = s.Name
-	args[1] = c.Id()
-	copy(args[2:], f)
-	fmt.Fprintf(c, format, args...)
+func (s *Server) writeReply(c *client.Client, msg *msg.Message, f ...interface{}) {
+	c.WriteMessage(prepMessage(msg, s.Name, c.Id(), f...))
+}
+
+func prepMessage(m *msg.Message, serverName, nick string, f ...interface{}) *msg.Message {
+	mCopy := m.Format(append([]interface{}{nick}, f...)...)
+	mCopy.Nick = serverName
+	return mCopy
 }
 
 func (s *Server) ERROR(c *client.Client, m string) {

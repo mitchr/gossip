@@ -168,7 +168,7 @@ func (c *Channel) Modes() (modestr string, params []string) {
 // 	return n, errors.New(strings.Join(errStrings, "\n"))
 // }
 
-func (c *Channel) WriteMessage(m *msg.Message) {
+func (c *Channel) WriteMessage(m msg.Msg) {
 	c.membersLock.RLock()
 	defer c.membersLock.RUnlock()
 
@@ -177,7 +177,7 @@ func (c *Channel) WriteMessage(m *msg.Message) {
 	}
 }
 
-func (c *Channel) WriteMessageFrom(m *msg.Message, from *client.Client) {
+func (c *Channel) WriteMessageFrom(m msg.Msg, from *client.Client) {
 	c.membersLock.RLock()
 	defer c.membersLock.RUnlock()
 

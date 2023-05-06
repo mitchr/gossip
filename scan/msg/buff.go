@@ -21,6 +21,11 @@ func (b *MsgBuffer) Len() int { return len(b.msgs) }
 
 // Batch all messages together. The caller should not call AddMsg after WrapInBatch.
 func (b *MsgBuffer) WrapInBatch(batchType BatchType) {
+	// single responses don't need to be BATCHed
+	if b.Len() == 1 {
+		return
+	}
+
 	batchLabel := uuid.New().String()
 	start := New(nil, "", "", "", "BATCH", []string{"+" + batchLabel, string(batchType)}, false)
 	end := New(nil, "", "", "", "BATCH", []string{"-" + batchLabel}, false)
