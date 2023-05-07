@@ -1366,7 +1366,11 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) msg.Msg {
 	}
 
 	if c.Caps[cap.EchoMessage.Name] {
-		buff.AddMsg(&msgCopy)
+		if !c.HasMessageTags() {
+			buff.AddMsg(msgCopy.RemoveAllTags())
+		} else {
+			buff.AddMsg(&msgCopy)
+		}
 	}
 
 	return buff
