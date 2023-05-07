@@ -1363,13 +1363,13 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) msg.Msg {
 			}
 			target.WriteMessageFrom(&msgCopy, c)
 		}
-	}
 
-	if c.Caps[cap.EchoMessage.Name] {
-		if !c.HasMessageTags() {
-			buff.AddMsg(msgCopy.RemoveAllTags())
-		} else {
-			buff.AddMsg(&msgCopy)
+		if c.Caps[cap.EchoMessage.Name] {
+			if !c.HasMessageTags() {
+				buff.AddMsg(msgCopy.RemoveAllTags())
+			} else {
+				buff.AddMsg(&msgCopy)
+			}
 		}
 	}
 
