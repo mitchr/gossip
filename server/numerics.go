@@ -126,8 +126,8 @@ func (s *Server) ERROR(c *client.Client, m string) {
 	c.Close()
 }
 
-func (s *Server) NOTICE(c *client.Client, m string) {
-	c.WriteMessage(msg.New(nil, "", "", "", "NOTICE", []string{m}, true))
+func (s *Server) NOTICE(c *client.Client, m string) msg.Msg {
+	return msg.New(nil, "", "", "", "NOTICE", []string{m}, true)
 }
 
 // given a channel, construct a NAMREPLY for all the members. if

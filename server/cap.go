@@ -12,7 +12,7 @@ import (
 	"github.com/mitchr/gossip/scan/msg"
 )
 
-type subcommand func(*Server, *client.Client, ...string)
+type subcommand func(*Server, *client.Client, ...string) msg.Msg
 
 var subs = map[string]subcommand{
 	"LS":   LS,
@@ -24,9 +24,10 @@ var subs = map[string]subcommand{
 // list capabilities that server supports
 // TODO (only for CAP302 clients): when server capabilties take up too
 // much message space, split up into multiple responses like
-// 	CAP * LS * :
-// 	CAP * LS :
-func LS(s *Server, c *client.Client, params ...string) {
+//
+//	CAP * LS * :
+//	CAP * LS :
+func LS(s *Server, c *client.Client, params ...string) msg.Msg {
 	// suspend registration if client has not yet registered
 	if !c.Is(client.Registered) {
 		c.RegSuspended = true
@@ -46,15 +47,15 @@ func LS(s *Server, c *client.Client, params ...string) {
 		c.ApplyCap(cap.CapNotify.Name, false)
 	}
 
-	c.WriteMessage(msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "LS", s.capString(version >= 302)}, true))
+	return msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "LS", s.capString(version >= 302)}, true)
 }
 
 // see what capabilities this client has active during this connection
-func capLIST(s *Server, c *client.Client, params ...string) {
-	c.WriteMessage(msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "LIST", c.CapsSet()}, true))
+func capLIST(s *Server, c *client.Client, params ...string) msg.Msg {
+	return msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "LIST", c.CapsSet()}, true)
 }
 
-func REQ(s *Server, c *client.Client, params ...string) {
+func REQ(s *Server, c *client.Client, params ...string) msg.Msg {
 	// suspend registration if client has not yet registered
 	if !c.Is(client.Registered) {
 		c.RegSuspended = true
@@ -84,8 +85,7 @@ func REQ(s *Server, c *client.Client, params ...string) {
 			todo[i].cap = v
 			todo[i].remove = remove
 		} else { // capability not recognized
-			c.WriteMessage(msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "NAK", strings.Join(params, " ")}, true))
-			return
+			return msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "NAK", strings.Join(params, " ")}, true)
 		}
 	}
 
@@ -93,36 +93,35 @@ func REQ(s *Server, c *client.Client, params ...string) {
 	for _, v := range todo {
 		c.ApplyCap(v.cap, v.remove)
 	}
-	c.WriteMessage(msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "ACK", strings.Join(params, " ")}, true))
+	return msg.New(nil, s.Name, "", "", "CAP", []string{c.Id(), "ACK", strings.Join(params, " ")}, true)
 }
 
-func END(s *Server, c *client.Client, params ...string) {
+func END(s *Server, c *client.Client, params ...string) msg.Msg {
 	// ignore if already registered
 	if c.Is(client.Registered) {
-		return
+		return nil
 	}
 
 	c.RegSuspended = false
-	s.endRegistration(c)
+	return s.endRegistration(c)
 }
 
 // used for capability negotiation
-func CAP(s *Server, c *client.Client, m *msg.Message) {
+func CAP(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	// no subcommand given
 	if len(m.Params) < 1 {
-		s.writeReply(c, ERR_INVALIDCAPCMD, "CAP")
-		return
+		return prepMessage(ERR_INVALIDCAPCMD, s.Name, c.Id(), "CAP")
+
 	}
 
 	subcom, ok := subs[strings.ToUpper(m.Params[0])]
 	if !ok {
-		s.writeReply(c, ERR_INVALIDCAPCMD, "CAP "+m.Params[0])
-		return
+		return prepMessage(ERR_INVALIDCAPCMD, s.Name, c.Id(), "CAP "+m.Params[0])
 	}
-	subcom(s, c, m.Params[1:]...)
+	return subcom(s, c, m.Params[1:]...)
 }
 
-func TAGMSG(s *Server, c *client.Client, m *msg.Message) { s.communicate(m, c) }
+func TAGMSG(s *Server, c *client.Client, m *msg.Message) msg.Msg { return s.communicate(m, c) }
 
 func (s *Server) capString(cap302Enabled bool) string {
 	caps := ""

@@ -18,7 +18,7 @@ import (
 	"github.com/mitchr/gossip/scan/msg"
 )
 
-func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
+func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	_, saslNone := c.SASLMech.(sasl.None)
 	// "If the client completes registration (with CAP END, NICK, USER and
 	// any other necessary messages) while the SASL authentication is
@@ -26,33 +26,28 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	// numeric, then register the client without authentication"
 	if c.Is(client.Registered) && !saslNone && !c.IsAuthenticated {
 		c.SASLMech = nil
-		s.writeReply(c, ERR_SASLABORTED)
-		return
+		return prepMessage(ERR_SASLABORTED, s.Name, c.Id())
 	}
 
 	// client must have requested the SASL capability, and has not yet registered
 	if !c.Caps[cap.SASL.Name] || c.Is(client.Registered) {
-		s.writeReply(c, ERR_SASLFAIL)
-		return
+		return prepMessage(ERR_SASLFAIL, s.Name, c.Id())
 	}
 
 	// "If the client attempts to issue the AUTHENTICATE command after
 	// already authenticating successfully, the server MUST reject it
 	// with a 907 numeric"
 	if c.IsAuthenticated {
-		s.writeReply(c, ERR_SASLALREADY)
-		return
+		return prepMessage(ERR_SASLALREADY, s.Name, c.Id())
 	}
 
 	if len(m.Params) == 0 {
-		s.writeReply(c, ERR_NEEDMOREPARAMS, "AUTHENTICATE")
-		return
+		return prepMessage(ERR_NEEDMOREPARAMS, s.Name, c.Id(), "AUTHENTICATE")
 	}
 
 	if m.Params[0] == "*" {
 		c.SASLMech = nil
-		s.writeReply(c, ERR_SASLABORTED)
-		return
+		return prepMessage(ERR_SASLABORTED, s.Name, c.Id())
 	}
 
 	// this client has no mechanism yet
@@ -65,17 +60,17 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		case "SCRAM-SHA-256":
 			c.SASLMech = scram.New(s.db, sha256.New)
 		default:
-			s.writeReply(c, RPL_SASLMECHS, cap.SASL.Value)
-			s.writeReply(c, ERR_SASLFAIL)
-			return
+			buff := &msg.Buffer{}
+			buff.AddMsg(prepMessage(RPL_SASLMECHS, s.Name, c.Id(), cap.SASL.Value))
+			buff.AddMsg(prepMessage(ERR_SASLFAIL, s.Name, c.Id()))
+			return buff
 		}
 
 		// TODO: all currently supported SASL mechanisms are client-first,
 		// so we can be assured that the server should be sending a blank
 		// challenge here. In the future if more mechanisms are added, this
 		// will have to be reevaluated
-		c.WriteMessage(msg.New(nil, s.Name, "", "", "AUTHENTICATE", []string{"+"}, false))
-		return
+		return msg.New(nil, s.Name, "", "", "AUTHENTICATE", []string{"+"}, false)
 	}
 
 	// if this was not a continuation request
@@ -84,7 +79,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 		c.AuthCtx = append(c.AuthCtx, []byte(m.Params[0])...)
 	}
 	if len(m.Params[0]) == 400 {
-		return
+		return nil
 	}
 
 	// clear authorization context
@@ -93,31 +88,33 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) {
 	decodedResp := make([]byte, base64.StdEncoding.DecodedLen(len(c.AuthCtx)))
 	n, err := base64.StdEncoding.Decode(decodedResp, c.AuthCtx)
 	if err != nil {
-		s.writeReply(c, ERR_SASLFAIL)
-		return
+		return prepMessage(ERR_SASLFAIL, s.Name, c.Id())
 	}
 
 	challenge, err := c.SASLMech.Next(decodedResp[:n])
 	if err != nil {
-		s.writeReply(c, ERR_SASLFAIL)
-		return
+		return prepMessage(ERR_SASLFAIL, s.Name, c.Id())
 	}
 	if challenge == nil {
 		c.IsAuthenticated = true
-		s.writeReply(c, RPL_LOGGEDIN, c, c.SASLMech.Authn(), c.Id())
-		s.writeReply(c, RPL_SASLSUCCESS)
+		buff := &msg.Buffer{}
+		buff.AddMsg(prepMessage(RPL_LOGGEDIN, s.Name, c.Id(), c, c.SASLMech.Authn(), c.Id()))
+		buff.AddMsg(prepMessage(RPL_SASLSUCCESS, s.Name, c.Id()))
+		if c.Caps[cap.AccountNotify.Name] {
+			buff.AddMsg(msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false))
+		}
 		s.accountNotify(c)
-		return
+		return buff
 	}
 
 	encodedChallenge := base64.StdEncoding.EncodeToString(challenge)
-	c.WriteMessage(msg.New(nil, s.Name, "", "", "AUTHENTICATE", []string{encodedChallenge}, false))
+	return msg.New(nil, s.Name, "", "", "AUTHENTICATE", []string{encodedChallenge}, false)
 }
 
 func (s *Server) accountNotify(c *client.Client) {
-	if c.Caps[cap.AccountNotify.Name] {
-		c.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false))
-	}
+	// if c.Caps[cap.AccountNotify.Name] {
+	// 	c.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false))
+	// }
 
 	// keep track of all clients in the same channel with c
 	clients := make(map[*client.Client]bool)
@@ -140,17 +137,15 @@ func (s *Server) accountNotify(c *client.Client) {
 // REGISTER PASS <pass>
 // REGISTER CERT
 // REGISTER <channel>
-func REGISTER(s *Server, c *client.Client, m *msg.Message) {
+func REGISTER(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	if len(m.Params) == 0 {
-		s.writeReply(c, ERR_NEEDMOREPARAMS, "REGISTER")
-		return
+		return prepMessage(ERR_NEEDMOREPARAMS, s.Name, c.Id(), "REGISTER")
 	}
 
 	switch arg := strings.ToUpper(m.Params[0]); {
 	case arg == "PASS":
 		if len(m.Params) < 2 {
-			s.writeReply(c, ERR_NEEDMOREPARAMS, "REGISTER PASS")
-			return
+			return prepMessage(ERR_NEEDMOREPARAMS, s.Name, c.Id(), "REGISTER PASS")
 		}
 		pass := m.Params[1]
 
@@ -165,8 +160,7 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 	case arg == "CERT":
 		cert, err := c.Certificate()
 		if err != nil {
-			s.NOTICE(c, err.Error())
-			return
+			return s.NOTICE(c, err.Error())
 		}
 		cred := external.NewCredential(c.Id(), cert)
 		s.persistExternal(cred.Username, c.Nick, cred.Cert)
@@ -176,30 +170,29 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) {
 		// and the channel should not already be registered
 		ch, exists := s.getChannel(arg)
 		if !exists {
-			s.NOTICE(c, fmt.Sprintf("Channel %s does not exist", arg))
-			return
+			return s.NOTICE(c, fmt.Sprintf("Channel %s does not exist", arg))
 		}
 
 		m, belongs := ch.GetMember(c.Id())
 		if !belongs || !m.Is(channel.Operator) {
-			s.NOTICE(c, "You are not a channel operator")
-			return
+			return s.NOTICE(c, "You are not a channel operator")
 		}
 
 		if s.chanAlreadyRegistered(arg) {
-			s.NOTICE(c, "Channel already registered")
-			return
+			return s.NOTICE(c, "Channel already registered")
 		}
 
 		s.persistChan(c.Id(), arg)
-		MODE(s, c, msg.New(nil, c.Nick, c.User, c.Host, "MODE", []string{arg, "+q", c.Nick}, false))
+		buff := &msg.Buffer{}
+		buff.AddMsg(MODE(s, c, msg.New(nil, c.Nick, c.User, c.Host, "MODE", []string{arg, "+q", c.Nick}, false)))
+		buff.AddMsg(s.NOTICE(c, "Registered"))
+		return buff
 
 	default:
-		s.NOTICE(c, "Unsupported registration type "+m.Params[0])
-		return
+		return s.NOTICE(c, "Unsupported registration type "+m.Params[0])
 	}
 
-	s.NOTICE(c, "Registered")
+	return s.NOTICE(c, "Registered")
 }
 
 func (s *Server) persistPlain(username, nick string, pass []byte) {

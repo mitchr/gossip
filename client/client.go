@@ -227,7 +227,7 @@ func (c *Client) WriteMessage(m msg.Msg) {
 	}
 
 	if c.Caps[capability.LabeledResponses.Name] {
-		if batched, ok := m.(*msg.MsgBuffer); ok {
+		if batched, ok := m.(*msg.Buffer); ok {
 			if batched.Len() > 1 {
 				batched.WrapInBatch(msg.Label)
 			}

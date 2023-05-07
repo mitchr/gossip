@@ -73,18 +73,16 @@ func (m *monitor) clear(c string) {
 	}
 }
 
-func MONITOR(s *Server, c *client.Client, m *msg.Message) {
+func MONITOR(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	if len(m.Params) < 1 {
-		s.writeReply(c, ERR_NEEDMOREPARAMS, "MONITOR")
-		return
+		return prepMessage(ERR_NEEDMOREPARAMS, s.Name, c.Id(), "MONITOR")
 	}
 
 	modifier := m.Params[0]
 	switch modifier {
 	case "+":
 		if len(m.Params) < 2 {
-			s.writeReply(c, ERR_NEEDMOREPARAMS, "MONITOR")
-			return
+			return prepMessage(ERR_NEEDMOREPARAMS, s.Name, c.Id(), "MONITOR")
 		}
 
 		targets := strings.Split(m.Params[1], ",")
@@ -98,8 +96,7 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) {
 		}
 	case "-":
 		if len(m.Params) < 2 {
-			s.writeReply(c, ERR_NEEDMOREPARAMS, "MONITOR")
-			return
+			return prepMessage(ERR_NEEDMOREPARAMS, s.Name, c.Id(), "MONITOR")
 		}
 
 		targets := strings.Split(m.Params[1], ",")
@@ -135,6 +132,7 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) {
 			s.writeReply(c, RPL_MONOFFLINE, strings.Join(off, ","))
 		}
 	}
+	return nil
 }
 
 func (s *Server) notifyOn(c *client.Client) {

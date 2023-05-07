@@ -8,19 +8,19 @@ const (
 	Label BatchType = "labeled-response"
 )
 
-type MsgBuffer struct {
+type Buffer struct {
 	label string
 	msgs  []Msg
 }
 
-func NewBatch(label string) *MsgBuffer {
-	return &MsgBuffer{label: label}
+func NewBatch(label string) *Buffer {
+	return &Buffer{label: label}
 }
 
-func (b *MsgBuffer) Len() int { return len(b.msgs) }
+func (b *Buffer) Len() int { return len(b.msgs) }
 
 // Batch all messages together. The caller should not call AddMsg after WrapInBatch.
-func (b *MsgBuffer) WrapInBatch(batchType BatchType) {
+func (b *Buffer) WrapInBatch(batchType BatchType) {
 	// single responses don't need to be BATCHed
 	if b.Len() == 1 {
 		return
@@ -32,11 +32,17 @@ func (b *MsgBuffer) WrapInBatch(batchType BatchType) {
 	b.msgs = append([]Msg{start}, append(b.msgs, end)...)
 }
 
-func (b *MsgBuffer) AddMsg(m Msg) {
-	b.msgs = append(b.msgs, m)
+func (b *Buffer) AddMsg(m Msg) {
+	switch m := m.(type) {
+	case *Message:
+		b.msgs = append(b.msgs, m)
+	case *Buffer:
+		b.msgs = append(b.msgs, m.msgs...)
+	}
+
 }
 
-func (b *MsgBuffer) Bytes() []byte {
+func (b *Buffer) Bytes() []byte {
 	buf := []byte{}
 	for _, v := range b.msgs {
 		buf = append(buf, v.Bytes()...)
@@ -44,19 +50,19 @@ func (b *MsgBuffer) Bytes() []byte {
 	return buf
 }
 
-func (b *MsgBuffer) AddTag(k, v string) {
+func (b *Buffer) AddTag(k, v string) {
 	for i := range b.msgs {
 		b.msgs[i].AddTag(k, v)
 	}
 }
 
-func (b *MsgBuffer) SetMsgid() {
+func (b *Buffer) SetMsgid() {
 	for i := range b.msgs {
 		b.msgs[i].SetMsgid()
 	}
 }
 
-func (b *MsgBuffer) RemoveAllTags() Msg {
+func (b *Buffer) RemoveAllTags() Msg {
 	for i := range b.msgs {
 		b.msgs[i] = b.msgs[i].RemoveAllTags()
 	}
