@@ -528,3 +528,21 @@ func TestUserhostInNames(t *testing.T) {
 	names, _ := r1.ReadBytes('\n')
 	assertResponse(names, prepMessage(RPL_NAMREPLY, s.Name, "a", "=", "#local", b.String()).String(), t)
 }
+
+func TestLabeledResponse(t *testing.T) {
+	s, err := New(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	go s.Serve()
+
+	c1, r1 := connectAndRegister("a")
+	defer c1.Close()
+
+	c1.Write([]byte("CAP REQ labeled-response\r\n@label=123456 PRIVMSG noNick hello\r\n"))
+	r1.ReadBytes('\n')
+	resp, _ := r1.ReadBytes('\n')
+
+	assertResponse(resp, msg.New([]msg.Tag{{Key: "label", Value: "123456"}}, s.Name, "", "", "401", []string{"a", "noNick", "No such nick/channel"}, true).String(), t)
+}

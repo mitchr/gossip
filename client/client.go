@@ -226,14 +226,6 @@ func (c *Client) WriteMessage(m msg.Msg) {
 		m.AddTag("time", time.Now().UTC().Format(timeFormat))
 	}
 
-	if c.Caps[capability.LabeledResponses.Name] {
-		if batched, ok := m.(*msg.Buffer); ok {
-			if batched.Len() > 1 {
-				batched.WrapInBatch(msg.Label)
-			}
-		}
-	}
-
 	c.Write(m.Bytes())
 }
 

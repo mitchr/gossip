@@ -150,6 +150,15 @@ func (m *Message) AddTag(k, v string) {
 	m.tags = append(m.tags, Tag{Key: k, Value: v})
 }
 
+func (m *Message) HasTag(k string) (bool, string) {
+	for _, v := range m.tags {
+		if v.Key == k {
+			return true, v.Value
+		}
+	}
+	return false, ""
+}
+
 // Generate a unique uuid for this message. Subsequent calls to SetMsgid
 // do not change the id.
 func (m *Message) SetMsgid() {

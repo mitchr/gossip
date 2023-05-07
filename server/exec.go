@@ -1489,6 +1489,25 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	if e, ok := commands[upper]; ok {
 		c.Idle = time.Now()
 		resp := e(s, c, m)
+
+		// check if we need to batch these messages
+		if c.Caps[cap.LabeledResponses.Name] {
+			hasLabel, label := m.HasTag("label")
+
+			// send ACK
+			if hasLabel && resp == nil {
+				c.WriteMessage(msg.New([]msg.Tag{{Key: "label", Value: label}}, s.Name, "", "", "ACK", nil, false))
+				return
+			}
+
+			if r, ok := resp.(*msg.Buffer); ok && hasLabel {
+				r.WrapInBatch(msg.Label)
+			}
+			if hasLabel {
+				resp.AddTag("label", label)
+			}
+		}
+
 		if resp != nil {
 			c.WriteMessage(resp)
 		}

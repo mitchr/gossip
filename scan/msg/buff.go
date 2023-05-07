@@ -9,27 +9,25 @@ const (
 )
 
 type Buffer struct {
-	label string
-	msgs  []Msg
-}
-
-func NewBatch(label string) *Buffer {
-	return &Buffer{label: label}
+	msgs []Msg
 }
 
 func (b *Buffer) Len() int { return len(b.msgs) }
 
 // Batch all messages together. The caller should not call AddMsg after WrapInBatch.
-func (b *Buffer) WrapInBatch(batchType BatchType) {
+func (b *Buffer) WrapInBatch(batchType BatchType) *Buffer {
 	// single responses don't need to be BATCHed
 	if b.Len() == 1 {
-		return
+		return b
 	}
 
 	batchLabel := uuid.New().String()
 	start := New(nil, "", "", "", "BATCH", []string{"+" + batchLabel, string(batchType)}, false)
 	end := New(nil, "", "", "", "BATCH", []string{"-" + batchLabel}, false)
 	b.msgs = append([]Msg{start}, append(b.msgs, end)...)
+
+	b.AddTag("batch", batchLabel)
+	return b
 }
 
 func (b *Buffer) AddMsg(m Msg) {
