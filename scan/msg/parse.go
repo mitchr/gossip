@@ -20,6 +20,8 @@ var (
 
 // given a slice of tokens, produce a corresponding irc message
 // ["@" tags SPACE] [":" source SPACE] command [params] crlf
+// If a parsing error occurs, Parse will return a Message with as much
+// of the tokens from t processed.
 func Parse(t *scan.TokQueue) (*Message, error) {
 	if t.Peek() == scan.EOFToken {
 		return nil, fmt.Errorf("%v: empty message", ErrParse)
@@ -52,10 +54,10 @@ func Parse(t *scan.TokQueue) (*Message, error) {
 
 	// expect a crlf ending
 	if !p.Expect(cr) {
-		return nil, fmt.Errorf("%w: no cr; ignoring", ErrParse)
+		return m, fmt.Errorf("%w: no cr; ignoring", ErrParse)
 	}
 	if !p.Expect(lf) {
-		return nil, fmt.Errorf("%w: no lf; ignoring", ErrParse)
+		return m, fmt.Errorf("%w: no lf; ignoring", ErrParse)
 	}
 
 	return m, nil
