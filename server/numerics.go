@@ -169,6 +169,7 @@ var isupportTokens = func() []string {
 		"CHANLIMIT=#&:",
 		"CHANMODES=beI,k,l,imnst",
 		"ELIST=CMNTU",
+		"INVEX=I",
 		"MONITOR", // TODO: add a limit?
 		// "STATUSMSG=~&@%+",
 		"PREFIX=(qaohv)~&@%+",
