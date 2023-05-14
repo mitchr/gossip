@@ -343,6 +343,22 @@ func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 	return l
 }
 
+func (s *Server) getChannelsClientInvitedTo(c *client.Client) []*channel.Channel {
+	l := []*channel.Channel{}
+
+	s.chanLock.RLock()
+	defer s.chanLock.RUnlock()
+
+	for _, v := range s.channels {
+		for _, in := range v.Invited {
+			if strings.ToLower(c.Nick) == strings.ToLower(in) {
+				l = append(l, v)
+			}
+		}
+	}
+	return l
+}
+
 func (s *Server) haveChanInCommon(c1, c2 *client.Client) bool {
 	s.chanLock.RLock()
 	defer s.chanLock.RUnlock()

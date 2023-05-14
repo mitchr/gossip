@@ -1412,11 +1412,11 @@ func TestINVITE(t *testing.T) {
 	c1.Write([]byte("MODE #local +i\r\n"))
 	readLines(r1, 4)
 
-	t.Run("TestMissingParam", func(t *testing.T) {
+	t.Run("TestINVITELIST", func(t *testing.T) {
 		c1.Write([]byte("INVITE\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 
-		assertResponse(resp, ":gossip 461 alice INVITE :Not enough parameters\r\n", t)
+		assertResponse(resp, ":gossip 337 alice :End of /INVITE list\r\n", t)
 	})
 
 	t.Run("NoSuchChannel", func(t *testing.T) {

@@ -531,7 +531,13 @@ func TOPIC(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 func INVITE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	if len(m.Params) < 2 {
-		return prepMessage(ERR_NEEDMOREPARAMS, s.Name, c.Id(), "INVITE")
+		chans := s.getChannelsClientInvitedTo(c)
+		buff := &msg.Buffer{}
+		for _, v := range chans {
+			buff.AddMsg(prepMessage(RPL_INVITELIST, s.Name, c.Id(), v))
+		}
+		buff.AddMsg(prepMessage(RPL_ENDOFINVITELIST, s.Name, c.Id()))
+		return buff
 	}
 
 	nick := m.Params[0]
@@ -917,7 +923,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 					case 'e':
 						buff.AddMsg(s.sendChannelModeList(c, ch, ch.BanExcept, RPL_EXCEPTLIST, RPL_ENDOFEXCEPTLIST))
 					case 'I':
-						buff.AddMsg(s.sendChannelModeList(c, ch, ch.InviteExcept, RPL_INVITELIST, RPL_ENDOFINVITELIST))
+						buff.AddMsg(s.sendChannelModeList(c, ch, ch.InviteExcept, RPL_INVEXLIST, RPL_ENFOFINVEXLIST))
 					}
 					continue
 				}
