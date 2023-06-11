@@ -561,6 +561,11 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	ch.Invited = append(ch.Invited, nick)
 
 	recipient.WriteMessageFrom(msg.New(nil, sender.Nick, sender.User, sender.Host, "INVITE", []string{nick, ch.String()}, false), c)
+	ch.ForAllMembers(func(m *channel.Member) {
+		if m.Caps[cap.InviteNotify.Name] {
+			m.WriteMessageFrom(msg.New(nil, sender.Nick, sender.User, sender.Host, "INVITE", []string{nick, ch.String()}, false), c)
+		}
+	})
 
 	return prepMessage(RPL_INVITING, s.Name, c.Id(), nick, ch)
 }

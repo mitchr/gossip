@@ -16,6 +16,7 @@ var (
 	Chghost          = Cap{Name: "chghost"}
 	EchoMessage      = Cap{Name: "echo-message"}
 	ExtendedJoin     = Cap{Name: "extended-join"}
+	InviteNotify     = Cap{Name: "invite-notify"}
 	LabeledResponses = Cap{Name: "labeled-response"}
 	MessageTags      = Cap{Name: "message-tags"}
 	MultiPrefix      = Cap{Name: "multi-prefix"}
