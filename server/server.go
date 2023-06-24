@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
+	"golang.org/x/exp/slices"
 	_ "modernc.org/sqlite"
 )
 
@@ -54,12 +56,30 @@ type Server struct {
 
 func New(c *Config) (*Server, error) {
 	s := &Server{
-		Config:        c,
-		created:       time.Now(),
-		clients:       make(map[string]*client.Client),
-		channels:      make(map[string]*channel.Channel),
-		supportedCaps: []cap.Cap{cap.AccountNotify, cap.AccountTag, cap.AwayNotify, cap.Batch, cap.CapNotify, cap.Chghost, cap.EchoMessage, cap.ExtendedJoin, cap.InviteNotify, cap.LabeledResponses, cap.MessageTags, cap.MultiPrefix, cap.SASL, cap.ServerTime, cap.Setname, cap.UserhostInNames},
-		monitor:       monitor{m: make(map[string]map[string]bool)},
+		Config:   c,
+		created:  time.Now(),
+		clients:  make(map[string]*client.Client),
+		channels: make(map[string]*channel.Channel),
+		// keep this list sorted alphabetically
+		supportedCaps: []cap.Cap{
+			cap.AccountNotify,
+			cap.AccountTag,
+			cap.AwayNotify,
+			cap.Batch,
+			cap.CapNotify,
+			cap.Chghost,
+			cap.EchoMessage,
+			cap.ExtendedJoin,
+			cap.InviteNotify,
+			cap.LabeledResponses,
+			cap.MessageTags,
+			cap.MultiPrefix,
+			cap.SASL,
+			cap.ServerTime,
+			cap.Setname,
+			cap.UserhostInNames,
+		},
+		monitor: monitor{m: make(map[string]map[string]bool)},
 	}
 
 	err := s.loadDatabase(s.Datasource)
@@ -79,19 +99,25 @@ func New(c *Config) (*Server, error) {
 		}
 		if c.TLS.STS.Enabled {
 			s.supportedCaps = append(s.supportedCaps, cap.STS)
+			sort.Slice(s.supportedCaps, func(i, j int) bool {
+				return s.supportedCaps[i].Name < s.supportedCaps[j].Name
+			})
 		}
 	}
 
 	return s, nil
 }
 
-func (s *Server) hasCap(cap string) bool {
-	for _, v := range s.supportedCaps {
-		if v.Name == cap {
-			return true
+func (s *Server) hasCap(c string) bool {
+	_, found := slices.BinarySearchFunc(s.supportedCaps, c, func(e cap.Cap, t string) int {
+		if e.Name > t {
+			return 1
+		} else if e.Name < t {
+			return -1
 		}
-	}
-	return false
+		return 0
+	})
+	return found
 }
 
 func (s *Server) loadDatabase(datasource string) error {
