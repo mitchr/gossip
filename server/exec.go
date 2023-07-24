@@ -721,6 +721,9 @@ func LIST(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	}
 
 	for _, v := range elist {
+		if len(v) == 0 {
+			continue
+		}
 		replies = s.applyElistConditions(v, replies)
 	}
 

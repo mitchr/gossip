@@ -705,6 +705,13 @@ func TestLIST(t *testing.T) {
 	c, r := connectAndRegister("alice")
 	defer c.Close()
 
+	t.Run("TestBlankParam", func(t *testing.T) {
+		c.Write([]byte("LIST \r\n"))
+		end, _ := r.ReadBytes('\n')
+
+		assertResponse(end, fmt.Sprintf(":%s 323 alice :End of /LIST\r\n", s.Name), t)
+	})
+
 	t.Run("TestNoParams", func(t *testing.T) {
 		c.Write([]byte("JOIN &test\r\n"))
 		readLines(r, 3)
