@@ -20,19 +20,19 @@ import (
 
 func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	_, saslNone := c.SASLMech.(sasl.None)
-	// "If the client completes registration (with CAP END, NICK, USER and
-	// any other necessary messages) while the SASL authentication is
-	// still in progress, the server SHOULD abort it and send a 906
-	// numeric, then register the client without authentication"
-	if c.Is(client.Registered) && !saslNone && !c.IsAuthenticated {
-		c.SASLMech = nil
-		return prepMessage(ERR_SASLABORTED, s.Name, c.Id())
-	}
+	// // "If the client completes registration (with CAP END, NICK, USER and
+	// // any other necessary messages) while the SASL authentication is
+	// // still in progress, the server SHOULD abort it and send a 906
+	// // numeric, then register the client without authentication"
+	// if c.Is(client.Registered) && !saslNone && !c.IsAuthenticated {
+	// 	c.SASLMech = nil
+	// 	return prepMessage(ERR_SASLABORTED, s.Name, c.Id())
+	// }
 
 	// client must have requested the SASL capability, and has not yet registered
-	if !c.Caps[cap.SASL.Name] || c.Is(client.Registered) {
-		return prepMessage(ERR_SASLFAIL, s.Name, c.Id())
-	}
+	// if !c.Caps[cap.SASL.Name] || c.Is(client.Registered) {
+	// 	return prepMessage(ERR_SASLFAIL, s.Name, c.Id())
+	// }
 
 	// "If the client attempts to issue the AUTHENTICATE command after
 	// already authenticating successfully, the server MUST reject it

@@ -66,7 +66,7 @@ func TestAUTHENTICATE(t *testing.T) {
 		c.Write([]byte("AUTHENTICATE PLAIN\r\n"))
 		resp, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, ":gossip 904 a :SASL authentication failed\r\n", t)
+		assertResponse(resp, ":gossip AUTHENTICATE +\r\n", t)
 	})
 
 	t.Run("TestAUTHENTICATEAfterAuthenticate", func(t *testing.T) {
@@ -102,7 +102,7 @@ func TestAUTHENTICATE(t *testing.T) {
 			r.ReadBytes('\n')
 		}
 
-		c.Write([]byte("AUTHENTICATE anything\r\n"))
+		c.Write([]byte("AUTHENTICATE *\r\n"))
 		resp, _ := r.ReadBytes('\n')
 
 		assertResponse(resp, prepMessage(ERR_SASLABORTED, s.Name, "c").String(), t)
