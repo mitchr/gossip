@@ -8,6 +8,8 @@ type Cap struct {
 func (c Cap) String() string { return c.Name }
 
 var (
+	None = Cap{}
+
 	AccountNotify    = Cap{Name: "account-notify"}
 	AccountTag       = Cap{Name: "account-tag"}
 	AwayNotify       = Cap{Name: "away-notify"}
@@ -16,6 +18,7 @@ var (
 	Chghost          = Cap{Name: "chghost"}
 	EchoMessage      = Cap{Name: "echo-message"}
 	ExtendedJoin     = Cap{Name: "extended-join"}
+	ExtendedMonitor  = Cap{Name: "extended-monitor"}
 	InviteNotify     = Cap{Name: "invite-notify"}
 	LabeledResponses = Cap{Name: "labeled-response"}
 	MessageTags      = Cap{Name: "message-tags"}

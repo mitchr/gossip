@@ -61,14 +61,14 @@ func TestMONITOR(t *testing.T) {
 	off, r2 := connectAndRegister("offline")
 	t.Run("TestNotifyOn", func(t *testing.T) {
 		onNotif, _ := r.ReadBytes('\n')
-		assertResponse(onNotif, prepMessage(RPL_MONONLINE, s.Name, "alice", "offline!offline@localhost").String(), t)
+		assertResponse(onNotif, prepMessage(RPL_MONONLINE, s.Name, "*", "offline!offline@localhost").String(), t)
 	})
 
 	t.Run("TestNotifyOff", func(t *testing.T) {
 		off.Close()
 		r2.ReadBytes('\n')
 		offNotif, _ := r.ReadBytes('\n')
-		assertResponse(offNotif, prepMessage(RPL_MONOFFLINE, s.Name, "alice", "offline").String(), t)
+		assertResponse(offNotif, prepMessage(RPL_MONOFFLINE, s.Name, "*", "offline").String(), t)
 	})
 
 	t.Run("TestMONITOR-", func(t *testing.T) {

@@ -70,6 +70,7 @@ func New(c *Config) (*Server, error) {
 			cap.Chghost,
 			cap.EchoMessage,
 			cap.ExtendedJoin,
+			cap.ExtendedMonitor,
 			cap.InviteNotify,
 			cap.LabeledResponses,
 			cap.MessageTags,

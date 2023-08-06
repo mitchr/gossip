@@ -129,7 +129,7 @@ func NICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		}
 
 		if !changingCase {
-			s.notifyOff(c)
+			s.notify(c, prepMessage(RPL_MONOFFLINE, s.Name, "*", c.Id()), cap.None)
 		}
 
 		// update client map entry
@@ -138,7 +138,7 @@ func NICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		s.setClient(c)
 
 		if !changingCase {
-			s.notifyOn(c)
+			s.notify(c, prepMessage(RPL_MONONLINE, s.Name, "*", c.Id()), cap.None)
 		}
 	} else { // nick is being set for first time
 		c.Nick = nick
@@ -224,7 +224,7 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	}
 
 	s.whowasHistory.push(c.Nick, c.User, c.Host, c.Realname)
-	s.notifyOff(c)
+	s.notify(c, prepMessage(RPL_MONOFFLINE, s.Name, "*", c.Id()), cap.None)
 
 	// send QUIT to all channels that client is connected to, and
 	// remove that client from the channel
@@ -299,7 +299,7 @@ func (s *Server) endRegistration(c *client.Client) msg.Msg {
 	// after registration burst, give clients max grants
 	c.FillGrants()
 
-	s.notifyOn(c)
+	s.notify(c, prepMessage(RPL_MONONLINE, s.Name, "*", c), cap.None)
 	return buff
 }
 
@@ -327,7 +327,11 @@ func SETNAME(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 			m.WriteMessage(msg.New(nil, c.String(), "", "", "SETNAME", []string{c.Realname}, true))
 		})
 	}
-	return msg.New(nil, c.String(), "", "", "SETNAME", []string{c.Realname}, true)
+
+	resp := msg.New(nil, c.String(), "", "", "SETNAME", []string{c.Realname}, true)
+	s.notify(c, resp, cap.Setname)
+
+	return resp
 }
 
 func CHGHOST(s *Server, c *client.Client, m *msg.Message) msg.Msg {
@@ -358,10 +362,13 @@ func CHGHOST(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		})
 	}
 
+	chgHostNotif := msg.New(nil, oldPrefix, "", "", "CHGHOST", []string{c.User, c.Host}, false)
+	defer s.notify(c, chgHostNotif, cap.Chghost)
+
 	// "send the CHGHOST message to the client whose own username or host
 	// changed, if that client also supports the chghost capability"
 	if _, verbose := c.Caps[cap.Chghost.Name]; verbose {
-		return msg.New(nil, oldPrefix, "", "", "CHGHOST", []string{c.User, c.Host}, false)
+		return chgHostNotif
 	}
 	return nil
 }
@@ -1429,6 +1436,7 @@ func (s *Server) awayNotify(c *client.Client, chans ...*channel.Channel) {
 			}
 		})
 	}
+	s.notify(c, msg.New(nil, c.String(), "", "", "AWAY", []string{c.AwayMsg}, strings.Contains(c.AwayMsg, " ")), cap.AwayNotify)
 }
 
 func REHASH(s *Server, c *client.Client, m *msg.Message) msg.Msg {

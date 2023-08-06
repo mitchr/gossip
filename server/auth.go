@@ -130,6 +130,7 @@ func (s *Server) accountNotify(c *client.Client) {
 		})
 	}
 
+	s.notify(c, msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false), cap.AccountNotify)
 }
 
 // REGISTER is nonstandard

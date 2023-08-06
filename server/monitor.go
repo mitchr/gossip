@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
 )
@@ -135,24 +136,21 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	return nil
 }
 
-func (s *Server) notifyOn(c *client.Client) {
+func (s *Server) notify(c *client.Client, m *msg.Message, extended capability.Cap) {
 	s.monitor.rwLock.RLock()
 	defer s.monitor.rwLock.RUnlock()
 
 	for v := range s.monitor.getObserversOf(c.Nick) {
-		if observer, ok := s.getClient(v); ok {
-			s.writeReply(observer, RPL_MONONLINE, c)
+		observer, ok := s.getClient(v)
+		if !ok {
+			continue
 		}
-	}
-}
-
-func (s *Server) notifyOff(c *client.Client) {
-	s.monitor.rwLock.RLock()
-	defer s.monitor.rwLock.RUnlock()
-
-	for v := range s.monitor.getObserversOf(c.Nick) {
-		if observer, ok := s.getClient(v); ok {
-			s.writeReply(observer, RPL_MONOFFLINE, c.Nick)
+		_, hasExtendedMonitor := observer.Caps[capability.ExtendedMonitor.Name]
+		_, hasExtendedCapability := observer.Caps[extended.Name]
+		if extended != capability.None && (!hasExtendedMonitor || !hasExtendedCapability) {
+			continue
 		}
+
+		observer.WriteMessage(m)
 	}
 }
