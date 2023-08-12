@@ -15,7 +15,6 @@ var (
 	AwayNotify       = Cap{Name: "away-notify"}
 	Batch            = Cap{Name: "batch"}
 	CapNotify        = Cap{Name: "cap-notify"}
-	Chghost          = Cap{Name: "chghost"}
 	EchoMessage      = Cap{Name: "echo-message"}
 	ExtendedJoin     = Cap{Name: "extended-join"}
 	ExtendedMonitor  = Cap{Name: "extended-monitor"}

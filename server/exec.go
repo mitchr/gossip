@@ -32,7 +32,6 @@ var commands = map[string]executor{
 	"AUTHENTICATE": AUTHENTICATE,
 	"REGISTER":     REGISTER,
 	"SETNAME":      SETNAME,
-	"CHGHOST":      CHGHOST,
 
 	// chanOps
 	"JOIN":   JOIN,
@@ -332,45 +331,6 @@ func SETNAME(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	s.notify(c, resp, cap.Setname)
 
 	return resp
-}
-
-func CHGHOST(s *Server, c *client.Client, m *msg.Message) msg.Msg {
-	if len(m.Params) < 2 {
-		return prepMessage(ERR_NEEDMOREPARAMS, s.Name, c.Id(), "CHGHOST")
-	}
-
-	oldPrefix := c.String()
-
-	c.User = m.Params[0]
-	c.Host = m.Params[1]
-
-	chans := s.channelsOf(c)
-	for _, v := range chans {
-		member, _ := v.GetMember(c.Nick)
-		modes := member.ModeLetters()
-
-		v.ForAllMembersExcept(c, func(m *channel.Member) {
-			if m.Caps[cap.Chghost.Name] {
-				m.WriteMessage(msg.New(nil, oldPrefix, "", "", "CHGHOST", []string{c.User, c.Host}, false))
-			} else {
-				m.WriteMessage(msg.New(nil, oldPrefix, "", "", "QUIT", []string{"Changing hostname"}, true))
-				m.WriteMessage(msg.New(nil, c.String(), "", "", "JOIN", []string{v.String()}, false))
-				if modes != "" {
-					m.WriteMessage(msg.New(nil, s.Name, "", "", "MODE", []string{v.String(), "+" + modes, c.Nick}, false))
-				}
-			}
-		})
-	}
-
-	chgHostNotif := msg.New(nil, oldPrefix, "", "", "CHGHOST", []string{c.User, c.Host}, false)
-	defer s.notify(c, chgHostNotif, cap.Chghost)
-
-	// "send the CHGHOST message to the client whose own username or host
-	// changed, if that client also supports the chghost capability"
-	if _, verbose := c.Caps[cap.Chghost.Name]; verbose {
-		return chgHostNotif
-	}
-	return nil
 }
 
 func JOIN(s *Server, c *client.Client, m *msg.Message) msg.Msg {

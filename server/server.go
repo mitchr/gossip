@@ -67,7 +67,6 @@ func New(c *Config) (*Server, error) {
 			cap.AwayNotify,
 			cap.Batch,
 			cap.CapNotify,
-			cap.Chghost,
 			cap.EchoMessage,
 			cap.ExtendedJoin,
 			cap.ExtendedMonitor,
