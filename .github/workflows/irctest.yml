@@ -38,7 +38,6 @@ jobs:
         go build
         cd ..
 
-        cp gossip/gossip.py irctest/irctest/controllers
         cd irctest
         pip3 install -r requirements.txt
-        pytest --controller irctest.controllers.gossip -k 'not Ergo and not deprecated and not strict and not testListCreationTime and not testListTopicTime'
+        PYTHONPATH=../gossip/ pytest --controller gossip -k 'not Ergo and not deprecated and not strict and not testListCreationTime and not testListTopicTime'
