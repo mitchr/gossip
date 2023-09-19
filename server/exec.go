@@ -1273,7 +1273,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) msg.Msg {
 
 	skipReplies := m.Command == "NOTICE" || m.Command == "TAGMSG"
 
-	if len(m.Params) < 2 && m.Command != "TAGMSG" {
+	if (len(m.Params) < 2 || m.Params[1] == "") && m.Command != "TAGMSG" {
 		if !skipReplies {
 			return prepMessage(ERR_NOTEXTTOSEND, s.Name, c.Id())
 		}
