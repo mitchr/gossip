@@ -1392,7 +1392,7 @@ func (s *Server) awayNotify(c *client.Client, chans ...*channel.Channel) {
 	for _, v := range chans {
 		v.ForAllMembersExcept(c, func(m *channel.Member) {
 			if m.Caps[cap.AwayNotify.Name] {
-				m.WriteMessage(msg.New(nil, c.String(), "", "", "AWAY", []string{c.AwayMsg}, true))
+				m.WriteMessage(msg.New(nil, c.String(), "", "", "AWAY", []string{c.AwayMsg}, strings.Contains(c.AwayMsg, " ")))
 			}
 		})
 	}
