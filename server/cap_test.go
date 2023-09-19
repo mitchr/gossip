@@ -31,8 +31,8 @@ func TestCAP(t *testing.T) {
 		c.Write([]byte("CAP\r\nCAP fakesubcom\r\n"))
 		invalid, _ := r.ReadBytes('\n')
 		invalidSub, _ := r.ReadBytes('\n')
-		assertResponse(invalid, ":gossip 410 a CAP :Invalid CAP command\r\n", t)
-		assertResponse(invalidSub, ":gossip 410 a CAP fakesubcom :Invalid CAP command\r\n", t)
+		assertResponse(invalid, ":gossip 410 a  :Invalid CAP command\r\n", t)
+		assertResponse(invalidSub, ":gossip 410 a fakesubcom :Invalid CAP command\r\n", t)
 	})
 
 	t.Run("TestEND", func(t *testing.T) {

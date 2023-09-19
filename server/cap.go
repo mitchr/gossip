@@ -110,13 +110,12 @@ func END(s *Server, c *client.Client, params ...string) msg.Msg {
 func CAP(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	// no subcommand given
 	if len(m.Params) < 1 {
-		return prepMessage(ERR_INVALIDCAPCMD, s.Name, c.Id(), "CAP")
-
+		return prepMessage(ERR_INVALIDCAPCMD, s.Name, c.Id(), "")
 	}
 
 	subcom, ok := subs[strings.ToUpper(m.Params[0])]
 	if !ok {
-		return prepMessage(ERR_INVALIDCAPCMD, s.Name, c.Id(), "CAP "+m.Params[0])
+		return prepMessage(ERR_INVALIDCAPCMD, s.Name, c.Id(), m.Params[0])
 	}
 	return subcom(s, c, m.Params[1:]...)
 }
