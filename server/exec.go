@@ -104,7 +104,7 @@ func NICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		// client is changing the case of their nick
 		if strings.ToLower(nick) == strings.ToLower(c.Nick) {
 			changingCase = true
-		} else {
+		} else if c.Is(client.Registered) {
 			return prepMessage(ERR_NICKNAMEINUSE, s.Name, c.Id(), nick)
 		}
 	}
