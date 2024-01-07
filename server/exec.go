@@ -113,10 +113,10 @@ func NICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	if c.Nick != "" {
 		// give back NICK to the caller and notify all the channels this
 		// user is part of that their nick changed
-		c.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, true))
+		c.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, false))
 		for _, v := range s.channelsOf(c) {
 			v.ForAllMembersExcept(c, func(m *channel.Member) {
-				m.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, true))
+				m.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, false))
 			})
 
 			// update member map entry

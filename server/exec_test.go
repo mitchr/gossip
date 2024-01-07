@@ -70,8 +70,8 @@ func TestRegistration(t *testing.T) {
 		cAck, _ := r2.ReadBytes('\n')
 
 		// sender should be the same user host, but with the previous nick
-		assertResponse(resp, ":bob!bob@localhost NICK :dan\r\n", t)
-		assertResponse(cAck, ":bob!bob@localhost NICK :dan\r\n", t)
+		assertResponse(resp, ":bob!bob@localhost NICK dan\r\n", t)
+		assertResponse(cAck, ":bob!bob@localhost NICK dan\r\n", t)
 	})
 
 	t.Run("TestUserWhenRegistered", func(t *testing.T) {
@@ -128,7 +128,7 @@ func TestRegistration(t *testing.T) {
 		conn.Write([]byte("NICK Carl\r\n"))
 		resp, _ := r.ReadBytes('\n')
 
-		assertResponse(resp, fmt.Sprintf(":%s NICK :Carl\r\n", prefixBeforeChange), t)
+		assertResponse(resp, fmt.Sprintf(":%s NICK Carl\r\n", prefixBeforeChange), t)
 	})
 }
 
