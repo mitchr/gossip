@@ -1190,11 +1190,9 @@ func (s *Server) sendWHOIS(c *client.Client, v *client.Client) *msg.Buffer {
 		buff.AddMsg(prepMessage(RPL_WHOISOPERATOR, s.Name, c.Id(), v.Nick))
 	}
 	if v == c || c.Is(client.Op) { // querying whois on self or self is an op
-		if v.IsSecure() {
-			certPrint, err := v.CertificateFingerprint()
-			if err == nil {
-				buff.AddMsg(prepMessage(RPL_WHOISCERTFP, s.Name, c.Id(), v.Nick, certPrint))
-			}
+		certPrint, err := v.CertificateFingerprint()
+		if err == nil {
+			buff.AddMsg(prepMessage(RPL_WHOISCERTFP, s.Name, c.Id(), v.Nick, certPrint))
 		}
 	}
 	buff.AddMsg(prepMessage(RPL_WHOISIDLE, s.Name, c.Id(), v.Nick, time.Since(v.Idle).Round(time.Second).Seconds(), v.JoinTime))
