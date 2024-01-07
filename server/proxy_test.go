@@ -28,7 +28,7 @@ func TestCanConnectWithPROXYHeader(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, _ := net.Dial("tcp", "localhost:6697")
+	c, _ := net.Dial("tcp", ":6697")
 	defer c.Close()
 
 	header := &proxyproto.Header{
@@ -66,7 +66,7 @@ func TestRejectUnknownProxyIp(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, _ := net.Dial("tcp", "localhost:6697")
+	c, _ := net.Dial("tcp", ":6697")
 	defer c.Close()
 
 	header := &proxyproto.Header{
