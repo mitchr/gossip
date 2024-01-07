@@ -17,6 +17,7 @@ import (
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
+	"github.com/pires/go-proxyproto"
 	"golang.org/x/exp/slices"
 	_ "modernc.org/sqlite"
 )
@@ -102,6 +103,19 @@ func New(c *Config) (*Server, error) {
 			sort.Slice(s.supportedCaps, func(i, j int) bool {
 				return s.supportedCaps[i].Name < s.supportedCaps[j].Name
 			})
+		}
+	} else if len(c.TLS.Proxies) > 0 {
+		s.tlsListener, err = net.Listen("tcp", c.TLS.Port)
+		if err != nil {
+			return nil, err
+		}
+		policy, err := proxyproto.StrictWhiteListPolicy(c.TLS.Proxies)
+		if err != nil {
+			return nil, err
+		}
+		s.tlsListener = &proxyproto.Listener{
+			Listener: s.tlsListener,
+			Policy:   policy,
 		}
 	}
 

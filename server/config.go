@@ -41,6 +41,8 @@ type Config struct {
 		// A path to the server's private key
 		Privkey string `json:"privkey"`
 
+		Proxies []string `json:"proxies"`
+
 		STS struct {
 			// Enables strict transport security, which provides opportunistic
 			// TLS client connection upgrades
