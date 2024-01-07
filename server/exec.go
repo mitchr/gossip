@@ -113,7 +113,6 @@ func NICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	if c.Nick != "" {
 		// give back NICK to the caller and notify all the channels this
 		// user is part of that their nick changed
-		c.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, false))
 		for _, v := range s.channelsOf(c) {
 			v.ForAllMembersExcept(c, func(m *channel.Member) {
 				m.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, false))
@@ -131,6 +130,7 @@ func NICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 			s.notify(c, prepMessage(RPL_MONOFFLINE, s.Name, "*", c.Id()), cap.None)
 		}
 
+		previousNuh := c.String()
 		// update client map entry
 		s.deleteClient(c.Nick)
 		c.Nick = nick
@@ -139,6 +139,8 @@ func NICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		if !changingCase {
 			s.notify(c, prepMessage(RPL_MONONLINE, s.Name, "*", c.Id()), cap.None)
 		}
+
+		return msg.New(nil, previousNuh, "", "", "NICK", []string{nick}, false)
 	} else { // nick is being set for first time
 		c.Nick = nick
 		return s.endRegistration(c)
