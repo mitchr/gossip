@@ -83,7 +83,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	}
 
 	// clear authorization context
-	defer func() { c.AuthCtx = c.AuthCtx[:0] }()
+	defer func() { c.AuthCtx = nil }()
 
 	decodedResp := make([]byte, base64.StdEncoding.DecodedLen(len(c.AuthCtx)))
 	n, err := base64.StdEncoding.Decode(decodedResp, c.AuthCtx)
