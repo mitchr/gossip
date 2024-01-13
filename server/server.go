@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -18,7 +19,6 @@ import (
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
 	"github.com/pires/go-proxyproto"
-	"golang.org/x/exp/slices"
 	_ "modernc.org/sqlite"
 )
 
