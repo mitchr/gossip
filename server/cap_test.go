@@ -360,12 +360,12 @@ func TestAccountTag(t *testing.T) {
 	clientFirst := []byte("\000tim\000tanstaaftanstaaf")
 	firstEncoded := base64.StdEncoding.EncodeToString(clientFirst)
 	a.Write([]byte("AUTHENTICATE " + firstEncoded + "\r\n" + "CAP END\r\n"))
-	readLines(r, 15)
+	readLines(r, 16)
 
 	b, r2, p2 := connect(s)
 	defer p2()
 	b.Write([]byte("CAP REQ account-tag\r\nNICK b\r\nUSER u s e r\r\nCAP END\r\n"))
-	readLines(r2, 14)
+	readLines(r2, 15)
 
 	a.Write([]byte("PRIVMSG b :hey\r\n"))
 	resp, _ := r2.ReadBytes('\n')
@@ -485,7 +485,7 @@ func TestSTS(t *testing.T) {
 	c.Write([]byte("NICK test\r\nUSER test 0 0 :realname\r\n"))
 	c.Write([]byte("CAP LS 302\r\n"))
 
-	resp, _ := readLines(r, 14)
+	resp, _ := readLines(r, 15)
 	// need to use contains here because the caps can be in any order
 	if !strings.Contains(string(resp), "sts="+s.getSTSValue()) {
 		t.Fail()

@@ -163,7 +163,7 @@ func TestProperIpResponseInWHOX(t *testing.T) {
 	c.Write([]byte("nick a\r\n"))
 	c.Write([]byte("user u s e r\r\n"))
 	r := bufio.NewReader(c)
-	readLines(r, 13)
+	readLines(r, 14)
 
 	c.Write([]byte("WHO a %i\r\n"))
 	resp, _ := r.ReadBytes('\n')

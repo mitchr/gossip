@@ -223,7 +223,7 @@ func TestPASS(t *testing.T) {
 		c.Write([]byte("NICK chris\r\n"))
 		c.Write([]byte("USER c 0 * :Chrisa!\r\n"))
 
-		readLines(r, 13)
+		readLines(r, 14)
 
 		t.Run("TestPASSAlreadyRegistered", func(t *testing.T) {
 			c.Write([]byte("PASS letmein\r\n"))

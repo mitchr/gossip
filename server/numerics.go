@@ -1,6 +1,8 @@
 package server
 
 import (
+	"strings"
+
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/msg"
@@ -188,20 +190,17 @@ var isupportTokens = func() []string {
 		"USERLEN=18",
 	}
 
-	// try to get every line below 200 bytes, that seems like a good number
 	lines := []string{}
-	line := supported[0]
-	for i := 1; i < len(supported); i++ {
-		line += " " + supported[i]
-		if len(line) > 200 {
-			lines = append(lines, line)
-			line = ""
+	line := ""
+	for i := 0; i < len(supported); i += 13 {
+		if i > len(supported)-13 {
+			line += strings.Join(supported[i:], " ")
+		} else {
+			line += strings.Join(supported[i:i+13], " ")
 		}
-	}
 
-	// if all supported params fit on one line
-	if len(lines) == 0 {
 		lines = append(lines, line)
+		line = ""
 	}
 
 	return lines

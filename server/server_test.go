@@ -50,7 +50,7 @@ func TestTLS(t *testing.T) {
 
 	t.Run("TestWHOISCERTFP", func(t *testing.T) {
 		c.Write([]byte("WHOIS alice\r\n"))
-		resp, _ := readLines(r, 15)
+		resp, _ := readLines(r, 16)
 
 		sha := sha256.Sum256(clientCert.Certificate[0])
 		assertResponse(resp, fmt.Sprintf(":%s 276 alice alice :has client certificate fingerprint %s\r\n", s.Name, hex.EncodeToString(sha[:])), t)
@@ -322,7 +322,7 @@ func connectAndRegister(nick string) (net.Conn, *bufio.Reader) {
 	c.Write([]byte("NICK " + nick + "\r\nUSER " + nick + " 0 0 :" + nick + "\r\n"))
 
 	r := bufio.NewReader(c)
-	readLines(r, 13)
+	readLines(r, 14)
 
 	return c, r
 }
