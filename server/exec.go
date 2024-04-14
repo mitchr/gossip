@@ -1163,13 +1163,18 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 			continue
 		}
 
-		s.clientLock.RLock()
-		for _, v := range s.clients {
-			if wild.Match(m, v.Nick) {
-				buff.AddMsg(s.sendWHOIS(c, v))
+		// this is a mask param
+		if strings.ContainsAny(m, "*?") {
+			s.clientLock.RLock()
+			for _, v := range s.clients {
+				if wild.Match(m, v.Nick) {
+					buff.AddMsg(s.sendWHOIS(c, v))
+				}
 			}
+			s.clientLock.RUnlock()
+		} else { // was not a mask AND did not find a nick that matched
+			buff.AddMsg(prepMessage(ERR_NOSUCHNICK, s.Name, c.Id(), m))
 		}
-		s.clientLock.RUnlock()
 	}
 
 	buff.AddMsg(prepMessage(RPL_ENDOFWHOIS, s.Name, c.Id(), m.Params[0]))
