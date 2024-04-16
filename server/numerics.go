@@ -96,6 +96,7 @@ var (
 	ERR_UMODEUNKNOWNFLAG = msg.New(nil, "", "", "", "501", []string{"%s", "Unknown MODE flag"}, true)
 	ERR_USERSDONTMATCH   = msg.New(nil, "", "", "", "502", []string{"%s", "Can't change mode for other users"}, true)
 	ERR_INVALIDKEY       = msg.New(nil, "", "", "", "525", []string{"%s", "%s", "Key is not well-formed"}, true)
+	RPL_WHOISSECURE      = msg.New(nil, "", "", "", "671", []string{"%s", "%s", "is using a secure connection"}, true)
 	RPL_MONONLINE        = msg.New(nil, "", "", "", "730", []string{"%s", "%s"}, true)
 	RPL_MONOFFLINE       = msg.New(nil, "", "", "", "731", []string{"%s", "%s"}, true)
 	RPL_MONLIST          = msg.New(nil, "", "", "", "732", []string{"%s", "%s"}, true)

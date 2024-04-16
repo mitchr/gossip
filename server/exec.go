@@ -1229,6 +1229,10 @@ func (s *Server) sendWHOIS(c *client.Client, v *client.Client) *msg.Buffer {
 	if v.IsAuthenticated {
 		buff.AddMsg(prepMessage(RPL_WHOISACCOUNT, s.Name, c.Id(), v.Nick, v.SASLMech.Authn()))
 	}
+
+	if v.IsSecure() {
+		buff.AddMsg(prepMessage(RPL_WHOISSECURE, s.Name, c.Id(), v.Nick))
+	}
 	return buff
 }
 
