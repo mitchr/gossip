@@ -19,7 +19,9 @@ func TestCanConnectWithPROXYHeader(t *testing.T) {
 		Port:    ":6667",
 	}
 	conf.TLS.Port = ":6697"
-	conf.TLS.Proxies = []string{"127.0.0.1"}
+	conf.TLS.Enabled = true
+	conf.TLS.Proxy.Enabled = true
+	conf.TLS.Proxy.Whitelist = []string{"127.0.0.1"}
 
 	s, err := New(conf)
 	if err != nil {
@@ -57,7 +59,9 @@ func TestRejectUnknownProxyIp(t *testing.T) {
 		Port:    ":6667",
 	}
 	conf.TLS.Port = ":6697"
-	conf.TLS.Proxies = []string{"127.0.0.2"}
+	conf.TLS.Enabled = true
+	conf.TLS.Proxy.Enabled = true
+	conf.TLS.Proxy.Whitelist = []string{"127.0.0.2"}
 
 	s, err := New(conf)
 	if err != nil {
@@ -98,7 +102,9 @@ func TestProperIpResponseInWHOX(t *testing.T) {
 		Port:    ":6667",
 	}
 	conf.TLS.Port = ":6697"
-	conf.TLS.Proxies = []string{"127.0.0.2"}
+	conf.TLS.Enabled = true
+	conf.TLS.Proxy.Enabled = true
+	conf.TLS.Proxy.Whitelist = []string{"127.0.0.2"}
 
 	s, err := New(conf)
 	if err != nil {

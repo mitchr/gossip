@@ -27,6 +27,11 @@ type Config struct {
 
 	Port string `json:"port"`
 
+	Proxy struct {
+		Enabled   bool     `json:"enabled,omitempty"`
+		Whitelist []string `json:"whitelist,omitempty"`
+	} `json:"proxy,omitempty"`
+
 	// Location of sqlite db. If nil, assume :memory:
 	Datasource string `json:"datasource"`
 	TLS        struct {
@@ -41,7 +46,10 @@ type Config struct {
 		// A path to the server's private key
 		Privkey string `json:"privkey"`
 
-		Proxies []string `json:"proxies"`
+		Proxy struct {
+			Enabled   bool     `json:"enabled,omitempty"`
+			Whitelist []string `json:"whitelist,omitempty"`
+		} `json:"proxy,omitempty"`
 
 		STS struct {
 			// Enables strict transport security, which provides opportunistic

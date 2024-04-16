@@ -92,30 +92,38 @@ func New(c *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	if c.Proxy.Enabled {
+		proxyListener := &proxyproto.Listener{Listener: s.listener}
+		if len(c.Proxy.Whitelist) > 0 {
+			proxyListener.Policy = proxyproto.MustStrictWhiteListPolicy(c.Proxy.Whitelist)
+		}
+		s.listener = proxyListener
+	}
 
 	if c.TLS.Enabled {
-		s.tlsListener, err = tls.Listen("tcp", c.TLS.Port, c.TLS.Config)
-		if err != nil {
-			return nil, err
+		if c.TLS.Proxy.Enabled {
+			s.tlsListener, err = net.Listen("tcp", c.TLS.Port)
+			if err != nil {
+				return nil, err
+			}
+
+			proxyListener := &proxyproto.Listener{Listener: s.tlsListener}
+			if len(c.TLS.Proxy.Whitelist) > 0 {
+				proxyListener.Policy = proxyproto.MustStrictWhiteListPolicy(c.TLS.Proxy.Whitelist)
+			}
+			s.tlsListener = proxyListener
+		} else {
+
+			s.tlsListener, err = tls.Listen("tcp", c.TLS.Port, c.TLS.Config)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if c.TLS.STS.Enabled {
 			s.supportedCaps = append(s.supportedCaps, cap.STS)
 			sort.Slice(s.supportedCaps, func(i, j int) bool {
 				return s.supportedCaps[i].Name < s.supportedCaps[j].Name
 			})
-		}
-	} else if len(c.TLS.Proxies) > 0 {
-		s.tlsListener, err = net.Listen("tcp", c.TLS.Port)
-		if err != nil {
-			return nil, err
-		}
-		policy, err := proxyproto.StrictWhiteListPolicy(c.TLS.Proxies)
-		if err != nil {
-			return nil, err
-		}
-		s.tlsListener = &proxyproto.Listener{
-			Listener: s.tlsListener,
-			Policy:   policy,
 		}
 	}
 
