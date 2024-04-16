@@ -227,11 +227,5 @@ func whoreplyFlagsForMember(m *channel.Member, multiPrefix bool) string {
 		return flags + m.HighestPrefix(true)
 	}
 
-	if m.Is(channel.Operator) {
-		flags += "@"
-	}
-	if m.Is(channel.Voice) {
-		flags += "+"
-	}
-	return flags
+	return flags + m.HighestPrefix(false)
 }

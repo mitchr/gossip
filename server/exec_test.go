@@ -1153,7 +1153,8 @@ func TestWHOChannel(t *testing.T) {
 		c1.Write([]byte("WHO #local\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 		end, _ := r1.ReadBytes('\n')
-		assertResponse(resp, fmt.Sprintf(":%s 352 alice #local alice localhost %s alice G*@+ :0 alice\r\n", s.Name, s.Name), t)
+		// should only return highest prefix (oper (@) instead of voice (+))
+		assertResponse(resp, fmt.Sprintf(":%s 352 alice #local alice localhost %s alice G*@ :0 alice\r\n", s.Name, s.Name), t)
 		assertResponse(end, fmt.Sprintf(":%s 315 alice #local :End of WHO list\r\n", s.Name), t)
 	})
 
