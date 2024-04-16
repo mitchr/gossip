@@ -1480,7 +1480,6 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 	hasLabel, label := m.HasTag("label")
 
 	if e, ok := commands[upper]; ok {
-		c.Idle = time.Now()
 		resp := e(s, c, m)
 
 		// check if we need to batch these messages
@@ -1502,6 +1501,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		if resp != nil {
 			c.WriteMessage(resp)
 		}
+		c.Idle = time.Now()
 	} else {
 		errMsg := prepMessage(ERR_UNKNOWNCOMMAND, s.Name, c.Id(), m.Command)
 		if c.Caps[cap.LabeledResponses.Name] && hasLabel {
