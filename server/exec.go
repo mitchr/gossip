@@ -1112,7 +1112,7 @@ func constructSpcrplResponse(params string, c *client.Client, s *Server) string 
 		case 'd':
 			resp[i] = "0"
 		case 'l':
-			resp[i] = fmt.Sprintf("%v", time.Since(c.Idle).Round(time.Second).Seconds())
+			resp[i] = fmt.Sprintf("%v", time.Since(c.IdleTime()).Round(time.Second).Seconds())
 		case 'a':
 			a := "0"
 			if c.IsAuthenticated {
@@ -1202,7 +1202,7 @@ func (s *Server) sendWHOIS(c *client.Client, v *client.Client) *msg.Buffer {
 			buff.AddMsg(prepMessage(RPL_WHOISCERTFP, s.Name, c.Id(), v.Nick, certPrint))
 		}
 	}
-	buff.AddMsg(prepMessage(RPL_WHOISIDLE, s.Name, c.Id(), v.Nick, time.Since(v.Idle).Round(time.Second).Seconds(), v.JoinTime))
+	buff.AddMsg(prepMessage(RPL_WHOISIDLE, s.Name, c.Id(), v.Nick, time.Since(v.IdleTime()).Round(time.Second).Seconds(), v.JoinTime))
 
 	chans := []string{}
 	s.chanLock.RLock()
@@ -1505,7 +1505,7 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 		if resp != nil {
 			c.WriteMessage(resp)
 		}
-		c.Idle = time.Now()
+		c.UpdateIdleTime(time.Now())
 	} else {
 		errMsg := prepMessage(ERR_UNKNOWNCOMMAND, s.Name, c.Id(), m.Command)
 		if c.Caps[cap.LabeledResponses.Name] && hasLabel {

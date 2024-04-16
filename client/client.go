@@ -29,8 +29,10 @@ type Client struct {
 
 	// uxin timestamp when client first connects
 	JoinTime int64
+
 	// last time that client sent a succcessful message
-	Idle time.Time
+	idle     time.Time
+	idleLock sync.RWMutex
 
 	reader *bufio.Reader
 	msgBuf []byte
@@ -67,7 +69,7 @@ func New(conn net.Conn) *Client {
 	c := &Client{
 		conn:     conn,
 		JoinTime: now.Unix(),
-		Idle:     now,
+		idle:     now,
 
 		reader: bufio.NewReaderSize(conn, 512),
 		msgBuf: make([]byte, 512),
@@ -247,6 +249,17 @@ func (c *Client) WriteMessageFrom(m msg.Msg, from *Client) {
 }
 
 func (c *Client) Close() error { return c.conn.Close() }
+
+func (c *Client) UpdateIdleTime(t time.Time) {
+	c.idleLock.Lock()
+	defer c.idleLock.Unlock()
+	c.idle = t
+}
+func (c *Client) IdleTime() time.Time {
+	c.idleLock.RLock()
+	defer c.idleLock.RUnlock()
+	return c.idle
+}
 
 const maxGrants = 20
 
