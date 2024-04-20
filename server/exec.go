@@ -2,7 +2,6 @@ package server
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"sort"
@@ -1112,7 +1111,7 @@ func constructSpcrplResponse(params string, c *client.Client, s *Server) string 
 		case 'd':
 			resp[i] = "0"
 		case 'l':
-			resp[i] = fmt.Sprintf("%v", time.Since(c.IdleTime()).Round(time.Second).Seconds())
+			resp[i] = strconv.Itoa(int(time.Since(c.IdleTime()).Seconds()))
 		case 'a':
 			a := "0"
 			if c.IsAuthenticated {
