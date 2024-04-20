@@ -50,6 +50,7 @@ type Msg interface {
 	AddTag(k, v string)
 	SetMsgid()
 	RemoveAllTags() Msg
+	EstimateMessageSize() int
 }
 
 // Message represents a single irc message
@@ -69,22 +70,26 @@ func New(tags []Tag, nick, user, host, command string, params []string, trailing
 	return &Message{tagCopy, nick, user, host, command, params, trailing}
 }
 
-func (m Message) estimateMessageSize() int {
-	n := len(m.Nick) + len(m.User) + len(m.Host) + len(m.Command)
+func (m Message) EstimateMessageSize() int {
+	n := len(m.Nick) + len(m.User) + len(m.Host) + 3 // 3 bytes for ':!@'
+	n += len(m.Command)
 
 	n += m.SizeOfTags()
 	for _, v := range m.Params {
-		n += len(v)
+		n += len(v) + 1 // 1 additional bytes for space
 	}
 	if m.trailingSet {
-		n += 1
+		n += 1 // 1 bytes for ':'
 	}
+
+	// 2 bytes for crlf
+	n += 2
 	return n
 }
 
 func (m Message) Bytes() []byte {
 	var b bytes.Buffer
-	b.Grow(m.estimateMessageSize())
+	b.Grow(m.EstimateMessageSize())
 
 	var tagCount int
 	for _, v := range m.tags {

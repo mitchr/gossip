@@ -40,8 +40,16 @@ func (b *Buffer) AddMsg(m Msg) {
 
 }
 
+func (b *Buffer) EstimateMessageSize() int {
+	size := 0
+	for _, v := range b.msgs {
+		size += v.EstimateMessageSize()
+	}
+	return size
+}
+
 func (b *Buffer) Bytes() []byte {
-	buf := []byte{}
+	buf := make([]byte, 0, b.EstimateMessageSize())
 	for _, v := range b.msgs {
 		buf = append(buf, v.Bytes()...)
 	}
