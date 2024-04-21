@@ -97,9 +97,6 @@ func populateHostname(addr string) string {
 
 	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Millisecond*300)
 	defer cancel()
-	if err != nil {
-		return host
-	}
 
 	var r net.Resolver
 	names, err := r.LookupAddr(timeoutCtx, host)
