@@ -60,10 +60,10 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		case "SCRAM-SHA-256":
 			c.SASLMech = scram.New(s.db, sha256.New)
 		default:
-			buff := &msg.Buffer{}
-			buff.AddMsg(prepMessage(RPL_SASLMECHS, s.Name, c.Id(), cap.SASL.Value))
-			buff.AddMsg(prepMessage(ERR_SASLFAIL, s.Name, c.Id()))
-			return buff
+			return msg.Buffer{
+				prepMessage(RPL_SASLMECHS, s.Name, c.Id(), cap.SASL.Value),
+				prepMessage(ERR_SASLFAIL, s.Name, c.Id()),
+			}
 		}
 
 		// TODO: all currently supported SASL mechanisms are client-first,
@@ -97,7 +97,7 @@ func AUTHENTICATE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	}
 	if challenge == nil {
 		c.IsAuthenticated = true
-		buff := &msg.Buffer{}
+		var buff msg.Buffer
 		buff.AddMsg(prepMessage(RPL_LOGGEDIN, s.Name, c.Id(), c, c.SASLMech.Authn(), c.Id()))
 		buff.AddMsg(prepMessage(RPL_SASLSUCCESS, s.Name, c.Id()))
 		if c.Caps[cap.AccountNotify.Name] {
@@ -184,10 +184,10 @@ func REGISTER(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		}
 
 		s.persistChan(c.Id(), arg)
-		buff := &msg.Buffer{}
-		buff.AddMsg(MODE(s, c, msg.New(nil, c.Nick, c.User, c.Host, "MODE", []string{arg, "+q", c.Nick}, false)))
-		buff.AddMsg(s.NOTICE(c, "Registered"))
-		return buff
+		return msg.Buffer{
+			MODE(s, c, msg.New(nil, c.Nick, c.User, c.Host, "MODE", []string{arg, "+q", c.Nick}, false)),
+			s.NOTICE(c, "Registered"),
+		}
 
 	default:
 		return s.NOTICE(c, "Unsupported registration type "+m.Params[0])

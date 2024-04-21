@@ -144,7 +144,6 @@ func NICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		c.Nick = nick
 		return s.endRegistration(c)
 	}
-	return nil
 }
 
 func validateNick(s string) bool {
@@ -205,10 +204,10 @@ func OPER(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 	c.SetMode(client.Op)
 
-	buff := &msg.Buffer{}
-	buff.AddMsg(prepMessage(RPL_YOUREOPER, s.Name, c.Id()))
-	buff.AddMsg(msg.New(nil, s.Name, "", "", "MODE", []string{c.Nick, "+o"}, false))
-	return buff
+	return msg.Buffer{
+		prepMessage(RPL_YOUREOPER, s.Name, c.Id()),
+		msg.New(nil, s.Name, "", "", "MODE", []string{c.Nick, "+o"}, false),
+	}
 }
 
 func QUIT(s *Server, c *client.Client, m *msg.Message) msg.Msg {
@@ -266,13 +265,10 @@ func (s *Server) endRegistration(c *client.Client) msg.Msg {
 		return prepMessage(ERR_NICKNAMEINUSE, s.Name, c.Id(), c.Nick)
 	}
 
-	buff := &msg.Buffer{}
-
 	if s.Password != nil {
 		if bcrypt.CompareHashAndPassword(s.Password, c.ServerPassAttempt) != nil {
-			buff.AddMsg(prepMessage(ERR_PASSWDMISMATCH, s.Name, c.Id()))
-			// write buffer to client first because QUIT will immediate close the underlying conn
-			c.WriteMessage(buff)
+			// write buffer to client first because QUIT will immediately close the underlying conn
+			c.WriteMessage(prepMessage(ERR_PASSWDMISMATCH, s.Name, c.Id()))
 			QUIT(s, c, &msg.Message{Params: []string{"Closing Link: " + s.Name + " (Bad Password)"}})
 			return nil
 		}
@@ -283,12 +279,15 @@ func (s *Server) endRegistration(c *client.Client) msg.Msg {
 	s.unknowns.Dec()
 	s.max.KeepMax(uint(s.clientLen()))
 
-	// send RPL_WELCOME and friends in acceptance
-	buff.AddMsg(prepMessage(RPL_WELCOME, s.Name, c.Id(), s.Network, c))
-	buff.AddMsg(prepMessage(RPL_YOURHOST, s.Name, c.Id(), s.Name))
-	buff.AddMsg(prepMessage(RPL_CREATED, s.Name, c.Id(), s.created))
-	// serverName, version, userModes, chanModes
-	buff.AddMsg(prepMessage(RPL_MYINFO, s.Name, c.Id(), s.Name, "0", "ioOrw", "beliIkmstn"))
+	buff := msg.Buffer{
+		// send RPL_WELCOME and friends in acceptance
+		prepMessage(RPL_WELCOME, s.Name, c.Id(), s.Network, c),
+		prepMessage(RPL_YOURHOST, s.Name, c.Id(), s.Name),
+		prepMessage(RPL_CREATED, s.Name, c.Id(), s.created),
+		// serverName, version, userModes, chanModes
+		prepMessage(RPL_MYINFO, s.Name, c.Id(), s.Name, "0", "ioOrw", "beliIkmstn"),
+	}
+
 	for _, support := range isupportTokens {
 		buff.AddMsg(prepMessage(RPL_ISUPPORT, s.Name, c.Id(), support))
 	}
@@ -339,14 +338,14 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		return prepMessage(ERR_NEEDMOREPARAMS, s.Name, c.Id(), "JOIN")
 	}
 
-	buff := &msg.Buffer{}
+	var buff msg.Buffer
 
 	// when 'JOIN 0', PART from every channel client is a member of
 	if m.Params[0] == "0" {
 		for _, v := range s.channelsOf(c) {
-			buff.AddMsg(PART(s, c, &msg.Message{Params: []string{v.String()}}))
+			PART(s, c, &msg.Message{Params: []string{v.String()}})
 		}
-		return buff
+		return nil
 	}
 
 	chans := strings.Split(m.Params[0], ",")
@@ -486,21 +485,21 @@ func TOPIC(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		ch.WriteMessage(msg.New(nil, s.Name, "", "", "TOPIC", []string{ch.String(), ch.Topic}, true))
 		return nil
 	} else {
-		buff := &msg.Buffer{}
 		if ch.Topic == "" {
-			buff.AddMsg(prepMessage(RPL_NOTOPIC, s.Name, c.Id(), ch))
+			return prepMessage(RPL_NOTOPIC, s.Name, c.Id(), ch)
 		} else { // give back existing topic
-			buff.AddMsg(prepMessage(RPL_TOPIC, s.Name, c.Id(), ch, ch.Topic))
-			buff.AddMsg(prepMessage(RPL_TOPICWHOTIME, s.Name, c.Id(), ch, ch.TopicSetBy, ch.TopicSetAt.Unix()))
+			return msg.Buffer{
+				prepMessage(RPL_TOPIC, s.Name, c.Id(), ch, ch.Topic),
+				prepMessage(RPL_TOPICWHOTIME, s.Name, c.Id(), ch, ch.TopicSetBy, ch.TopicSetAt.Unix()),
+			}
 		}
-		return buff
 	}
 }
 
 func INVITE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	if len(m.Params) < 2 {
 		chans := s.getChannelsClientInvitedTo(c)
-		buff := &msg.Buffer{}
+		var buff msg.Buffer
 		for _, v := range chans {
 			buff.AddMsg(prepMessage(RPL_INVITELIST, s.Name, c.Id(), v))
 		}
@@ -579,7 +578,7 @@ func KICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		}
 	}
 
-	buff := &msg.Buffer{}
+	var buff msg.Buffer
 	// len(chans)==len(users) here
 	for i := 0; i < len(chans); i++ {
 		ch, _ := s.getChannel(chans[i])
@@ -622,7 +621,7 @@ func NAMES(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		return prepMessage(RPL_ENDOFNAMES, s.Name, c.Id(), "*")
 	}
 
-	buff := &msg.Buffer{}
+	var buff msg.Buffer
 	chans := strings.Split(m.Params[0], ",")
 	for _, v := range chans {
 		ch, _ := s.getChannel(v)
@@ -788,7 +787,7 @@ func MOTD(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		return prepMessage(ERR_NOMOTD, s.Name, c.Id())
 	}
 
-	buff := &msg.Buffer{}
+	var buff msg.Buffer
 
 	buff.AddMsg(prepMessage(RPL_MOTDSTART, s.Name, c.Id(), s.Name))
 	for _, v := range s.motd {
@@ -816,15 +815,15 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	}
 	s.clientLock.RUnlock()
 
-	buff := &msg.Buffer{}
-	buff.AddMsg(prepMessage(RPL_LUSERCLIENT, s.Name, c.Id(), clientSize, invis, 1))
-	buff.AddMsg(prepMessage(RPL_LUSEROP, s.Name, c.Id(), ops))
-	buff.AddMsg(prepMessage(RPL_LUSERUNKNOWN, s.Name, c.Id(), s.unknowns.Get()))
-	buff.AddMsg(prepMessage(RPL_LUSERCHANNELS, s.Name, c.Id(), s.channelLen()))
-	buff.AddMsg(prepMessage(RPL_LUSERME, s.Name, c.Id(), clientSize, 1))
-	buff.AddMsg(prepMessage(RPL_LOCALUSERS, s.Name, c.Id(), clientSize, max, clientSize, max))
-	buff.AddMsg(prepMessage(RPL_GLOBALUSERS, s.Name, c.Id(), clientSize, max, clientSize, max))
-	return buff
+	return msg.Buffer{
+		prepMessage(RPL_LUSERCLIENT, s.Name, c.Id(), clientSize, invis, 1),
+		prepMessage(RPL_LUSEROP, s.Name, c.Id(), ops),
+		prepMessage(RPL_LUSERUNKNOWN, s.Name, c.Id(), s.unknowns.Get()),
+		prepMessage(RPL_LUSERCHANNELS, s.Name, c.Id(), s.channelLen()),
+		prepMessage(RPL_LUSERME, s.Name, c.Id(), clientSize, 1),
+		prepMessage(RPL_LOCALUSERS, s.Name, c.Id(), clientSize, max, clientSize, max),
+		prepMessage(RPL_GLOBALUSERS, s.Name, c.Id(), clientSize, max, clientSize, max),
+	}
 }
 
 func TIME(s *Server, c *client.Client, m *msg.Message) msg.Msg {
@@ -848,7 +847,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		}
 
 		if len(m.Params) == 2 { // modify own mode
-			buff := &msg.Buffer{}
+			var buff msg.Buffer
 			appliedModes := []mode.Mode{}
 			for _, v := range mode.Parse([]byte(m.Params[1])) {
 				found := c.ApplyMode(v)
@@ -877,7 +876,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 				modeStr += " "
 			}
 
-			buff := &msg.Buffer{}
+			var buff msg.Buffer
 			buff.AddMsg(prepMessage(RPL_CHANNELMODEIS, s.Name, c.Id(), ch, modeStr, strings.Join(params, " ")))
 			buff.AddMsg(prepMessage(RPL_CREATIONTIME, s.Name, c.Id(), ch, ch.CreatedAt))
 			return buff
@@ -887,7 +886,7 @@ func MODE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 				return prepMessage(ERR_CHANOPRIVSNEEDED, s.Name, c.Id(), ch)
 			}
 
-			buff := &msg.Buffer{}
+			var buff msg.Buffer
 			modes := mode.Parse([]byte(m.Params[1]))
 			channel.PrepareModes(modes, m.Params[2:])
 			appliedModes := []mode.Mode{}
@@ -957,7 +956,7 @@ func buildModestr(modes []mode.Mode) string {
 
 // used for responding to requests to list the various channel mode lists
 func (s *Server) sendChannelModeList(c *client.Client, ch *channel.Channel, list []string, dataResponse *msg.Message, endResponse *msg.Message) msg.Msg {
-	buff := &msg.Buffer{}
+	var buff msg.Buffer
 	for _, v := range list {
 		buff.AddMsg(prepMessage(dataResponse, s.Name, c.Id(), ch, v))
 	}
@@ -966,10 +965,10 @@ func (s *Server) sendChannelModeList(c *client.Client, ch *channel.Channel, list
 }
 
 func INFO(s *Server, c *client.Client, m *msg.Message) msg.Msg {
-	buff := &msg.Buffer{}
-	buff.AddMsg(prepMessage(RPL_INFO, s.Name, c.Id(), "gossip is licensed under GPLv3"))
-	buff.AddMsg(prepMessage(RPL_ENDOFINFO, s.Name, c.Id()))
-	return buff
+	return msg.Buffer{
+		prepMessage(RPL_INFO, s.Name, c.Id(), "gossip is licensed under GPLv3"),
+		prepMessage(RPL_ENDOFINFO, s.Name, c.Id()),
+	}
 }
 
 func WHO(s *Server, c *client.Client, m *msg.Message) msg.Msg {
@@ -988,7 +987,7 @@ func WHO(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		fields = m.Params[1]
 	}
 
-	buff := &msg.Buffer{}
+	var buff msg.Buffer
 
 	// first, try to match channels exactly against the mask. if exists,
 	// returns WHOREPLY for every member in channel. else, we will match
@@ -1153,7 +1152,7 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		nicks = m.Params[1]
 	}
 
-	buff := &msg.Buffer{}
+	var buff msg.Buffer
 
 	masks := strings.Split(strings.ToLower(nicks), ",")
 	for _, m := range masks {
@@ -1180,8 +1179,8 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	return buff
 }
 
-func (s *Server) sendWHOIS(c *client.Client, v *client.Client) *msg.Buffer {
-	buff := &msg.Buffer{}
+func (s *Server) sendWHOIS(c *client.Client, v *client.Client) msg.Buffer {
+	var buff msg.Buffer
 
 	if v.Is(client.Away) {
 		buff.AddMsg(prepMessage(RPL_AWAY, s.Name, c.Id(), v.Nick, v.AwayMsg))
@@ -1249,7 +1248,7 @@ func WHOWAS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		}
 	}
 
-	buff := &msg.Buffer{}
+	var buff msg.Buffer
 
 	nicks := strings.Split(m.Params[0], ",")
 	info := s.whowasHistory.search(nicks, count)
@@ -1288,7 +1287,7 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) msg.Msg {
 		return nil
 	}
 
-	buff := &msg.Buffer{}
+	var buff msg.Buffer
 	recipients := strings.Split(m.Params[0], ",")
 	for _, v := range recipients {
 		msgCopy.Params[0] = v
@@ -1493,8 +1492,8 @@ func (s *Server) executeMessage(m *msg.Message, c *client.Client) {
 				return
 			}
 
-			if r, ok := resp.(*msg.Buffer); ok && hasLabel {
-				r.WrapInBatch(msg.Label)
+			if r, ok := resp.(msg.Buffer); ok && hasLabel {
+				resp = r.WrapInBatch(msg.Label)
 			}
 			if hasLabel {
 				resp.AddTag("label", label)

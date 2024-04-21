@@ -1,6 +1,8 @@
 package msg
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type BatchType string
 
@@ -8,14 +10,12 @@ const (
 	Label BatchType = "labeled-response"
 )
 
-type Buffer struct {
-	msgs []Msg
-}
+type Buffer []Msg
 
-func (b *Buffer) Len() int { return len(b.msgs) }
+func (b Buffer) Len() int { return len(b) }
 
 // Batch all messages together. The caller should not call AddMsg after WrapInBatch.
-func (b *Buffer) WrapInBatch(batchType BatchType) *Buffer {
+func (b Buffer) WrapInBatch(batchType BatchType) Buffer {
 	// single responses don't need to be BATCHed
 	if b.Len() == 1 {
 		return b
@@ -24,7 +24,7 @@ func (b *Buffer) WrapInBatch(batchType BatchType) *Buffer {
 	batchLabel := uuid.New().String()
 	start := New(nil, "", "", "", "BATCH", []string{"+" + batchLabel, string(batchType)}, false)
 	end := New(nil, "", "", "", "BATCH", []string{"-" + batchLabel}, false)
-	b.msgs = append([]Msg{start}, append(b.msgs, end)...)
+	b = append([]Msg{start}, append(b, end)...)
 
 	b.AddTag("batch", batchLabel)
 	return b
@@ -32,45 +32,44 @@ func (b *Buffer) WrapInBatch(batchType BatchType) *Buffer {
 
 func (b *Buffer) AddMsg(m Msg) {
 	switch m := m.(type) {
-	case *Message:
-		b.msgs = append(b.msgs, m)
-	case *Buffer:
-		b.msgs = append(b.msgs, m.msgs...)
+	case Buffer:
+		*b = append(*b, m...)
+	default:
+		*b = append(*b, m)
 	}
-
 }
 
-func (b *Buffer) EstimateMessageSize() int {
+func (b Buffer) EstimateMessageSize() int {
 	size := 0
-	for _, v := range b.msgs {
+	for _, v := range b {
 		size += v.EstimateMessageSize()
 	}
 	return size
 }
 
-func (b *Buffer) Bytes() []byte {
+func (b Buffer) Bytes() []byte {
 	buf := make([]byte, 0, b.EstimateMessageSize())
-	for _, v := range b.msgs {
+	for _, v := range b {
 		buf = append(buf, v.Bytes()...)
 	}
 	return buf
 }
 
-func (b *Buffer) AddTag(k, v string) {
-	for i := range b.msgs {
-		b.msgs[i].AddTag(k, v)
+func (b Buffer) AddTag(k, v string) {
+	for i := range b {
+		b[i].AddTag(k, v)
 	}
 }
 
-func (b *Buffer) SetMsgid() {
-	for i := range b.msgs {
-		b.msgs[i].SetMsgid()
+func (b Buffer) SetMsgid() {
+	for i := range b {
+		b[i].SetMsgid()
 	}
 }
 
-func (b *Buffer) RemoveAllTags() Msg {
-	for i := range b.msgs {
-		b.msgs[i] = b.msgs[i].RemoveAllTags()
+func (b Buffer) RemoveAllTags() Msg {
+	for i := range b {
+		b[i] = b[i].RemoveAllTags()
 	}
 	return b
 }
