@@ -166,7 +166,7 @@ func constructNAMREPLY(ch *channel.Channel, invisibles bool, multiPrefix bool, u
 }
 
 var isupportTokens = func() []string {
-	supported := []string{
+	supported := [19]string{
 		"BOT=b",
 		"CASEMAPPING=ascii",
 		"CHANLIMIT=#&:",
