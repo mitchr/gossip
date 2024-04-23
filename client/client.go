@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -110,9 +109,9 @@ func populateHostname(addr string) string {
 
 func (c *Client) String() string {
 	if c.User != "" {
-		return fmt.Sprintf("%s!%s@%s", c.Nick, c.User, c.Host)
+		return c.Nick + "!" + c.User + "@" + c.Host
 	} else if c.Host != "" {
-		return fmt.Sprintf("%s@%s", c.Nick, c.Host)
+		return c.Nick + "@" + c.Host
 	} else if c.Nick != "" {
 		return c.Nick
 	} else {
