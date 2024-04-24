@@ -74,7 +74,7 @@ func (m Message) EstimateMessageSize() int {
 	n := len(m.Nick) + len(m.User) + len(m.Host) + 3 // 3 bytes for ':!@'
 	n += len(m.Command)
 
-	n += m.SizeOfTags()
+	n += m.sizeOfTags()
 	for _, v := range m.Params {
 		n += len(v) + 1 // 1 additional bytes for space
 	}
@@ -174,7 +174,7 @@ func (m *Message) SetMsgid() {
 	m.AddTag("msgid", uuid.NewString())
 }
 
-func (m *Message) SizeOfTags() int {
+func (m *Message) sizeOfTags() int {
 	if len(m.tags) == 0 {
 		return 0
 	}
