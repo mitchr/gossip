@@ -228,6 +228,27 @@ func TestMessageFormat(t *testing.T) {
 	}
 }
 
+func TestSetMsgid(t *testing.T) {
+	m := &Message{
+		Nick:        "dan",
+		User:        "d",
+		Host:        "localhost",
+		Command:     "PRIVMSG",
+		Params:      []string{"%s%s", "%s!"},
+		trailingSet: true,
+	}
+
+	m.SetMsgid()
+	initVal := m.tags[0].Value
+
+	m.SetMsgid()
+	finalVal := m.tags[0].Value
+
+	if initVal != finalVal || len(m.tags) != 1 {
+		t.Error("msgid set twice")
+	}
+}
+
 var testInput []byte = []byte("@a=b :bob!Bob@example.com PRIVMSG alice :Welcome to the server!\r\n")
 
 func BenchmarkLex(b *testing.B) {

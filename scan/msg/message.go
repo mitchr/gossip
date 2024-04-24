@@ -167,11 +167,10 @@ func (m *Message) HasTag(k string) (bool, string) {
 // Generate a unique uuid for this message. Subsequent calls to SetMsgid
 // do not change the id.
 func (m *Message) SetMsgid() {
-	for _, v := range m.tags {
-		if v.Value == "msgid" {
-			return
-		}
+	if exists, _ := m.HasTag("msgid"); exists {
+		return
 	}
+
 	m.AddTag("msgid", uuid.NewString())
 }
 
