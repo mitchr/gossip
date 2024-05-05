@@ -1,7 +1,7 @@
 package client
 
 import (
-	"bufio"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
@@ -33,7 +33,6 @@ type Client struct {
 	idle     time.Time
 	idleLock sync.RWMutex
 
-	reader *bufio.Reader
 	msgBuf []byte
 
 	modeLock          sync.Mutex
@@ -70,7 +69,6 @@ func New(conn net.Conn) *Client {
 		JoinTime: now.Unix(),
 		idle:     now,
 
-		reader: bufio.NewReaderSize(conn, 512),
 		msgBuf: make([]byte, 512),
 
 		PONG: make(chan struct{}, 1),
@@ -194,19 +192,38 @@ func (c *Client) ReadMsg() ([]byte, error) {
 		return nil, err
 	}
 
-	for n := 0; n < len(c.msgBuf); n++ {
-		b, err := c.reader.ReadByte()
+	// buffer is full, clear it
+	if c.msgBuf[len(c.msgBuf)-1] == '\n' {
+		clear(c.msgBuf)
+	}
+	// clear previous message from buffer if there was one, and shift the
+	// rest of the buffer towards the front
+	newline := bytes.IndexByte(c.msgBuf, '\n')
+	if newline != -1 {
+		clear(c.msgBuf[0 : newline+1])
+		copy(c.msgBuf, c.msgBuf[newline+1:])
+	}
+
+	n := 0
+	for {
+		newline := bytes.IndexByte(c.msgBuf, '\n')
+		// found a newline, return buffer
+		if newline != -1 {
+			return c.msgBuf[:newline+1], nil
+		}
+
+		// buffer is full, clear it and send an error that we're flooded
+		if n >= len(c.msgBuf) {
+			clear(c.msgBuf)
+			return nil, msg.ErrMsgSizeOverflow
+		}
+
+		r, err := c.conn.Read(c.msgBuf[n:])
 		if err != nil {
 			return nil, err
 		}
-		c.msgBuf[n] = b
-
-		// accepted if we find a newline
-		if b == '\n' {
-			return c.msgBuf[:n+1], nil
-		}
+		n += r
 	}
-	return nil, msg.ErrMsgSizeOverflow
 }
 
 func (c *Client) Write(b []byte) (int, error) {

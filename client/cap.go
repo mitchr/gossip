@@ -34,12 +34,16 @@ func messageTags(c *Client, remove bool) {
 	hasMessageTags := c.HasMessageTags()
 
 	if !remove && !hasMessageTags {
-		c.msgBuf = make([]byte, 4096+512)
+		newBuf := make([]byte, 4096+512)
+		copy(newBuf, c.msgBuf)
+		c.msgBuf = newBuf
 	}
 
 	// request to remove, and client has no other caps that require message-tags
 	if remove && !hasMessageTags {
-		c.msgBuf = make([]byte, 512)
+		newBuf := make([]byte, 512)
+		copy(newBuf, c.msgBuf)
+		c.msgBuf = newBuf
 	}
 }
 
