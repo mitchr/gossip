@@ -77,7 +77,12 @@ func PASS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		return prepMessage(ERR_NEEDMOREPARAMS, s.Name, c.Id(), "PASS")
 	}
 
-	c.ServerPassAttempt = []byte(m.Params[0])
+	if s.Password != nil {
+		if bcrypt.CompareHashAndPassword(s.Password, []byte(m.Params[0])) == nil {
+			c.ServerPassAccepted = true
+		}
+	}
+
 	return nil
 }
 
@@ -265,13 +270,11 @@ func (s *Server) endRegistration(c *client.Client) msg.Msg {
 		return prepMessage(ERR_NICKNAMEINUSE, s.Name, c.Id(), c.Nick)
 	}
 
-	if s.Password != nil {
-		if bcrypt.CompareHashAndPassword(s.Password, c.ServerPassAttempt) != nil {
-			// write buffer to client first because QUIT will immediately close the underlying conn
-			c.WriteMessage(prepMessage(ERR_PASSWDMISMATCH, s.Name, c.Id()))
-			QUIT(s, c, &msg.Message{Params: []string{"Closing Link: " + s.Name + " (Bad Password)"}})
-			return nil
-		}
+	if s.Password != nil && !c.ServerPassAccepted {
+		// write buffer to client first because QUIT will immediately close the underlying conn
+		c.WriteMessage(prepMessage(ERR_PASSWDMISMATCH, s.Name, c.Id()))
+		QUIT(s, c, &msg.Message{Params: []string{"Closing Link: " + s.Name + " (Bad Password)"}})
+		return nil
 	}
 
 	c.SetMode(client.Registered)

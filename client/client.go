@@ -35,11 +35,11 @@ type Client struct {
 
 	msgBuf []byte
 
-	modeLock          sync.Mutex
-	Mode              Mode
-	AwayMsg           string
-	ServerPassAttempt []byte
-	RegSuspended      bool
+	modeLock           sync.Mutex
+	Mode               Mode
+	AwayMsg            string
+	ServerPassAccepted bool
+	RegSuspended       bool
 
 	// Represents a set of IRCv3 capabilities
 	Caps map[string]bool
