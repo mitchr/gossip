@@ -67,7 +67,7 @@ type Message struct {
 func New(tags []Tag, nick, user, host, command string, params []string, trailing bool) *Message {
 	tagCopy := make([]Tag, len(tags))
 	copy(tagCopy, tags)
-	return &Message{tagCopy, nick, user, host, command, params, trailing}
+	return &Message{tagCopy, nick, user, host, strings.ToUpper(command), params, trailing}
 }
 
 func (m Message) EstimateMessageSize() int {

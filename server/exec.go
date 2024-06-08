@@ -425,7 +425,8 @@ func isValidChannelString(ch string) bool {
 		return false
 	}
 
-	if ch[0] != byte(channel.Remote) && ch[0] != byte(channel.Local) {
+	_, isPrefix := channel.MemberPrefix[ch[0]]
+	if !isPrefix && ch[0] != byte(channel.Remote) && ch[0] != byte(channel.Local) {
 		return false
 	}
 
@@ -1298,10 +1299,16 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) msg.Msg {
 		// TODO: support sending to only a specific user mode in channel (i.e., PRIVMSG %#buffy)
 		//			 when implemented, re-enable STATUSMSG ISUPPORT
 		if isValidChannelString(v) {
-			ch, _ := s.getChannel(v)
+			chanName := v
+			prefix, hasPrefix := channel.MemberPrefix[chanName[0]]
+			if hasPrefix {
+				chanName = chanName[1:]
+			}
+
+			ch, _ := s.getChannel(chanName)
 			if ch == nil { // channel doesn't exist
 				if !skipReplies {
-					buff.AddMsg(prepMessage(ERR_NOSUCHCHANNEL, s.Name, c.Id(), v))
+					buff.AddMsg(prepMessage(ERR_NOSUCHCHANNEL, s.Name, c.Id(), chanName))
 				}
 				continue
 			}
@@ -1325,6 +1332,10 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) msg.Msg {
 
 			// write to everybody else in the chan besides self
 			ch.ForAllMembersExcept(c, func(m *channel.Member) {
+				if hasPrefix && !m.Is(prefix) {
+					return
+				}
+
 				if msgCopy.Command == "TAGMSG" && !m.Caps[cap.MessageTags.Name] {
 					return
 				}

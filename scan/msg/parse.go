@@ -49,7 +49,7 @@ func Parse(t *scan.TokQueue) (*Message, error) {
 			return nil, fmt.Errorf("%w: expected space", ErrParse)
 		}
 	}
-	m.Command = command(p)
+	m.Command = strings.ToUpper(command(p))
 	m.Params, m.trailingSet = params(p)
 
 	// expect a crlf ending

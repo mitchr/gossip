@@ -70,6 +70,14 @@ var memberLetter = map[byte]prefix{
 	'v': Voice,
 }
 
+var MemberPrefix = map[byte]prefix{
+	'~': Founder,
+	'&': Protected,
+	'@': Operator,
+	'%': Halfop,
+	'+': Voice,
+}
+
 // a modeFunc modifies a channel's mode. It takes a channel to be
 // modified, a parameter string, and a boolean. If true, perform
 // actions to add the given mode to the channel. If false, remove the

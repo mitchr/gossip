@@ -1709,8 +1709,8 @@ func TestUnknownCommand(t *testing.T) {
 	c, r := connectAndRegister("a")
 	defer c.Close()
 
-	c.Write([]byte("UnknownCommand\r\n"))
+	c.Write([]byte("UNKNOWNCOMMAND\r\n"))
 	resp, _ := r.ReadBytes('\n')
 
-	assertResponse(resp, ":gossip 421 a UnknownCommand :Unknown command\r\n", t)
+	assertResponse(resp, ":gossip 421 a UNKNOWNCOMMAND :Unknown command\r\n", t)
 }
