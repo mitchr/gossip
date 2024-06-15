@@ -1,0 +1,31 @@
+name: parser-tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  parser-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout gossip
+      uses: actions/checkout@v4
+      with:
+        path: gossip
+
+    - name: checkout parser-tests
+      uses: actions/checkout@v4
+      with:
+        repository: ircdocs/parser-tests
+        path: parser-tests
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+
+    - name: parser-tests
+      run: |
+        cd gossip
+        go test ./scan/msg/ -tags ext_vectors

@@ -144,7 +144,7 @@ func source(p *scan.Parser) (string, string, string) {
 	var nick, user, host string
 
 	// get nickname
-	for n := p.Peek().TokenType; n != space && n != exclam && n != at; n = p.Peek().TokenType {
+	for n := p.Peek().TokenType; n != space && n != exclam && n != at && n != scan.EOFToken.TokenType; n = p.Peek().TokenType {
 		b.WriteRune(p.Next().Value)
 	}
 	nick = b.String()
@@ -153,7 +153,7 @@ func source(p *scan.Parser) (string, string, string) {
 	// get user
 	if p.Peek().TokenType == exclam {
 		p.Next() // consume '!'
-		for u := p.Peek().TokenType; u != space && u != at; u = p.Peek().TokenType {
+		for u := p.Peek().TokenType; u != space && u != at && u != scan.EOFToken.TokenType; u = p.Peek().TokenType {
 			b.WriteRune(p.Next().Value)
 		}
 		user = b.String()
@@ -163,7 +163,7 @@ func source(p *scan.Parser) (string, string, string) {
 	// get host
 	if p.Peek().TokenType == at {
 		p.Next() // consume '@'
-		for p.Peek().TokenType != space {
+		for p.Peek().TokenType != space && p.Peek().TokenType != scan.EOFToken.TokenType {
 			b.WriteRune(p.Next().Value)
 		}
 		host = b.String()
@@ -246,7 +246,7 @@ func nospcrlfcl(p *scan.Parser) string {
 
 // is not space, cr, lf, or colon (or NULL)
 func isNospcrlfcl(r rune) bool {
-	return r != 0 && r != '\r' && r != '\n' && r != ':' && r != ' '
+	return r != 0 && r != '\r' && r != '\n' && r != ':' && r != ' ' && r != scan.EOFToken.Value
 }
 
 // <non-empty sequence of ascii letters, digits, hyphens ('-')>

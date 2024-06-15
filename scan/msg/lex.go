@@ -37,10 +37,6 @@ func lexMessage(l *scan.Lexer) error {
 		case '\n':
 			l.Push(lf)
 		case ' ':
-			// consume all space
-			for l.Peek() == ' ' {
-				l.Next()
-			}
 			l.Push(space)
 		case ':':
 			l.Push(colon)
