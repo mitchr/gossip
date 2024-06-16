@@ -18,6 +18,7 @@ You can register an account using `REGISTER PASS <pass>`. By default, `REGISTER`
 - [Modern IRC Client Protocol](https://modern.ircdocs.horse/)
 - [irctest](https://github.com/progval/irctest)
    - [gossip.py](gossip.py) has been modified from the [ergo](https://github.com/progval/irctest/blob/master/irctest/controllers/ergo.py) controller to support gossip, and is how a lot of bugs have been found :)
+- [parser-tests](https://github.com/ircdocs/parser-tests)
 
 ## External Licenses
 `golang.org/x/crypto` and `golang.org/x/term` are licensed under the BSD-3-Clause, reproduced below
