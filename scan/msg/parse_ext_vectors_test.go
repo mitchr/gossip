@@ -78,6 +78,68 @@ func TestMsgJoin(t *testing.T) {
 	}
 }
 
+type MsgSplitTest struct {
+	Tests []struct {
+		Input string
+		Atoms struct {
+			Source string
+			Verb   string
+			Params []string
+			Tags   map[string]interface{}
+		}
+	}
+}
+
+func TestMsgSplit(t *testing.T) {
+	var msgSplitTests *MsgSplitTest
+	f, err := os.ReadFile("../../../parser-tests/tests/msg-split.yaml")
+	if err != nil {
+		t.Fatal()
+	}
+	err = yaml.Unmarshal(f, &msgSplitTests)
+	if err != nil {
+		t.Fatal()
+	}
+
+	for _, v := range msgSplitTests.Tests {
+		toks, err := Lex([]byte(v.Input + "\r\n"))
+		if err != nil {
+			t.Error("error when lexing", v.Input, ":", err)
+		}
+
+		m, err := Parse(toks)
+		if err != nil {
+			t.Error("error when parsing", v.Input, ":", err)
+		}
+
+		if m.NUH() != v.Atoms.Source {
+			t.Error("failed to parse source; wanted", v.Atoms.Source, "but got", m.NUH())
+		}
+		if m.Command != strings.ToUpper(v.Atoms.Verb) {
+			t.Error("failed to parse verb; wanted", strings.ToUpper(v.Atoms.Verb), "but got", m.Command)
+		}
+		if !reflect.DeepEqual(m.Params, v.Atoms.Params) {
+			t.Error("failed to parse params; wanted", v.Atoms.Params, "but got", m.Params)
+		}
+
+		// tag check
+		for k, tag := range v.Atoms.Tags {
+			if ok, _ := m.HasTag(k); !ok {
+				t.Error("failed to parse tag; wanted", k, "but got nothing")
+			}
+
+			// search our output tags looking for the tag key; check if that key has the correct value
+			for _, j := range m.tags {
+				if j.Key == k {
+					if j.Raw() != tag {
+						t.Error("failed to parse tag; wanted", tag, "but got", j.Raw())
+					}
+				}
+			}
+		}
+	}
+}
+
 type UserHostSplitTest struct {
 	Tests []struct {
 		Source string

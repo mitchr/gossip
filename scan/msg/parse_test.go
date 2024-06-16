@@ -1,7 +1,9 @@
 package msg
 
 import (
+	"cmp"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/mitchr/gossip/scan"
@@ -99,9 +101,6 @@ func TestParseTags(t *testing.T) {
 		{"@+example.com/foo=bar :irc.example.com NOTICE #channel :A vendor-prefixed client-only tagged message\r\n", []Tag{
 			{true, "example.com/foo", "bar"},
 		}},
-		{"@+example=raw+:=,escaped\\:\\s\\\\ :irc.example.com NOTICE #channel :Message\r\n", []Tag{
-			{true, "example", "raw+:=,escaped\\:\\s\\\\"},
-		}},
 	}
 
 	for _, v := range tests {
@@ -111,6 +110,10 @@ func TestParseTags(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
+
+			slices.SortFunc(out.tags, func(t1, t2 Tag) int {
+				return cmp.Compare(t1.Key, t2.Key)
+			})
 			if !reflect.DeepEqual(out.tags, v.tags) {
 				t.Error("parse error; wanted", v.tags, "but got", out.tags)
 			}

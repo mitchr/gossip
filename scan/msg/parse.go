@@ -32,7 +32,7 @@ func Parse(t *scan.TokQueue) (*Message, error) {
 
 	if p.Peek().TokenType == at {
 		p.Next() // consume '@'
-		m.tags = tags(p)
+		m.tags = deduplicateTags(tags(p))
 		if !p.Expect(space) {
 			return nil, fmt.Errorf("%w: expected space", ErrParse)
 		}
@@ -69,14 +69,41 @@ func tags(p *scan.Parser) []Tag {
 
 	// expect atleast 1 tag
 	c, k, v := tag(p)
+	v = trimTrailingEscapeChar(v)
 	t = append(t, Tag{c, k, v})
 
 	for p.Peek().TokenType == semicolon {
 		p.Next() // consume ';'
 		c, k, v = tag(p)
+		v = trimTrailingEscapeChar(v)
 		t = append(t, Tag{c, k, v})
 	}
 	return t
+}
+
+// "If a lone \ exists at the end of an escaped value (with no escape
+// character following it), then there SHOULD be no output character"
+func trimTrailingEscapeChar(s string) string {
+	if len(s) > 1 && s[len(s)-1] == '\\' {
+		return s[:len(s)-1]
+	}
+	return s
+}
+
+// "Implementations receiving messages with more than one occurrence of
+// a tag key name SHOULD disregard all but the final occurrence."
+func deduplicateTags(t []Tag) []Tag {
+	m := make(map[string]Tag)
+	for _, v := range t {
+		m[v.Key] = v
+	}
+
+	cleanedTags := make([]Tag, 0, len(m))
+	for _, v := range m {
+		cleanedTags = append(cleanedTags, v)
+	}
+
+	return cleanedTags
 }
 
 // [ <client_prefix> ] <key> ['=' <escaped_value>]
@@ -175,17 +202,27 @@ func source(p *scan.Parser) (string, string, string) {
 // 1*letter / 3digit
 func command(p *scan.Parser) string {
 	var c strings.Builder
-	for scan.IsLetter(p.Peek().Value) {
-		c.WriteRune(p.Next().Value)
+	for {
+		r := p.Peek().Value
+		if scan.IsLetter(r) || scan.IsDigit(r) {
+			c.WriteRune(p.Next().Value)
+		} else {
+			return c.String()
+		}
 	}
-	return c.String()
 }
 
 // *( SPACE middle ) [ SPACE ":" trailing ]
 func params(p *scan.Parser) (m []string, trailingSet bool) {
 	for {
 		if p.Peek().TokenType == space {
-			p.Next() // consume space
+			for p.Peek().TokenType == space {
+				p.Next() // consume all spaces
+			}
+			// after consuming all spaces, we're at the end of the input
+			if p.Peek().TokenType == cr {
+				return
+			}
 		} else {
 			return
 		}

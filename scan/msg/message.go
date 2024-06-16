@@ -151,6 +151,18 @@ func (m Message) String() string {
 	return string(m.Bytes())
 }
 
+func (m Message) NUH() string {
+	if m.User != "" {
+		return m.Nick + "!" + m.User + "@" + m.Host
+	} else if m.Host != "" {
+		return m.Nick + "@" + m.Host
+	} else if m.Nick != "" {
+		return m.Nick
+	} else {
+		return ""
+	}
+}
+
 func (m *Message) AddTag(k, v string) {
 	m.tags = append(m.tags, Tag{Key: k, Value: v})
 }
