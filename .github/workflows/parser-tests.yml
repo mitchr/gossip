@@ -28,4 +28,4 @@ jobs:
     - name: parser-tests
       run: |
         cd gossip
-        go test ./scan/msg/ -tags ext_vectors
+        go test ./scan/msg/ ./scan/wild -tags ext_vectors
