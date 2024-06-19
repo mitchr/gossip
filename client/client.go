@@ -11,6 +11,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mitchr/gossip/capability"
@@ -58,8 +59,7 @@ type Client struct {
 
 	AuthCtx []byte
 
-	grants    uint8
-	grantLock sync.Mutex
+	grants uint32
 }
 
 func New(conn net.Conn) *Client {
@@ -281,33 +281,34 @@ var ErrFlood = errors.New("Flooding")
 // requestGrant allows the client to process one message. If the client
 // has no grants, this returns an error.
 func (c *Client) requestGrant() error {
-	c.grantLock.Lock()
-	defer c.grantLock.Unlock()
+	for {
+		g := atomic.LoadUint32(&c.grants)
+		if g == 0 {
+			return ErrFlood
+		}
 
-	if c.grants == 0 {
-		return ErrFlood
+		if atomic.CompareAndSwapUint32(&c.grants, g, g-1) {
+			return nil
+		}
 	}
-
-	c.grants--
-	return nil
 }
 
 // FillGrants fills the clients grant queue to the max.
 func (c *Client) FillGrants() {
-	c.grantLock.Lock()
-	defer c.grantLock.Unlock()
-
-	c.grants = maxGrants
+	atomic.StoreUint32(&c.grants, maxGrants)
 }
 
 // Increment the grant counter by 1. If the client already has max
 // grants, this does nothing.
 func (c *Client) AddGrant() {
-	c.grantLock.Lock()
-	defer c.grantLock.Unlock()
+	for {
+		g := atomic.LoadUint32(&c.grants)
+		if g == maxGrants {
+			return
+		}
 
-	if c.grants == maxGrants {
-		return
+		if atomic.CompareAndSwapUint32(&c.grants, g, g+1) {
+			return
+		}
 	}
-	c.grants++
 }

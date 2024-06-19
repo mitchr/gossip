@@ -31,3 +31,23 @@ func TestWriteMessageFrom(t *testing.T) {
 		}
 	})
 }
+
+func BenchmarkRequestGrant(b *testing.B) {
+	c := &Client{}
+	c.FillGrants()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		c.requestGrant()
+	}
+}
+
+func BenchmarkAddGrant(b *testing.B) {
+	c := &Client{}
+	c.FillGrants()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		c.AddGrant()
+	}
+}
