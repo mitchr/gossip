@@ -31,8 +31,7 @@ type Client struct {
 	JoinTime int64
 
 	// last time that client sent a succcessful message
-	idle     time.Time
-	idleLock sync.RWMutex
+	idle int64
 
 	msgBuf []byte
 
@@ -67,7 +66,7 @@ func New(conn net.Conn) *Client {
 	c := &Client{
 		conn:     conn,
 		JoinTime: now.Unix(),
-		idle:     now,
+		idle:     now.Unix(),
 
 		msgBuf: make([]byte, 512),
 
@@ -264,14 +263,10 @@ func (c *Client) WriteMessageFrom(m msg.Msg, from *Client) {
 func (c *Client) Close() error { return c.conn.Close() }
 
 func (c *Client) UpdateIdleTime(t time.Time) {
-	c.idleLock.Lock()
-	defer c.idleLock.Unlock()
-	c.idle = t
+	atomic.StoreInt64(&c.idle, t.Unix())
 }
 func (c *Client) IdleTime() time.Time {
-	c.idleLock.RLock()
-	defer c.idleLock.RUnlock()
-	return c.idle
+	return time.Unix(atomic.LoadInt64(&c.idle), 0)
 }
 
 const maxGrants = 20
