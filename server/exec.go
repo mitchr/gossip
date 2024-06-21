@@ -359,10 +359,8 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		copy(keys, k)
 	}
 
-	s.joinLock.Lock()
-	defer s.joinLock.Unlock()
-
 	for i := range chans {
+	chanExists:
 		if ch, ok := s.getChannel(chans[i]); ok { // channel already exists
 			err := ch.Admit(c, keys[i])
 			if err != nil {
@@ -401,6 +399,16 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 			buff.AddMsg(NAMES(s, c, &msg.Message{Params: []string{ch.String()}}))
 			s.awayNotify(c, ch)
 		} else { // create new channel
+			s.joinLock.Lock()
+			defer s.joinLock.Unlock()
+			// two clients tried to create this channel at the same time, and
+			// another client was able to finish channel creation before us.
+			// have this client join the channel instead
+			if _, chanAlreadyCreated := s.getChannel(chans[i]); chanAlreadyCreated {
+				// retry this loop iteration
+				goto chanExists
+			}
+
 			chanChar := channel.ChanType(chans[i][0])
 			chanName := chans[i][1:]
 
