@@ -10,7 +10,6 @@ import (
 	"log"
 	"net"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -35,7 +34,6 @@ type Client struct {
 
 	msgBuf []byte
 
-	modeLock           sync.Mutex
 	Mode               Mode
 	AwayMsg            string
 	ServerPassAccepted bool

@@ -280,7 +280,7 @@ func (s *Server) endRegistration(c *client.Client) msg.Msg {
 	c.SetMode(client.Registered)
 	s.setClient(c)
 	s.unknowns.Dec()
-	s.max.KeepMax(uint(s.clientLen()))
+	s.max.KeepMax(uint64(s.clientLen()))
 
 	buff := msg.Buffer{
 		// send RPL_WELCOME and friends in acceptance

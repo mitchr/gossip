@@ -1,10 +1,12 @@
 package client
 
 import (
+	"sync/atomic"
+
 	"github.com/mitchr/gossip/scan/mode"
 )
 
-type Mode uint8
+type Mode uint32
 
 // Modes are represented as bit masks
 const (
@@ -54,24 +56,26 @@ func (m Mode) String() string {
 }
 
 func (c *Client) Is(m Mode) bool {
-	c.modeLock.Lock()
-	defer c.modeLock.Unlock()
-
-	return c.Mode&m == m
+	mode := Mode(atomic.LoadUint32((*uint32)(&c.Mode)))
+	return mode&m == m
 }
 
 func (c *Client) SetMode(m Mode) {
-	c.modeLock.Lock()
-	defer c.modeLock.Unlock()
-
-	c.Mode |= m
+	for {
+		mode := atomic.LoadUint32((*uint32)(&c.Mode))
+		if atomic.CompareAndSwapUint32((*uint32)(&c.Mode), mode, mode|uint32(m)) {
+			return
+		}
+	}
 }
 
 func (c *Client) UnsetMode(m Mode) {
-	c.modeLock.Lock()
-	defer c.modeLock.Unlock()
-
-	c.Mode &^= m
+	for {
+		mode := atomic.LoadUint32((*uint32)(&c.Mode))
+		if atomic.CompareAndSwapUint32((*uint32)(&c.Mode), mode, mode&^uint32(m)) {
+			return
+		}
+	}
 }
 
 // given a modeStr, apply the modes to c. If one of the runes does not
