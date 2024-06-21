@@ -400,12 +400,12 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 			s.awayNotify(c, ch)
 		} else { // create new channel
 			s.joinLock.Lock()
-			defer s.joinLock.Unlock()
 			// two clients tried to create this channel at the same time, and
 			// another client was able to finish channel creation before us.
 			// have this client join the channel instead
 			if _, chanAlreadyCreated := s.getChannel(chans[i]); chanAlreadyCreated {
 				// retry this loop iteration
+				s.joinLock.Unlock()
 				goto chanExists
 			}
 
@@ -414,6 +414,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 			if !isValidChannelString(string(chanChar) + chanName) {
 				buff.AddMsg(prepMessage(ERR_NOSUCHCHANNEL, s.Name, c.Id(), chans[i]))
+				s.joinLock.Unlock()
 				return buff
 			}
 
@@ -423,6 +424,7 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 			buff.AddMsg(msg.New(nil, c.String(), "", "", "JOIN", []string{newChan.String()}, false))
 
 			buff.AddMsg(NAMES(s, c, &msg.Message{Params: []string{newChan.String()}}))
+			s.joinLock.Unlock()
 		}
 	}
 	return buff
