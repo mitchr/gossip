@@ -1306,8 +1306,6 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) msg.Msg {
 	for _, v := range recipients {
 		msgCopy.Params[0] = v
 
-		// TODO: support sending to only a specific user mode in channel (i.e., PRIVMSG %#buffy)
-		//			 when implemented, re-enable STATUSMSG ISUPPORT
 		if isValidChannelString(v) {
 			chanName := v
 			prefix, hasPrefix := channel.MemberPrefix[chanName[0]]
