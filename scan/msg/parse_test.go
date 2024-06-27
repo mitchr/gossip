@@ -126,6 +126,7 @@ func BenchmarkParse(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
+		tokens.Reset()
 		Parse(tokens)
 	}
 }

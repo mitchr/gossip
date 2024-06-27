@@ -8,6 +8,8 @@ type TokQueue struct {
 
 func New(size int) TokQueue { return TokQueue{front: -1, end: -1, buf: make([]Token, size)} }
 
+func (t *TokQueue) Reset() { t.front = 0 }
+
 func (t TokQueue) TryToExtractCommand() string {
 	var s string
 	for i := 0; i < int(t.end); i++ {
