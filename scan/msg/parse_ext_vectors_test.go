@@ -39,12 +39,7 @@ func TestMsgJoin(t *testing.T) {
 	// for each 'matches' case, verify that we parsed the atoms correctly
 	for _, v := range msgJoinTests.Tests {
 		for _, c := range v.Matches {
-			toks, err := Lex([]byte(c + "\r\n"))
-			if err != nil {
-				t.Error("error when lexing", c, ":", err)
-			}
-
-			m, err := Parse(toks)
+			m, err := Parse(&scan.Parser{Lexer: scan.Lex([]byte(c+"\r\n"), LexMessage)})
 			if err != nil {
 				t.Error("error when parsing", c, ":", err)
 			}
@@ -102,12 +97,7 @@ func TestMsgSplit(t *testing.T) {
 	}
 
 	for _, v := range msgSplitTests.Tests {
-		toks, err := Lex([]byte(v.Input + "\r\n"))
-		if err != nil {
-			t.Error("error when lexing", v.Input, ":", err)
-		}
-
-		m, err := Parse(toks)
+		m, err := Parse(&scan.Parser{Lexer: scan.Lex([]byte(v.Input+"\r\n"), LexMessage)})
 		if err != nil {
 			t.Error("error when parsing", v.Input, ":", err)
 		}
@@ -163,12 +153,7 @@ func TestUserHostSplit(t *testing.T) {
 	}
 
 	for _, v := range userHostSplitTests.Tests {
-		toks, err := Lex([]byte(v.Source))
-		if err != nil {
-			t.Error("error when lexing:", v.Source)
-		}
-
-		p := &scan.Parser{Tokens: toks}
+		p := &scan.Parser{Lexer: scan.Lex([]byte(v.Source), LexMessage)}
 		nick, user, host := source(p)
 
 		if nick != v.Atoms.Nick {

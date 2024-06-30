@@ -1,12 +1,25 @@
 package scan
 
 type Parser struct {
-	Tokens    *TokQueue
+	Lexer     *Lexer
 	BytesRead uint16
+	lexErr    error
 }
 
+func (p *Parser) Reset(b []byte) {
+	p.Lexer.Reset(b)
+	p.BytesRead = 0
+	p.lexErr = nil
+}
+
+// if p encountered any utf8 errors when lexing, retrieve them here
+func (p *Parser) CheckUTF8Error() error { return p.lexErr }
+
 func (p *Parser) Next() Token {
-	t := p.Tokens.pop()
+	t, err := p.Lexer.NextToken()
+	if err != nil {
+		p.lexErr = err
+	}
 	p.BytesRead += uint16(t.width)
 	return t
 }
@@ -14,12 +27,14 @@ func (p *Parser) Next() Token {
 // Multiple calls to Peek will continue to return the same value until
 // Next is called.
 func (p *Parser) Peek() Token {
-	return p.Tokens.Peek()
+	t, err := p.Lexer.PeekToken()
+	if err != nil {
+		p.lexErr = err
+	}
+	return t
 }
 
-func (p *Parser) Expect(t TokenType) bool {
-	return p.Next().TokenType == t
-}
+func (p *Parser) Expect(t TokenType) bool { return p.Next().TokenType == t }
 
 // a-zA-z
 func IsLetter(r rune) bool { return (r >= 65 && r <= 90) || (r >= 97 && r <= 122) }

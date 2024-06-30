@@ -13,27 +13,22 @@ const (
 	nowildesc
 )
 
-func lexWild(l *scan.Lexer) error {
-	for {
-		switch l.Next() {
-		case scan.EOF:
-			return nil
-		case '?':
-			l.Push(wildone)
-		case '*':
-			l.Push(wildmany)
-		case '\\':
-			l.Push(esc)
-		default:
-			l.Push(nowildesc)
-		}
+func lexWild(r rune) scan.Token {
+	switch r {
+	case '?':
+		return scan.Token{TokenType: wildone, Value: r}
+	case '*':
+		return scan.Token{TokenType: wildmany, Value: r}
+	case '\\':
+		return scan.Token{TokenType: esc, Value: r}
+	default:
+		return scan.Token{TokenType: nowildesc, Value: r}
 	}
 }
 
 // Match returns true if m matches the given pattern.
 func Match(pattern, m string) bool {
-	tokens, _ := scan.Lex([]byte(pattern), lexWild)
-	p := &scan.Parser{Tokens: tokens}
+	p := &scan.Parser{Lexer: scan.Lex([]byte(pattern), lexWild)}
 
 	// position that we are currently matching on in m
 	pos := 0

@@ -18,17 +18,17 @@ var (
 	ErrParse           = errors.New("parse error")
 )
 
-// given a slice of tokens, produce a corresponding irc message
+// given a parser, produce a corresponding irc message. If a parsing
+// error occurs, Parse will return a Message with as much of the tokens
+// from t processed as possible.
+//
 // ["@" tags SPACE] [":" source SPACE] command [params] crlf
-// If a parsing error occurs, Parse will return a Message with as much
-// of the tokens from t processed.
-func Parse(t *scan.TokQueue) (*Message, error) {
-	if t.Peek() == scan.EOFToken {
+func Parse(p *scan.Parser) (*Message, error) {
+	m := &Message{}
+
+	if p.Peek() == scan.EOFToken {
 		return nil, fmt.Errorf("%v: empty message", ErrParse)
 	}
-
-	p := &scan.Parser{Tokens: t}
-	m := &Message{}
 
 	if p.Peek().TokenType == at {
 		p.Next() // consume '@'

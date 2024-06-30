@@ -1,9 +1,6 @@
 package msg
 
 import (
-	"errors"
-	"unicode/utf8"
-
 	"github.com/mitchr/gossip/scan"
 )
 
@@ -23,37 +20,29 @@ const (
 	clientPrefix
 )
 
-func Lex(b []byte) (*scan.TokQueue, error) { return scan.Lex(b, lexMessage) }
-
-func lexMessage(l *scan.Lexer) error {
-	for {
-		switch l.Next() {
-		case utf8.RuneError:
-			return errors.New("Messages must be encoded using UTF-8")
-		case scan.EOF:
-			return nil
-		case '\r':
-			l.Push(cr)
-		case '\n':
-			l.Push(lf)
-		case ' ':
-			l.Push(space)
-		case ':':
-			l.Push(colon)
-		case '@':
-			l.Push(at)
-		case '!':
-			l.Push(exclam)
-		case ';':
-			l.Push(semicolon)
-		case '=':
-			l.Push(equals)
-		case '/':
-			l.Push(fwdSlash)
-		case '+':
-			l.Push(clientPrefix)
-		default:
-			l.Push(any)
-		}
+func LexMessage(r rune) scan.Token {
+	switch r {
+	case '\r':
+		return scan.Token{TokenType: cr, Value: r}
+	case '\n':
+		return scan.Token{TokenType: lf, Value: r}
+	case ' ':
+		return scan.Token{TokenType: space, Value: r}
+	case ':':
+		return scan.Token{TokenType: colon, Value: r}
+	case '@':
+		return scan.Token{TokenType: at, Value: r}
+	case '!':
+		return scan.Token{TokenType: exclam, Value: r}
+	case ';':
+		return scan.Token{TokenType: semicolon, Value: r}
+	case '=':
+		return scan.Token{TokenType: equals, Value: r}
+	case '/':
+		return scan.Token{TokenType: fwdSlash, Value: r}
+	case '+':
+		return scan.Token{TokenType: clientPrefix, Value: r}
+	default:
+		return scan.Token{TokenType: any, Value: r}
 	}
 }

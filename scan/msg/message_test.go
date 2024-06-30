@@ -2,6 +2,8 @@ package msg
 
 import (
 	"testing"
+
+	"github.com/mitchr/gossip/scan"
 )
 
 func TestMessageString(t *testing.T) {
@@ -111,7 +113,10 @@ var testInput []byte = []byte("@a=b :bob!Bob@example.com PRIVMSG alice :Welcome 
 
 func BenchmarkLex(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Lex(testInput)
+		l := scan.Lex(testInput, LexMessage)
+		for tok, _ := l.PeekToken(); tok != scan.EOFToken; tok, _ = l.PeekToken() {
+			l.NextToken()
+		}
 	}
 }
 

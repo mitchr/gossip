@@ -5,6 +5,7 @@
 package scan
 
 import (
+	"errors"
 	"unicode/utf8"
 )
 
@@ -23,64 +24,74 @@ type Token struct {
 func (t Token) String() string { return string(t.Value) }
 
 type Lexer struct {
-	tokens   TokQueue
+	TokenGenerator func(rune) Token
+
 	input    []byte
 	position int
 
-	current rune
-	peeked  rune
-	width   uint8
+	Peeked Token
 }
 
-func (l *Lexer) Next() rune {
-	// check peek cache
-	if l.peeked != -1 {
-		l.current = l.peeked
-	} else {
-		l.current = l.Peek()
-	}
-	l.peeked = -1
-
-	l.position += int(l.width)
-	return l.current
+func (l *Lexer) Reset(b []byte) {
+	l.input = b
+	l.position = 0
+	l.Peeked = EOFToken
 }
 
-func (l *Lexer) Peek() rune {
+func (l *Lexer) Next() (rune, int) {
 	if l.position >= len(l.input) {
-		return EOF
-	}
-
-	// check peek cache
-	if l.peeked != -1 {
-		return l.peeked
+		return EOF, 0
 	}
 
 	p, w := utf8.DecodeRune(l.input[l.position:])
-	l.peeked, l.width = p, uint8(w)
+	l.position += w
 
 	// input is garbled, force execution to end early
-	if l.peeked == utf8.RuneError {
-		l.position = len(l.input) // prevent subsequent calls to Peek/Next
+	if p == utf8.RuneError {
+		l.position = len(l.input) // prevent subsequent calls to Next
 	}
 
-	return l.peeked
+	return p, w
 }
 
-func (l *Lexer) Push(t TokenType) {
-	l.tokens.push(Token{TokenType: t, Value: l.current, width: l.width})
+func (l *Lexer) NextToken() (Token, error) {
+	var err error
+	var t Token
+
+	// check peek cache
+	if l.Peeked.TokenType != -1 {
+		t = l.Peeked
+	} else {
+		t, err = l.PeekToken()
+	}
+	l.Peeked.TokenType = -1
+
+	return t, err
 }
 
-// Lex creates a slice of tokens using the given initial state. Even if
-// the returned error is not nil, some data may still be returned in the
-// TokQueue. This is to ensure that proper error messages can be
-// constructed from the invalid data.
-func Lex(b []byte, initState func(*Lexer) error) (*TokQueue, error) {
-	l := &Lexer{
-		input:  b,
-		peeked: -1,
-
-		tokens: New(len(b)),
+func (l *Lexer) PeekToken() (Token, error) {
+	// check peek cache
+	if l.Peeked.TokenType != -1 {
+		return l.Peeked, nil
 	}
 
-	return &l.tokens, initState(l)
+	r, w := l.Next()
+	if r == utf8.RuneError {
+		return EOFToken, errors.New("Messages must be encoded using UTF-8")
+	} else if r == EOF {
+		return EOFToken, nil
+	}
+
+	l.Peeked = l.TokenGenerator(r)
+	l.Peeked.width = uint8(w)
+	return l.Peeked, nil
+}
+
+// Lex returns a new Lexer with the given input and generator.
+func Lex(b []byte, generator func(rune) Token) *Lexer {
+	return &Lexer{
+		input:          b,
+		TokenGenerator: generator,
+		Peeked:         EOFToken,
+	}
 }

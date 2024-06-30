@@ -17,6 +17,7 @@ import (
 	cap "github.com/mitchr/gossip/capability"
 	"github.com/mitchr/gossip/channel"
 	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/scan"
 	"github.com/mitchr/gossip/scan/msg"
 	"github.com/pires/go-proxyproto"
 	_ "modernc.org/sqlite"
@@ -284,6 +285,8 @@ func startRegistrationTimer(c *client.Client, errs chan<- error) {
 
 // fetch a message from the client and parse it
 func (s *Server) getMessage(c *client.Client, ctx context.Context, errs chan<- error) {
+	p := &scan.Parser{Lexer: scan.Lex(nil, msg.LexMessage)}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -302,15 +305,14 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, errs chan<- e
 				continue
 			}
 
-			tokens, err := msg.Lex(buff)
-			if err != nil {
-				s.stdReply(c, FAIL, tokens.TryToExtractCommand(), "INVALID_UTF8", "", "Message rejected, your IRC software MUST use UTF-8 encoding on this network")
-				errs <- err
-				continue
-			}
+			p.Reset(buff)
+			m, err := msg.Parse(p)
 
-			m, err := msg.Parse(tokens)
-			if err == msg.ErrMsgSizeOverflow {
+			if p.CheckUTF8Error() != nil {
+				s.stdReply(c, FAIL, m.Command, "INVALID_UTF8", "", "Message rejected, your IRC software MUST use UTF-8 encoding on this network")
+				errs <- p.CheckUTF8Error()
+				continue
+			} else if err == msg.ErrMsgSizeOverflow {
 				s.writeReply(c, ERR_INPUTTOOLONG)
 			} else if errors.Unwrap(err) == msg.ErrParse {
 				// silently ignore parse errors

@@ -12,19 +12,16 @@ const (
 )
 
 // mode lexing
-func lexMode(l *scan.Lexer) error {
-	for {
-		switch k := l.Next(); {
-		case k == scan.EOF:
-			return nil
-		case k == '+':
-			l.Push(plus)
-		case k == '-':
-			l.Push(minus)
-		case scan.IsLetter(k):
-			l.Push(modechar)
-		}
+func lexMode(r rune) scan.Token {
+	switch k := r; {
+	case k == '+':
+		return scan.Token{TokenType: plus, Value: r}
+	case k == '-':
+		return scan.Token{TokenType: minus, Value: r}
+	case scan.IsLetter(k):
+		return scan.Token{TokenType: modechar, Value: r}
 	}
+	return scan.EOFToken
 }
 
 type Type int
@@ -54,8 +51,7 @@ func (m Mode) String() string {
 
 // modestring  =  1*( modeset )
 func Parse(b []byte) []Mode {
-	tokens, _ := scan.Lex(b, lexMode)
-	p := &scan.Parser{Tokens: tokens}
+	p := &scan.Parser{Lexer: scan.Lex(b, lexMode)}
 	m := []Mode{}
 
 	// must have atleast one modeset
