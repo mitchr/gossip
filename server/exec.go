@@ -890,13 +890,12 @@ func MODE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 				modeStr += " "
 			}
 
-			var buff msg.Buffer
-			buff.AddMsg(prepMessage(RPL_CHANNELMODEIS, s.Name, c.Id(), ch, modeStr, strings.Join(params, " ")))
-			buff.AddMsg(prepMessage(RPL_CREATIONTIME, s.Name, c.Id(), ch, ch.CreatedAt))
-			return buff
+			return msg.Buffer{
+				prepMessage(RPL_CHANNELMODEIS, s.Name, c.Id(), ch, modeStr, strings.Join(params, " ")),
+				prepMessage(RPL_CREATIONTIME, s.Name, c.Id(), ch, ch.CreatedAt),
+			}
 		} else { // modeStr given
-			self, belongs := ch.GetMember(c.Id())
-			if !belongs || !self.Is(channel.Operator) {
+			if self, belongs := ch.GetMember(c.Id()); !belongs || !self.Is(channel.Operator) {
 				return prepMessage(ERR_CHANOPRIVSNEEDED, s.Name, c.Id(), ch)
 			}
 
@@ -922,6 +921,11 @@ func MODE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 				} else if errors.Is(err, channel.ErrUnknownMode) {
 					return prepMessage(ERR_UNKNOWNMODE, s.Name, c.Id(), err, ch)
 				} else if errors.Is(err, channel.ErrNotInChan) {
+					// if client wasnt in the channel, do a final check to see if they're even on the server
+					if _, exists := s.getClient(m.Param); m.Param != "" && !exists {
+						return prepMessage(ERR_NOSUCHNICK, s.Name, c.Id(), m.Param)
+					}
+
 					return prepMessage(ERR_USERNOTINCHANNEL, s.Name, c.Id(), err, ch)
 				} else if errors.Is(err, channel.ErrInvalidKey) {
 					return prepMessage(ERR_INVALIDKEY, s.Name, c.Id(), ch)
