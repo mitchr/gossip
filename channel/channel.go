@@ -113,6 +113,7 @@ func (ch *Channel) ForAllMembersExcept(c *client.Client, f func(m *Member)) {
 }
 
 func (c *Channel) Modes() (modestr string, params []string) {
+	modestr = "+"
 	if len(c.Ban) != 0 {
 		modestr += "b"
 		params = append(params, strings.Join(c.Ban, ","))

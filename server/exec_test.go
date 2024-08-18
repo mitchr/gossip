@@ -821,7 +821,7 @@ func TestMODEChannel(t *testing.T) {
 	r1.ReadBytes('\n')
 
 	assertResponse(applied, fmt.Sprintf(":%s MODE #local +ko pass bob\r\n", s.Name), t)
-	assertResponse(getModeResp, fmt.Sprintf(":%s 324 alice #local k\r\n", s.Name), t)
+	assertResponse(getModeResp, fmt.Sprintf(":%s 324 alice #local +k\r\n", s.Name), t)
 
 	if bob.Prefix != channel.Operator {
 		t.Error("Failed to set member mode")
