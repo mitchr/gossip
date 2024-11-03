@@ -57,6 +57,9 @@ func Match(pattern, m string) bool {
 				pos++ // advance pointer
 			}
 		case r.TokenType == wildone:
+			if getRune(m, pos) == scan.EOF {
+				return false
+			}
 			pos++
 			// n := p.Next()
 			// if n.Value != string(getRune(m, pos)) {

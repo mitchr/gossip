@@ -53,7 +53,9 @@ func TestMatchWildone(t *testing.T) {
 		{"a?c", "ac", false},
 		{"a?c", "atoomuchc", false},
 		{"?", " ", true},
-		// {"?", "", false},
+		{"?", "", false},
+		{"hi!?", "hi!", false},
+		{"?", "a", true},
 	}
 
 	for _, v := range tests {
