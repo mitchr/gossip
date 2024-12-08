@@ -19,7 +19,7 @@ func TestREGISTER(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	conn, r := connectAndRegister("alice")
+	conn, r := s.connectAndRegister("alice")
 	defer conn.Close()
 
 	conn.Write([]byte("REGISTER PASS pass1\r\n"))
@@ -36,7 +36,7 @@ func TestChannelREGISTER(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice")
+	c, r := s.connectAndRegister("alice")
 	defer c.Close()
 
 	c.Write([]byte("JOIN #test\r\nREGISTER #test\r\n"))
@@ -60,7 +60,7 @@ func TestAUTHENTICATE(t *testing.T) {
 	s.persistPlain(plainCred.Username, "b", plainCred.Pass)
 
 	t.Run("TestAUTHENTICATEAfterRegister", func(t *testing.T) {
-		c, r := connectAndRegister("a")
+		c, r := s.connectAndRegister("a")
 		defer c.Close()
 
 		c.Write([]byte("AUTHENTICATE PLAIN\r\n"))
@@ -183,8 +183,7 @@ func TestAUTHENTICATEEXTERNAL(t *testing.T) {
 	go s.Serve()
 
 	cert := generateCert()
-
-	c, err := tls.Dial("tcp", ":6697", &tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true})
+	c, err := tls.Dial("tcp", ":"+s.tlsPort(), &tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true})
 	if err != nil {
 		t.Error(err)
 	}

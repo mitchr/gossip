@@ -25,7 +25,7 @@ func TestCAP(t *testing.T) {
 	go s.Serve()
 
 	t.Run("TestInvalid", func(t *testing.T) {
-		c, r := connectAndRegister("a")
+		c, r := s.connectAndRegister("a")
 		defer c.Close()
 
 		c.Write([]byte("CAP\r\nCAP fakesubcom\r\n"))
@@ -61,7 +61,7 @@ func TestCAP(t *testing.T) {
 	})
 
 	t.Run("TestLIST", func(t *testing.T) {
-		c, r := connectAndRegister("c")
+		c, r := s.connectAndRegister("c")
 		defer c.Close()
 
 		c.Write([]byte("CAP REQ sasl message-tags\r\n"))
@@ -84,7 +84,7 @@ func TestREQ(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("bob")
+	c, r := s.connectAndRegister("bob")
 	defer c.Close()
 
 	t.Run("REQEmptyParam", func(t *testing.T) {
@@ -139,7 +139,7 @@ func TestCAP302(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("bob")
+	c, r := s.connectAndRegister("bob")
 	defer c.Close()
 
 	c.Write([]byte("CAP LS 302\r\n"))
@@ -181,9 +181,9 @@ func TestTAGMSG(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a")
+	c1, r1 := s.connectAndRegister("a")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("b")
+	c2, r2 := s.connectAndRegister("b")
 	defer c2.Close()
 
 	c1.Write([]byte("CAP REQ :message-tags\r\n"))
@@ -206,9 +206,9 @@ func TestEchoMessage(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a")
+	c1, r1 := s.connectAndRegister("a")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("b")
+	c2, r2 := s.connectAndRegister("b")
 	defer c2.Close()
 
 	c1.Write([]byte("CAP REQ :echo-message\r\nPRIVMSG b test\r\n"))
@@ -229,9 +229,9 @@ func TestMessageTags(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a")
+	c1, r1 := s.connectAndRegister("a")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("b")
+	c2, r2 := s.connectAndRegister("b")
 	defer c2.Close()
 	c1.Write([]byte("CAP REQ :message-tags\r\n"))
 	r1.ReadBytes('\n')
@@ -262,9 +262,9 @@ func TestMessageId(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a")
+	c1, r1 := s.connectAndRegister("a")
 	defer c1.Close()
-	c2, _ := connectAndRegister("b")
+	c2, _ := s.connectAndRegister("b")
 	defer c2.Close()
 	c1.Write([]byte("CAP REQ :message-tags\r\n"))
 	r1.ReadBytes('\n')
@@ -284,9 +284,9 @@ func TestMultiPrefix(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a")
+	c1, r1 := s.connectAndRegister("a")
 	defer c1.Close()
-	c2, _ := connectAndRegister("b")
+	c2, _ := s.connectAndRegister("b")
 	defer c2.Close()
 
 	c1.Write([]byte("CAP REQ :multi-prefix\r\n"))
@@ -380,9 +380,9 @@ func TestAwayNotify(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a")
+	c1, r1 := s.connectAndRegister("a")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("b")
+	c2, r2 := s.connectAndRegister("b")
 	defer c2.Close()
 	c1.Write([]byte("CAP REQ :away-notify\r\n"))
 	r1.ReadBytes('\n')
@@ -404,7 +404,7 @@ func TestAwayNotify(t *testing.T) {
 	})
 
 	t.Run("TestShouldNotifyOnJoin", func(t *testing.T) {
-		c3, r3 := connectAndRegister("d")
+		c3, r3 := s.connectAndRegister("d")
 		defer c3.Close()
 		c3.Write([]byte("AWAY :My away msg\r\nJOIN #local\r\n"))
 		readLines(r3, 4)
@@ -424,13 +424,13 @@ func TestExtendedJoin(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	a, r1 := connectAndRegister("a")
+	a, r1 := s.connectAndRegister("a")
 	defer a.Close()
 
 	aClient, _ := s.getClient("a")
 	aClient.SASLMech = external.New(nil, aClient)
 
-	b, r2 := connectAndRegister("b")
+	b, r2 := s.connectAndRegister("b")
 	defer b.Close()
 
 	b.Write([]byte("CAP REQ extended-join\r\nCAP END\r\nJOIN #test\r\n"))
@@ -451,7 +451,7 @@ func TestServerTime(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a")
+	c1, r1 := s.connectAndRegister("a")
 	defer c1.Close()
 
 	c1.Write([]byte("CAP REQ :server-time\r\n"))
@@ -475,7 +475,7 @@ func TestSTS(t *testing.T) {
 	go s.Serve()
 
 	clientCert := generateCert()
-	c, err := tls.Dial("tcp", ":6697", &tls.Config{InsecureSkipVerify: true, Certificates: []tls.Certificate{clientCert}})
+	c, err := tls.Dial("tcp", ":"+s.tlsPort(), &tls.Config{InsecureSkipVerify: true, Certificates: []tls.Certificate{clientCert}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -513,9 +513,9 @@ func TestUserhostInNames(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a")
+	c1, r1 := s.connectAndRegister("a")
 	defer c1.Close()
-	c2, _ := connectAndRegister("b")
+	c2, _ := s.connectAndRegister("b")
 	defer c2.Close()
 
 	b, _ := s.getClient("b")
@@ -537,7 +537,7 @@ func TestLabeledResponse(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("a")
+	c1, r1 := s.connectAndRegister("a")
 	defer c1.Close()
 
 	c1.Write([]byte("CAP REQ labeled-response\r\n@label=123456 PRIVMSG noNick hello\r\n"))

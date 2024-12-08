@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -16,9 +17,9 @@ func TestCanConnectWithPROXYHeader(t *testing.T) {
 	conf := &Config{
 		Network: "cafeteria",
 		Name:    "gossip",
-		Port:    ":6667",
+		Port:    ":0",
 	}
-	conf.TLS.Port = ":6697"
+	conf.TLS.Port = ":0"
 	conf.TLS.Enabled = true
 	conf.TLS.Proxy.Enabled = true
 	conf.TLS.Proxy.Whitelist = []string{"127.0.0.1"}
@@ -30,7 +31,7 @@ func TestCanConnectWithPROXYHeader(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, _ := net.Dial("tcp", ":6697")
+	c, _ := net.Dial("tcp", ":0"+s.tlsPort())
 	defer c.Close()
 
 	header := &proxyproto.Header{
@@ -56,9 +57,9 @@ func TestRejectUnknownProxyIp(t *testing.T) {
 	conf := &Config{
 		Network: "cafeteria",
 		Name:    "gossip",
-		Port:    ":6667",
+		Port:    ":0",
 	}
-	conf.TLS.Port = ":6697"
+	conf.TLS.Port = ":0"
 	conf.TLS.Enabled = true
 	conf.TLS.Proxy.Enabled = true
 	conf.TLS.Proxy.Whitelist = []string{"127.0.0.2"}
@@ -70,7 +71,7 @@ func TestRejectUnknownProxyIp(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, _ := net.Dial("tcp", ":6697")
+	c, _ := net.Dial("tcp", ":"+s.tlsPort())
 	defer c.Close()
 
 	header := &proxyproto.Header{
@@ -99,9 +100,9 @@ func TestProperIpResponseInWHOX(t *testing.T) {
 	conf := &Config{
 		Network: "cafeteria",
 		Name:    "gossip",
-		Port:    ":6667",
+		Port:    ":0",
 	}
-	conf.TLS.Port = ":6697"
+	conf.TLS.Port = ":0"
 	conf.TLS.Enabled = true
 	conf.TLS.Proxy.Enabled = true
 	conf.TLS.Proxy.Whitelist = []string{"127.0.0.2"}
@@ -113,7 +114,7 @@ func TestProperIpResponseInWHOX(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	proxyListener, err := net.Listen("tcp", "127.0.0.2:6000")
+	proxyListener, err := net.Listen("tcp", "127.0.0.2:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +131,7 @@ func TestProperIpResponseInWHOX(t *testing.T) {
 		// when testing here our local address will be 127.0.0.1 but we can
 		// use a custom Dialer that will mock our address as 127.0.0.2
 		localDialer := &net.Dialer{LocalAddr: &net.TCPAddr{IP: net.ParseIP("127.0.0.2")}}
-		fwd, err := localDialer.Dial("tcp", "127.0.0.1:6697")
+		fwd, err := localDialer.Dial("tcp", "127.0.0.1:"+s.tlsPort())
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -160,7 +161,7 @@ func TestProperIpResponseInWHOX(t *testing.T) {
 		wg.Wait()
 	}()
 
-	c, err := net.Dial("tcp", "127.0.0.2:6000")
+	c, err := net.Dial("tcp", "127.0.0.2:"+strconv.Itoa(proxyListener.Addr().(*net.TCPAddr).Port))
 	if err != nil {
 		t.Fatal(err)
 	}

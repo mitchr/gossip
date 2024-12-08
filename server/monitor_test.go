@@ -12,7 +12,7 @@ func TestMONITOR(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice")
+	c, r := s.connectAndRegister("alice")
 	defer c.Close()
 
 	t.Run("TestMissingParam", func(t *testing.T) {
@@ -25,7 +25,7 @@ func TestMONITOR(t *testing.T) {
 		assertResponse(resp3, prepMessage(ERR_NEEDMOREPARAMS, s.Name, "alice", "MONITOR").String(), t)
 	})
 
-	on, _ := connectAndRegister("online")
+	on, _ := s.connectAndRegister("online")
 	defer on.Close()
 
 	t.Run("TestMONITOR+", func(t *testing.T) {
@@ -58,7 +58,7 @@ func TestMONITOR(t *testing.T) {
 		assertResponse(moffline, prepMessage(RPL_MONOFFLINE, s.Name, "alice", "offline").String(), t)
 	})
 
-	off, r2 := connectAndRegister("offline")
+	off, r2 := s.connectAndRegister("offline")
 	t.Run("TestNotifyOn", func(t *testing.T) {
 		onNotif, _ := r.ReadBytes('\n')
 		assertResponse(onNotif, prepMessage(RPL_MONONLINE, s.Name, "*", "offline!offline@localhost").String(), t)

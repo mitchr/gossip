@@ -15,6 +15,7 @@ import (
 	"log"
 	"math/big"
 	"net"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -35,7 +36,7 @@ func TestTLS(t *testing.T) {
 	go s.Serve()
 
 	clientCert := generateCert()
-	c, err := tls.Dial("tcp", ":6697", &tls.Config{InsecureSkipVerify: true, Certificates: []tls.Certificate{clientCert}})
+	c, err := tls.Dial("tcp", ":"+s.tlsPort(), &tls.Config{InsecureSkipVerify: true, Certificates: []tls.Certificate{clientCert}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +58,7 @@ func TestTLS(t *testing.T) {
 	})
 
 	t.Run("TestPRIVMSGFromInsecureToSecure", func(t *testing.T) {
-		c2, r2 := connectAndRegister("bob")
+		c2, r2 := s.connectAndRegister("bob")
 		defer c2.Close()
 
 		c.Write([]byte("PRIVMSG bob :hey\r\n"))
@@ -103,7 +104,7 @@ func TestMessageSize(t *testing.T) {
 	})
 
 	t.Run("HugeTags", func(t *testing.T) {
-		c, r := connectAndRegister("d")
+		c, r := s.connectAndRegister("d")
 		c.Write([]byte("CAP REQ message-tags\r\n"))
 		r.ReadBytes('\n')
 
@@ -133,7 +134,7 @@ func TestFlooding(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	c, r := connectAndRegister("alice")
+	c, r := s.connectAndRegister("alice")
 	defer c.Close()
 
 	for i := 0; i < 20; i++ {
@@ -146,7 +147,7 @@ func TestFlooding(t *testing.T) {
 }
 
 func TestWriteMultiline(t *testing.T) {
-	s, err := New(&Config{Network: "cafeteria", Name: "gossip", Port: ":6667"})
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,16 +164,16 @@ func TestWriteMultiline(t *testing.T) {
 }
 
 func TestCaseInsensitivity(t *testing.T) {
-	s, err := New(&Config{Name: "gossip", Port: ":6667"})
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer s.Close()
 	go s.Serve()
 
-	c1, r1 := connectAndRegister("alice")
+	c1, r1 := s.connectAndRegister("alice")
 	defer c1.Close()
-	c2, r2 := connectAndRegister("bob")
+	c2, r2 := s.connectAndRegister("bob")
 	defer c2.Close()
 
 	t.Run("TestNickCaseInsensitive", func(t *testing.T) {
@@ -205,7 +206,7 @@ func TestCaseInsensitivity(t *testing.T) {
 }
 
 func TestUnicodeNICK(t *testing.T) {
-	s, err := New(&Config{Name: "gossip", Port: ":6667", Network: "cafe"})
+	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,7 +220,7 @@ func TestUnicodeNICK(t *testing.T) {
 	resp, _ := r.ReadBytes('\n')
 
 	airplane := s.clients["🛩️"].String()
-	assertResponse(resp, fmt.Sprintf(":%s 001 🛩️ :Welcome to the cafe IRC Network %s\r\n", s.Name, airplane), t)
+	assertResponse(resp, fmt.Sprintf(":%s 001 🛩️ :Welcome to the  IRC Network %s\r\n", s.Name, airplane), t)
 }
 
 func TestUnknownCount(t *testing.T) {
@@ -278,9 +279,9 @@ func TestSlowWriter(t *testing.T) {
 
 	p := connectSlowWriter(s)
 	defer p()
-	c2, _ := connectAndRegister("a")
+	c2, _ := s.connectAndRegister("a")
 	defer c2.Close()
-	c3, r3 := connectAndRegister("b")
+	c3, r3 := s.connectAndRegister("b")
 	defer c3.Close()
 
 	c2.Write([]byte("PRIVMSG slow,b :hello!\r\n"))
@@ -308,16 +309,16 @@ func BenchmarkRegistrationSurge(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		c, _ := connectAndRegister(string(names[i]))
+		c, _ := s.connectAndRegister(string(names[i]))
 		c.Close()
 	}
 }
 
-// given a nick and a realname, return a connection that is already
-// registered and a bufio.Reader that has already read past all the
-// initial connection rigamarole (RPL's, MOTD, etc.)
-func connectAndRegister(nick string) (net.Conn, *bufio.Reader) {
-	c, _ := net.Dial("tcp", ":6667")
+// given a nick return a connection that is already registered and a
+// bufio.Reader that has already read past all the initial connection
+// rigamarole (RPL's, MOTD, etc.)
+func (s *Server) connectAndRegister(nick string) (net.Conn, *bufio.Reader) {
+	c, _ := net.Dial("tcp", ":"+s.port())
 
 	c.Write([]byte("NICK " + nick + "\r\nUSER " + nick + " 0 0 :" + nick + "\r\n"))
 
@@ -393,13 +394,17 @@ func generateConfig() *Config {
 
 	c := &Config{}
 	c.Name = "gossip"
-	c.Port = ":6667"
+	c.Port = ":0"
 	c.TLS.Config = &tls.Config{ClientAuth: tls.RequestClientCert, Certificates: []tls.Certificate{cert}}
 	c.TLS.Enabled = true
-	c.TLS.Port = ":6697"
+	c.TLS.Port = ":0"
 
 	return c
 }
+
+func (s *Server) port() string { return strconv.Itoa(s.listener.Addr().(*net.TCPAddr).Port) }
+
+func (s *Server) tlsPort() string { return strconv.Itoa(s.tlsListener.Addr().(*net.TCPAddr).Port) }
 
 // slowWriter is a net.Conn that sleeps on write when block == true
 type slowWriter struct {
