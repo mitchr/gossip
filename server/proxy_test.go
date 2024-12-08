@@ -14,6 +14,8 @@ import (
 )
 
 func TestCanConnectWithPROXYHeader(t *testing.T) {
+	t.Parallel()
+
 	conf := &Config{
 		Network: "cafeteria",
 		Name:    "gossip",
@@ -54,6 +56,8 @@ func TestCanConnectWithPROXYHeader(t *testing.T) {
 }
 
 func TestRejectUnknownProxyIp(t *testing.T) {
+	t.Parallel()
+
 	conf := &Config{
 		Network: "cafeteria",
 		Name:    "gossip",
@@ -97,6 +101,8 @@ func TestRejectUnknownProxyIp(t *testing.T) {
 }
 
 func TestProperIpResponseInWHOX(t *testing.T) {
+	t.Parallel()
+
 	conf := &Config{
 		Network: "cafeteria",
 		Name:    "gossip",

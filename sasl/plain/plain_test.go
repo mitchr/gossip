@@ -10,6 +10,8 @@ import (
 )
 
 func TestPLAIN(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		input                  []byte
 		authzid, authcid, pass []byte
@@ -35,6 +37,8 @@ func TestPLAIN(t *testing.T) {
 }
 
 func TestLookup(t *testing.T) {
+	t.Parallel()
+
 	db, err := initTable()
 	if err != nil {
 		t.Fatal(err)

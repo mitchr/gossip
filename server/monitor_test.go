@@ -5,6 +5,8 @@ import (
 )
 
 func TestMONITOR(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(generateConfig())
 	if err != nil {
 		t.Fatal(err)

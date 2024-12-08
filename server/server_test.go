@@ -28,6 +28,8 @@ func init() {
 }
 
 func TestTLS(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(generateConfig())
 	if err != nil {
 		t.Fatal(err)
@@ -69,6 +71,8 @@ func TestTLS(t *testing.T) {
 }
 
 func TestMessageSize(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -127,6 +131,8 @@ func TestMessageSize(t *testing.T) {
 }
 
 func TestFlooding(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -147,6 +153,8 @@ func TestFlooding(t *testing.T) {
 }
 
 func TestWriteMultiline(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -164,6 +172,8 @@ func TestWriteMultiline(t *testing.T) {
 }
 
 func TestCaseInsensitivity(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -206,6 +216,8 @@ func TestCaseInsensitivity(t *testing.T) {
 }
 
 func TestUnicodeNICK(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -224,6 +236,8 @@ func TestUnicodeNICK(t *testing.T) {
 }
 
 func TestUnknownCount(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -252,6 +266,8 @@ func TestUnknownCount(t *testing.T) {
 }
 
 func TestUTF8ONLY(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -273,6 +289,8 @@ func TestUTF8ONLY(t *testing.T) {
 
 // a slow connection should not prevent other clients from receiving a message promptly
 func TestSlowWriter(t *testing.T) {
+	t.Parallel()
+
 	s, _ := New(conf)
 	defer s.Close()
 	go s.Serve()

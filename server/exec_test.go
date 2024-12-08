@@ -14,6 +14,8 @@ import (
 var conf = &Config{Name: "gossip", Port: ":0"}
 
 func TestRegistration(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -133,6 +135,8 @@ func TestRegistration(t *testing.T) {
 }
 
 func TestOPER(t *testing.T) {
+	t.Parallel()
+
 	conf2 := *conf
 	pass, _ := bcrypt.GenerateFromPassword([]byte("adminpass"), bcrypt.MinCost)
 	conf2.Ops = map[string][]byte{"admin": pass}
@@ -167,6 +171,8 @@ func TestOPER(t *testing.T) {
 
 // test cases are taken from https://www.irc.com/dev/docs/refs/commands/pass
 func TestPASS(t *testing.T) {
+	t.Parallel()
+
 	// need a special conf so we don't mess with the password for all the other tests
 	conf2 := *conf
 	pass, _ := bcrypt.GenerateFromPassword([]byte("letmein"), bcrypt.MinCost)
@@ -234,6 +240,8 @@ func TestPASS(t *testing.T) {
 }
 
 func TestQUIT(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -273,6 +281,8 @@ func TestQUIT(t *testing.T) {
 }
 
 func TestSETNAME(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -323,6 +333,8 @@ func TestSETNAME(t *testing.T) {
 }
 
 func TestChannelCreation(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -417,6 +429,8 @@ func TestChannelCreation(t *testing.T) {
 }
 
 func TestChannelKeys(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -457,6 +471,8 @@ func TestChannelKeys(t *testing.T) {
 }
 
 func TestTOPIC(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -511,6 +527,8 @@ func TestTOPIC(t *testing.T) {
 }
 
 func TestKICK(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -581,6 +599,8 @@ func TestKICK(t *testing.T) {
 }
 
 func TestNAMES(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -636,6 +656,8 @@ func TestNAMES(t *testing.T) {
 }
 
 func TestLIST(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -698,6 +720,8 @@ func TestLIST(t *testing.T) {
 }
 
 func TestELIST(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -756,6 +780,8 @@ func TestELIST(t *testing.T) {
 }
 
 func TestMOTD(t *testing.T) {
+	t.Parallel()
+
 	confCopy := *conf
 	s, err := New(&confCopy)
 	if err != nil {
@@ -789,6 +815,8 @@ func TestMOTD(t *testing.T) {
 }
 
 func TestMODEChannel(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -968,6 +996,8 @@ func TestMODEChannel(t *testing.T) {
 }
 
 func TestMODEClient(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1056,6 +1086,8 @@ func TestMODEClient(t *testing.T) {
 }
 
 func TestWHOClient(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1123,6 +1155,8 @@ func TestWHOXClient(t *testing.T) {
 }
 
 func TestWHOChannel(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1190,6 +1224,8 @@ func TestWHOChannel(t *testing.T) {
 }
 
 func TestWHOIS(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1225,6 +1261,8 @@ func TestWHOIS(t *testing.T) {
 }
 
 func TestWHOWAS(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1277,6 +1315,8 @@ func TestWHOWAS(t *testing.T) {
 }
 
 func TestChanFull(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1299,6 +1339,8 @@ func TestChanFull(t *testing.T) {
 }
 
 func TestModerated(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1323,6 +1365,8 @@ func TestModerated(t *testing.T) {
 }
 
 func TestNoExternal(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1345,6 +1389,8 @@ func TestNoExternal(t *testing.T) {
 }
 
 func TestINVITE(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1427,6 +1473,8 @@ func TestINVITE(t *testing.T) {
 }
 
 func TestBan(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1449,6 +1497,8 @@ func TestBan(t *testing.T) {
 }
 
 func TestPRIVMSG(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1515,6 +1565,8 @@ func TestPRIVMSG(t *testing.T) {
 }
 
 func TestChannelPRIVMSGTags(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1554,6 +1606,8 @@ func TestChannelPRIVMSGTags(t *testing.T) {
 }
 
 func TestPING(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1571,6 +1625,8 @@ func TestPING(t *testing.T) {
 }
 
 func TestPONG(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1590,6 +1646,8 @@ func TestPONG(t *testing.T) {
 }
 
 func TestAWAY(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1620,6 +1678,8 @@ func TestAWAY(t *testing.T) {
 }
 
 func TestUSERHOST(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1648,6 +1708,8 @@ func TestUSERHOST(t *testing.T) {
 }
 
 func TestWALLOPS(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -1679,6 +1741,8 @@ func TestWALLOPS(t *testing.T) {
 }
 
 func TestREHASH(t *testing.T) {
+	t.Parallel()
+
 	conf.configSource = strings.NewReader(`{"name": "gossip"}`)
 	s, err := New(conf)
 	if err != nil {
@@ -1699,6 +1763,8 @@ func TestREHASH(t *testing.T) {
 }
 
 func TestUnknownCommand(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)

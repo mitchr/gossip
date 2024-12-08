@@ -12,6 +12,8 @@ import (
 )
 
 func TestREGISTER(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -29,6 +31,8 @@ func TestREGISTER(t *testing.T) {
 }
 
 func TestChannelREGISTER(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -49,6 +53,8 @@ func TestChannelREGISTER(t *testing.T) {
 }
 
 func TestAUTHENTICATE(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -145,6 +151,8 @@ func TestAUTHENTICATE(t *testing.T) {
 }
 
 func TestAUTHENTICATEPLAIN(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -175,6 +183,8 @@ func TestAUTHENTICATEPLAIN(t *testing.T) {
 }
 
 func TestAUTHENTICATEEXTERNAL(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(generateConfig())
 	if err != nil {
 		t.Fatal(err)
@@ -207,6 +217,8 @@ func TestAUTHENTICATEEXTERNAL(t *testing.T) {
 }
 
 func TestAUTHENTICATESCRAM(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -227,6 +239,8 @@ func TestAUTHENTICATESCRAM(t *testing.T) {
 }
 
 func TestEndRegistrationWithANickBelongingToRegisteredAccount(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)

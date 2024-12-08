@@ -17,6 +17,8 @@ import (
 )
 
 func TestCAP(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -77,6 +79,8 @@ func TestCAP(t *testing.T) {
 }
 
 func TestREQ(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -132,6 +136,8 @@ func TestREQ(t *testing.T) {
 }
 
 func TestCAP302(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -174,6 +180,8 @@ func TestCAP302(t *testing.T) {
 }
 
 func TestTAGMSG(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -199,6 +207,8 @@ func TestTAGMSG(t *testing.T) {
 }
 
 func TestEchoMessage(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -222,6 +232,8 @@ func TestEchoMessage(t *testing.T) {
 }
 
 func TestMessageTags(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -255,6 +267,8 @@ func TestMessageTags(t *testing.T) {
 }
 
 func TestMessageId(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -277,6 +291,8 @@ func TestMessageId(t *testing.T) {
 }
 
 func TestMultiPrefix(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -319,6 +335,8 @@ func TestMultiPrefix(t *testing.T) {
 // and test this for that case when two clients are joined to the same
 // channel
 func TestAccountNotify(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -341,6 +359,8 @@ func TestAccountNotify(t *testing.T) {
 }
 
 func TestAccountTag(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -373,6 +393,8 @@ func TestAccountTag(t *testing.T) {
 }
 
 func TestAwayNotify(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -417,6 +439,8 @@ func TestAwayNotify(t *testing.T) {
 }
 
 func TestExtendedJoin(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -444,6 +468,8 @@ func TestExtendedJoin(t *testing.T) {
 }
 
 func TestServerTime(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -463,6 +489,8 @@ func TestServerTime(t *testing.T) {
 }
 
 func TestSTS(t *testing.T) {
+	t.Parallel()
+
 	conf := generateConfig()
 	conf.TLS.STS.Port = conf.TLS.Port[1:]
 	conf.TLS.STS.Enabled = true
@@ -493,6 +521,8 @@ func TestSTS(t *testing.T) {
 }
 
 func TestSTSConfig(t *testing.T) {
+	t.Parallel()
+
 	var s Server
 	s.Config = generateConfig()
 
@@ -506,6 +536,8 @@ func TestSTSConfig(t *testing.T) {
 }
 
 func TestUserhostInNames(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
@@ -530,6 +562,8 @@ func TestUserhostInNames(t *testing.T) {
 }
 
 func TestLabeledResponse(t *testing.T) {
+	t.Parallel()
+
 	s, err := New(conf)
 	if err != nil {
 		t.Fatal(err)
