@@ -221,12 +221,11 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) handleConn(u net.Conn, ctx context.Context) {
-	clientCtx, cancel := context.WithCancel(ctx)
-
 	defer s.wg.Done()
+
+	c, clientCtx, cancel := client.New(u, ctx)
 	defer cancel()
 
-	c := client.New(u)
 	s.unknowns.Inc()
 
 	errs := make(chan error)

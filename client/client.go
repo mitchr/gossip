@@ -20,6 +20,7 @@ import (
 
 type Client struct {
 	conn net.Conn
+	ctx  context.Context
 
 	Nick     string
 	User     string
@@ -32,7 +33,8 @@ type Client struct {
 	// last time that client sent a succcessful message
 	idle int64
 
-	msgBuf []byte
+	msgBuf     []byte
+	writeQueue chan []byte
 
 	Mode               Mode
 	AwayMsg            string
@@ -59,14 +61,16 @@ type Client struct {
 	grants uint32
 }
 
-func New(conn net.Conn) *Client {
+func New(conn net.Conn, ctx context.Context) (*Client, context.Context, context.CancelFunc) {
 	now := time.Now()
 	c := &Client{
-		conn:     conn,
+		conn: conn,
+
 		JoinTime: now.Unix(),
 		idle:     now.Unix(),
 
-		msgBuf: make([]byte, 512),
+		msgBuf:     make([]byte, 512),
+		writeQueue: make(chan []byte, 10),
 
 		PONG: make(chan struct{}, 1),
 		Caps: make(map[string]bool),
@@ -74,10 +78,20 @@ func New(conn net.Conn) *Client {
 		SASLMech: sasl.None{},
 	}
 
+	var cancel context.CancelFunc
+	c.ctx, cancel = context.WithCancel(ctx)
+
 	c.FillGrants()
 	c.Host = populateHostname(c.RemoteAddr().String())
 
-	return c
+	go func() {
+		for b := range c.writeQueue {
+			c.Write(b)
+		}
+		cancel()
+	}()
+
+	return c, c.ctx, cancel
 }
 
 // populateHostname does an rDNS lookup on the client's ip address. If
@@ -224,10 +238,7 @@ func (c *Client) ReadMsg() ([]byte, error) {
 }
 
 func (c *Client) Write(b []byte) (int, error) {
-	if err := c.conn.SetWriteDeadline(time.Now().Add(time.Millisecond * 250)); err != nil {
-		return 0, err
-	}
-
+	c.conn.SetWriteDeadline(time.Now().Add(time.Millisecond * 250))
 	return c.conn.Write(b)
 }
 
@@ -238,7 +249,7 @@ func (c *Client) WriteMessage(m msg.Msg) {
 		m.AddTag("time", time.Now().UTC().Format(timeFormat))
 	}
 
-	c.Write(m.Bytes())
+	c.writeQueue <- m.Bytes()
 }
 
 func (c *Client) WriteMessageFrom(m msg.Msg, from *Client) {
@@ -258,7 +269,13 @@ func (c *Client) WriteMessageFrom(m msg.Msg, from *Client) {
 	c.WriteMessage(m)
 }
 
-func (c *Client) Close() error { return c.conn.Close() }
+// close msgQueue, then wait for all messages to be sent
+// it's up to the caller to make sure that no Writes are sent after this
+func (c *Client) Close() error {
+	close(c.writeQueue)
+	<-c.ctx.Done()
+	return c.conn.Close()
+}
 
 func (c *Client) UpdateIdleTime(t time.Time) {
 	atomic.StoreInt64(&c.idle, t.Unix())

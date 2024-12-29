@@ -308,7 +308,7 @@ func TestSlowWriter(t *testing.T) {
 	after := time.Now()
 
 	assertResponse(resp, ":a!a@localhost PRIVMSG b :hello!\r\n", t)
-	if after.Sub(now) >= time.Second {
+	if after.Sub(now) >= time.Millisecond*250 {
 		t.Error("SlowWriter blocked writes to all clients")
 	}
 }

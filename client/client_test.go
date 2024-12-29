@@ -2,6 +2,7 @@ package client
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"testing"
@@ -21,7 +22,7 @@ func TestWriteMessageFrom(t *testing.T) {
 		from.Caps[capability.MessageTags.Name] = true
 
 		in, out := net.Pipe()
-		c := New(in)
+		c, _, _ := New(in, context.TODO())
 		go c.WriteMessageFrom(msg.New(nil, "a", "", "", "PRIVMSG", []string{"b"}, false), from)
 
 		resp, _ := bufio.NewReader(out).ReadString('\n')
