@@ -302,9 +302,15 @@ func TestSlowWriter(t *testing.T) {
 	c3, r3 := s.connectAndRegister("b")
 	defer c3.Close()
 
+	now := time.Now()
 	c2.Write([]byte("PRIVMSG slow,b :hello!\r\n"))
 	resp, _ := r3.ReadBytes('\n')
+	after := time.Now()
+
 	assertResponse(resp, ":a!a@localhost PRIVMSG b :hello!\r\n", t)
+	if after.Sub(now) >= time.Second {
+		t.Error("SlowWriter blocked writes to all clients")
+	}
 }
 
 func BenchmarkRegistrationSurge(b *testing.B) {
@@ -430,9 +436,19 @@ type slowWriter struct {
 	block bool
 }
 
+// writes one byte at a time, blocking for 1 second after each write
 func (s slowWriter) Write(b []byte) (int, error) {
 	if s.block {
-		time.Sleep(time.Millisecond * 300)
+		sum := 0
+		for _, v := range b {
+			n, err := s.Conn.Write([]byte{v})
+			sum += n
+			if err != nil {
+				return sum, err
+			}
+			time.Sleep(time.Millisecond * 100)
+		}
+		return sum, nil
 	}
 	return s.Conn.Write(b)
 }
