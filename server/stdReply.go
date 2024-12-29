@@ -1,8 +1,8 @@
 package server
 
 import (
-	"fmt"
-	"io"
+	"github.com/mitchr/gossip/client"
+	"github.com/mitchr/gossip/scan/msg"
 )
 
 type replyType string
@@ -13,10 +13,6 @@ const (
 	NOTE replyType = "NOTE"
 )
 
-func (s *Server) stdReply(w io.Writer, rType replyType, command, code, context, description string) {
-	if context == "" {
-		fmt.Fprintf(w, "%s %s %s :%s\r\n", rType, command, code, description)
-	} else {
-		fmt.Fprintf(w, "%s %s %s %s :%s\r\n", rType, command, code, context, description)
-	}
+func (s *Server) stdReply(c *client.Client, rType replyType, command, code, context, description string) {
+	c.WriteMessage(msg.New(nil, "", "", "", string(rType), []string{command, code, description}, true))
 }
