@@ -1,4 +1,4 @@
-name: irctest
+name: gossip
 
 on:
   push:
@@ -7,6 +7,24 @@ on:
     branches: [ main ]
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+
+    - name: build
+      run: go build
+
+    - name: test
+      run: go test ./...
+    
+    - name: race
+      run: go test ./... -race
+
   irctest:
     runs-on: ubuntu-latest
     steps:
@@ -41,3 +59,27 @@ jobs:
         cd irctest
         pip3 install -r requirements.txt
         PYTHONPATH=../gossip/ pytest --controller gossip -k 'not Ergo and not deprecated and not strict and not testListCreationTime and not testListTopicTime'
+  
+  parser-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout gossip
+      uses: actions/checkout@v4
+      with:
+        path: gossip
+
+    - name: checkout parser-tests
+      uses: actions/checkout@v4
+      with:
+        repository: ircdocs/parser-tests
+        path: parser-tests
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+
+    - name: parser-tests
+      run: |
+        cd gossip
+        go test ./scan/msg/ ./scan/wild -tags ext_vectors
+
