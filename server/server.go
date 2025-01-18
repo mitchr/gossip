@@ -34,12 +34,10 @@ type Server struct {
 	created     time.Time
 
 	// nick to underlying client
-	clients    map[string]*client.Client
-	clientLock sync.RWMutex
+	clients *safeMap[string, *client.Client]
 
 	// ChanType + name to channel
-	channels map[string]*channel.Channel
-	chanLock sync.RWMutex
+	channels *safeMap[string, *channel.Channel]
 
 	joinLock sync.Mutex
 
@@ -60,8 +58,8 @@ func New(c *Config) (*Server, error) {
 	s := &Server{
 		Config:   c,
 		created:  time.Now(),
-		clients:  make(map[string]*client.Client),
-		channels: make(map[string]*channel.Channel),
+		clients:  NewSafeMap[string, *client.Client](),
+		channels: NewSafeMap[string, *channel.Channel](),
 		// keep this list sorted alphabetically
 		supportedCaps: []cap.Cap{
 			cap.AccountNotify,
@@ -327,64 +325,35 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, errs chan<- e
 }
 
 func (s *Server) getClient(c string) (*client.Client, bool) {
-	s.clientLock.RLock()
-	defer s.clientLock.RUnlock()
-
-	client, ok := s.clients[strings.ToLower(c)]
-	return client, ok
+	return s.clients.get(strings.ToLower(c))
 }
 func (s *Server) setClient(v *client.Client) {
-	s.clientLock.Lock()
-	defer s.clientLock.Unlock()
-
-	s.clients[strings.ToLower(v.Nick)] = v
+	s.clients.put(strings.ToLower(v.Nick), v)
 }
 func (s *Server) deleteClient(k string) {
-	s.clientLock.Lock()
-	defer s.clientLock.Unlock()
-
-	delete(s.clients, strings.ToLower(k))
+	s.clients.del(strings.ToLower(k))
 }
 func (s *Server) clientLen() int {
-	s.clientLock.RLock()
-	defer s.clientLock.RUnlock()
-
-	return len(s.clients)
+	return s.clients.len()
 }
 
 func (s *Server) getChannel(c string) (*channel.Channel, bool) {
-	s.chanLock.RLock()
-	defer s.chanLock.RUnlock()
-
-	ch, ok := s.channels[strings.ToLower(c)]
-	return ch, ok
+	return s.channels.get(strings.ToLower(c))
 }
 func (s *Server) setChannel(v *channel.Channel) {
-	s.chanLock.Lock()
-	defer s.chanLock.Unlock()
-
-	s.channels[strings.ToLower(v.String())] = v
+	s.channels.put(strings.ToLower(v.String()), v)
 }
 func (s *Server) deleteChannel(k string) {
-	s.chanLock.Lock()
-	defer s.chanLock.Unlock()
-
-	delete(s.channels, strings.ToLower(k))
+	s.channels.del(strings.ToLower(k))
 }
 func (s *Server) channelLen() int {
-	s.chanLock.RLock()
-	defer s.chanLock.RUnlock()
-
-	return len(s.channels)
+	return s.channels.len()
 }
 
 func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 	l := []*channel.Channel{}
 
-	s.chanLock.RLock()
-	defer s.chanLock.RUnlock()
-
-	for _, v := range s.channels {
+	for _, v := range s.channels.all() {
 		if _, ok := v.GetMember(c.Nick); ok {
 			l = append(l, v)
 		}
@@ -395,10 +364,7 @@ func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
 func (s *Server) getChannelsClientInvitedTo(c *client.Client) []*channel.Channel {
 	l := []*channel.Channel{}
 
-	s.chanLock.RLock()
-	defer s.chanLock.RUnlock()
-
-	for _, v := range s.channels {
+	for _, v := range s.channels.all() {
 		for _, in := range v.Invited {
 			if strings.ToLower(c.Nick) == strings.ToLower(in) {
 				l = append(l, v)
@@ -409,10 +375,7 @@ func (s *Server) getChannelsClientInvitedTo(c *client.Client) []*channel.Channel
 }
 
 func (s *Server) haveChanInCommon(c1, c2 *client.Client) bool {
-	s.chanLock.RLock()
-	defer s.chanLock.RUnlock()
-
-	for _, ch := range s.channels {
+	for _, ch := range s.channels.all() {
 		_, c1Belongs := ch.GetMember(c1.Nick)
 		_, c2Belongs := ch.GetMember(c2.Nick)
 		if c1Belongs && c2Belongs {

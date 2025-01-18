@@ -89,7 +89,7 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		targets := strings.Split(m.Params[1], ",")
 		for _, target := range targets {
 			s.monitor.observe(target, c.Nick)
-			if k := s.clients[target]; k != nil {
+			if k, _ := s.clients.get(target); k != nil {
 				s.writeReply(c, RPL_MONONLINE, k)
 			} else {
 				s.writeReply(c, RPL_MONOFFLINE, target)
@@ -119,7 +119,7 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		off := []string{}
 
 		for _, v := range l {
-			if k := s.clients[v]; k != nil {
+			if k, _ := s.clients.get(v); k != nil {
 				on = append(on, k.String())
 			} else {
 				off = append(off, v)

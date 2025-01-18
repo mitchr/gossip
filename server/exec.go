@@ -661,13 +661,11 @@ func LIST(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 	if len(m.Params) == 0 {
 		// reply with all channels that aren't secret
-		s.chanLock.RLock()
-		for _, v := range s.channels {
+		for _, v := range s.channels.all() {
 			if listReply := s.sendListReply(v, c); listReply != nil {
 				buff.AddMsg(listReply)
 			}
 		}
-		s.chanLock.RUnlock()
 		return buff
 	}
 
@@ -686,12 +684,10 @@ func LIST(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		elist = chans
 		chans = make([]string, s.channelLen())
 		i := 0
-		s.chanLock.RLock()
-		for _, v := range s.channels {
+		for _, v := range s.channels.all() {
 			chans[i] = v.String()
 			i++
 		}
-		s.chanLock.RUnlock()
 	}
 
 	replies := []*channel.Channel{}
@@ -817,8 +813,7 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	clientSize := s.clientLen()
 	max := s.max.Get()
 
-	s.clientLock.RLock()
-	for _, v := range s.clients {
+	for _, v := range s.clients.all() {
 		if v.Is(client.Invisible) {
 			invis++
 			continue
@@ -827,7 +822,6 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 			ops++
 		}
 	}
-	s.clientLock.RUnlock()
 
 	return msg.Buffer{
 		prepMessage(RPL_LUSERCLIENT, s.Name, c.Id(), clientSize, invis, 1),
@@ -1040,8 +1034,7 @@ func WHO(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 	// no exact client matches, so use mask to match against all visible clients
 	onlyOps := len(m.Params) > 1 && m.Params[1] == "o"
-	s.clientLock.RLock()
-	for _, v := range s.clients {
+	for _, v := range s.clients.all() {
 		if onlyOps && !v.Is(client.Op) { // skip this client if they are not an op
 			continue
 		}
@@ -1063,7 +1056,6 @@ func WHO(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 			}
 		}
 	}
-	s.clientLock.RUnlock()
 	buff.AddMsg(prepMessage(RPL_ENDOFWHO, s.Name, c.Id(), mask))
 	return buff
 }
@@ -1181,13 +1173,11 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 		// this is a mask param
 		if strings.ContainsAny(m, "*?") {
-			s.clientLock.RLock()
-			for _, v := range s.clients {
+			for _, v := range s.clients.all() {
 				if wild.Match(m, v.Nick) {
 					buff.AddMsg(s.sendWHOIS(c, v))
 				}
 			}
-			s.clientLock.RUnlock()
 		} else { // was not a mask AND did not find a nick that matched
 			buff.AddMsg(prepMessage(ERR_NOSUCHNICK, s.Name, c.Id(), m))
 		}
@@ -1221,8 +1211,7 @@ func (s *Server) sendWHOIS(c *client.Client, v *client.Client) msg.Buffer {
 	buff.AddMsg(prepMessage(RPL_WHOISIDLE, s.Name, c.Id(), v.Nick, time.Since(v.IdleTime()).Round(time.Second).Seconds(), v.JoinTime))
 
 	chans := []string{}
-	s.chanLock.RLock()
-	for _, k := range s.channels {
+	for _, k := range s.channels.all() {
 		_, senderBelongs := k.GetMember(c.Nick)
 		member, clientBelongs := k.GetMember(v.Nick)
 
@@ -1234,7 +1223,6 @@ func (s *Server) sendWHOIS(c *client.Client, v *client.Client) msg.Buffer {
 		hasMultiPrefix := c.Caps[cap.MultiPrefix.Name]
 		chans = append(chans, string(member.HighestPrefix(hasMultiPrefix))+k.String())
 	}
-	s.chanLock.RUnlock()
 
 	chanParam := ""
 	if len(chans) > 0 {
@@ -1487,13 +1475,11 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	m.User = c.User
 	m.Host = c.Host
 
-	s.clientLock.RLock()
-	for _, v := range s.clients {
+	for _, v := range s.clients.all() {
 		if v.Is(client.Wallops) {
 			v.WriteMessage(m)
 		}
 	}
-	s.clientLock.RUnlock()
 	return nil
 }
 
