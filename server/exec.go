@@ -118,9 +118,9 @@ func NICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		// give back NICK to the caller and notify all the channels this
 		// user is part of that their nick changed
 		for _, v := range s.channelsOf(c) {
-			v.ForAllMembersExcept(c, func(m *channel.Member) {
-				m.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, false))
-			})
+			for member := range v.AllExcept(c) {
+				member.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, false))
+			}
 
 			// update member map entry
 			defer func(v *channel.Channel, oldNick string) {
@@ -322,12 +322,12 @@ func SETNAME(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 	chans := s.channelsOf(c)
 	for _, v := range chans {
-		v.ForAllMembersExcept(c, func(m *channel.Member) {
-			if !m.Caps[cap.Setname.Name] {
-				return
+		for member := range v.AllExcept(c) {
+			if !member.Caps[cap.Setname.Name] {
+				continue
 			}
-			m.WriteMessage(msg.New(nil, c.String(), "", "", "SETNAME", []string{c.Realname}, true))
-		})
+			member.WriteMessage(msg.New(nil, c.String(), "", "", "SETNAME", []string{c.Realname}, true))
+		}
 	}
 
 	resp := msg.New(nil, c.String(), "", "", "SETNAME", []string{c.Realname}, true)
@@ -378,13 +378,13 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 			// send JOIN to all participants of channel
 			joinMsgParams := []string{ch.String(), c.SASLMech.Authn(), c.Realname}
-			ch.ForAllMembersExcept(c, func(m *channel.Member) {
-				if m.Caps[cap.ExtendedJoin.Name] {
-					m.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "JOIN", joinMsgParams, false))
+			for member := range ch.AllExcept(c) {
+				if member.Caps[cap.ExtendedJoin.Name] {
+					member.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "JOIN", joinMsgParams, false))
 				} else {
-					m.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "JOIN", joinMsgParams[:1], false))
+					member.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "JOIN", joinMsgParams[:1], false))
 				}
-			})
+			}
 
 			if c.Caps[cap.ExtendedJoin.Name] {
 				buff.AddMsg(msg.New(nil, c.Nick, c.User, c.Host, "JOIN", joinMsgParams, false))
@@ -542,11 +542,11 @@ func INVITE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	ch.Invited = append(ch.Invited, nick)
 
 	recipient.WriteMessageFrom(msg.New(nil, sender.Nick, sender.User, sender.Host, "INVITE", []string{nick, ch.String()}, false), c)
-	ch.ForAllMembers(func(m *channel.Member) {
-		if m.Caps[cap.InviteNotify.Name] {
-			m.WriteMessageFrom(msg.New(nil, sender.Nick, sender.User, sender.Host, "INVITE", []string{nick, ch.String()}, false), c)
+	for member := range ch.All() {
+		if member.Caps[cap.InviteNotify.Name] {
+			member.WriteMessageFrom(msg.New(nil, sender.Nick, sender.User, sender.Host, "INVITE", []string{nick, ch.String()}, false), c)
 		}
-	})
+	}
 
 	return prepMessage(RPL_INVITING, s.Name, c.Id(), nick, ch)
 }
@@ -622,9 +622,9 @@ func (s *Server) kickMember(c *client.Client, ch *channel.Channel, memberNick st
 	}
 
 	// send KICK to all channel members but self
-	ch.ForAllMembersExcept(c, func(m *channel.Member) {
-		m.WriteMessageFrom(msg.New(nil, c.Nick, c.User, c.Host, "KICK", []string{ch.String(), u.Nick, comment}, true), c)
-	})
+	for member := range ch.AllExcept(c) {
+		member.WriteMessageFrom(msg.New(nil, c.Nick, c.User, c.Host, "KICK", []string{ch.String(), u.Nick, comment}, true), c)
+	}
 
 	ch.DeleteMember(u.Nick)
 	return nil
@@ -1005,15 +1005,15 @@ func WHO(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	// returns WHOREPLY for every member in channel. else, we will match
 	// exactly against the client name.
 	if ch, ok := s.getChannel(mask); ok {
-		ch.ForAllMembers(func(m *channel.Member) {
+		for member := range ch.All() {
 			if whox {
-				resp := constructSpcrplResponse(fields, m.Client, s)
+				resp := constructSpcrplResponse(fields, member.Client, s)
 				buff.AddMsg(prepMessage(RPL_WHOSPCRPL, s.Name, c.Id(), resp))
 			} else {
-				flags := whoreplyFlagsForMember(m, c.Caps[cap.MultiPrefix.Name])
-				buff.AddMsg(prepMessage(RPL_WHOREPLY, s.Name, c.Id(), ch, m.User, m.Host, s.Name, m.Nick, flags, m.Realname))
+				flags := whoreplyFlagsForMember(member, c.Caps[cap.MultiPrefix.Name])
+				buff.AddMsg(prepMessage(RPL_WHOREPLY, s.Name, c.Id(), ch, member.User, member.Host, s.Name, member.Nick, flags, member.Realname))
 			}
-		})
+		}
 		buff.AddMsg(prepMessage(RPL_ENDOFWHO, s.Name, c.Id(), mask))
 		return buff
 	}
@@ -1331,19 +1331,19 @@ func (s *Server) communicate(m *msg.Message, c *client.Client) msg.Msg {
 			}
 
 			// write to everybody else in the chan besides self
-			ch.ForAllMembersExcept(c, func(m *channel.Member) {
-				if hasPrefix && !m.Is(prefix) {
-					return
+			for member := range ch.AllExcept(c) {
+				if hasPrefix && !member.Is(prefix) {
+					continue
 				}
 
-				if msgCopy.Command == "TAGMSG" && !m.Caps[cap.MessageTags.Name] {
-					return
+				if msgCopy.Command == "TAGMSG" && !member.Caps[cap.MessageTags.Name] {
+					continue
 				}
-				if m.Caps[cap.MessageTags.Name] {
+				if member.Caps[cap.MessageTags.Name] {
 					msgCopy.SetMsgid()
 				}
-				m.WriteMessageFrom(&msgCopy, c)
-			})
+				member.WriteMessageFrom(&msgCopy, c)
+			}
 		} else { // client->client
 			target, ok := s.getClient(v)
 			if !ok {
@@ -1411,11 +1411,11 @@ func AWAY(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 func (s *Server) awayNotify(c *client.Client, chans ...*channel.Channel) {
 	for _, v := range chans {
-		v.ForAllMembersExcept(c, func(m *channel.Member) {
-			if m.Caps[cap.AwayNotify.Name] {
-				m.WriteMessage(msg.New(nil, c.String(), "", "", "AWAY", []string{c.AwayMsg}, strings.Contains(c.AwayMsg, " ")))
+		for member := range v.AllExcept(c) {
+			if member.Caps[cap.AwayNotify.Name] {
+				member.WriteMessage(msg.New(nil, c.String(), "", "", "AWAY", []string{c.AwayMsg}, strings.Contains(c.AwayMsg, " ")))
 			}
-		})
+		}
 	}
 	s.notify(c, msg.New(nil, c.String(), "", "", "AWAY", []string{c.AwayMsg}, strings.Contains(c.AwayMsg, " ")), cap.AwayNotify)
 }

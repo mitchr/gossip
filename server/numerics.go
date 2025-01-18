@@ -145,7 +145,7 @@ func constructNAMREPLY(ch *channel.Channel, invisibles bool, multiPrefix bool, u
 		symbol = "@"
 	}
 
-	ch.ForAllMembers(func(m *channel.Member) {
+	for m := range ch.All() {
 		// if not inluding invisible clients, and this client is invisible
 		if !invisibles && m.Client.Is(client.Invisible) {
 			return
@@ -161,7 +161,7 @@ func constructNAMREPLY(ch *channel.Channel, invisibles bool, multiPrefix bool, u
 			identifier = m.String()
 		}
 		members += identifier + " "
-	})
+	}
 	return symbol, members[:len(members)-1]
 }
 

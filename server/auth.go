@@ -120,14 +120,15 @@ func (s *Server) accountNotify(c *client.Client) {
 	clients := make(map[*client.Client]bool)
 	chans := s.channelsOf(c)
 	for _, v := range chans {
-		v.ForAllMembersExcept(c, func(m *channel.Member) {
-			if clients[m.Client] || !m.Caps[cap.AccountNotify.Name] {
+		for member := range v.AllExcept(c) {
+			if clients[member.Client] || !member.Caps[cap.AccountNotify.Name] {
 				return
 			}
-			clients[m.Client] = true
-			m.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false))
-			s.writeReply(m.Client, msg.New(nil, "", "", "", "ACCOUNT", []string{c.SASLMech.Authn()}, false))
-		})
+			clients[member.Client] = true
+			member.WriteMessage(msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false))
+			s.writeReply(member.Client, msg.New(nil, "", "", "", "ACCOUNT", []string{c.SASLMech.Authn()}, false))
+
+		}
 	}
 
 	s.notify(c, msg.New(nil, c.Nick, c.User, c.Host, "ACCOUNT", []string{c.SASLMech.Authn()}, false), cap.AccountNotify)

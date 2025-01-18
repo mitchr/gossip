@@ -3,6 +3,7 @@ package channel
 import (
 	"errors"
 	"fmt"
+	"iter"
 	"math"
 	"strconv"
 	"strings"
@@ -95,21 +96,31 @@ func (c *Channel) DeleteMember(m string) {
 	delete(c.Members, strings.ToLower(m))
 }
 
-func (ch *Channel) ForAllMembers(f func(m *Member)) {
-	ch.membersLock.RLock()
-	defer ch.membersLock.RUnlock()
-	for _, v := range ch.Members {
-		f(v)
+func (ch *Channel) All() iter.Seq[*Member] {
+	return func(yield func(*Member) bool) {
+		ch.membersLock.RLock()
+		defer ch.membersLock.RUnlock()
+		for _, m := range ch.Members {
+			if !yield(m) {
+				return
+			}
+		}
 	}
 }
 
-func (ch *Channel) ForAllMembersExcept(c *client.Client, f func(m *Member)) {
-	ch.ForAllMembers(func(m *Member) {
-		if m.Client == c {
-			return
+// AllExcept returns an iterator of all members in the channel except
+// ones matching the except Client.
+func (ch *Channel) AllExcept(except *client.Client) iter.Seq[*Member] {
+	return func(yield func(*Member) bool) {
+		for m := range ch.All() {
+			if m.Client == except {
+				continue
+			}
+			if !yield(m) {
+				return
+			}
 		}
-		f(m)
-	})
+	}
 }
 
 func (c *Channel) Modes() (modestr string, params []string) {
