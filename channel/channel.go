@@ -7,13 +7,13 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan/mode"
 	"github.com/mitchr/gossip/scan/msg"
 	"github.com/mitchr/gossip/scan/wild"
+	"github.com/mitchr/gossip/util"
 )
 
 type ChanType rune
@@ -50,8 +50,7 @@ type Channel struct {
 	Invited []string
 
 	// map of Nick to undelying client
-	Members     map[string]*Member
-	membersLock sync.RWMutex
+	Members *util.SafeMap[string, *Member]
 }
 
 func New(name string, t ChanType) *Channel {
@@ -59,7 +58,7 @@ func New(name string, t ChanType) *Channel {
 		Name:      name,
 		ChanType:  t,
 		Limit:     math.MaxInt,
-		Members:   make(map[string]*Member),
+		Members:   util.NewSafeMap[string, *Member](),
 		CreatedAt: time.Now(),
 	}
 }
@@ -69,38 +68,24 @@ func (c *Channel) String() string {
 }
 
 func (c *Channel) Len() int {
-	c.membersLock.RLock()
-	defer c.membersLock.RUnlock()
-
-	return len(c.Members)
+	return c.Members.Len()
 }
 
 func (c *Channel) GetMember(m string) (*Member, bool) {
-	c.membersLock.RLock()
-	defer c.membersLock.RUnlock()
-
-	mem, ok := c.Members[strings.ToLower(m)]
+	mem, ok := c.Members.Get(strings.ToLower(m))
 	return mem, ok
 }
 func (c *Channel) SetMember(v *Member) {
-	c.membersLock.Lock()
-	defer c.membersLock.Unlock()
-
-	c.Members[strings.ToLower(v.Nick)] = v
+	c.Members.Put(v.Nick, v)
 }
 
 func (c *Channel) DeleteMember(m string) {
-	c.membersLock.Lock()
-	defer c.membersLock.Unlock()
-
-	delete(c.Members, strings.ToLower(m))
+	c.Members.Del(strings.ToLower(m))
 }
 
 func (ch *Channel) All() iter.Seq[*Member] {
 	return func(yield func(*Member) bool) {
-		ch.membersLock.RLock()
-		defer ch.membersLock.RUnlock()
-		for _, m := range ch.Members {
+		for _, m := range ch.Members.All() {
 			if !yield(m) {
 				return
 			}
@@ -181,19 +166,13 @@ func (c *Channel) Modes() (modestr string, params []string) {
 // }
 
 func (c *Channel) WriteMessage(m msg.Msg) {
-	c.membersLock.RLock()
-	defer c.membersLock.RUnlock()
-
-	for _, v := range c.Members {
+	for v := range c.All() {
 		v.WriteMessage(m)
 	}
 }
 
 func (c *Channel) WriteMessageFrom(m msg.Msg, from *client.Client) {
-	c.membersLock.RLock()
-	defer c.membersLock.RUnlock()
-
-	for _, v := range c.Members {
+	for v := range c.All() {
 		v.WriteMessageFrom(m, from)
 	}
 }

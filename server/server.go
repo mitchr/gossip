@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"errors"
+	"iter"
 	"log"
 	"net"
 	"slices"
@@ -19,6 +20,7 @@ import (
 	"github.com/mitchr/gossip/client"
 	"github.com/mitchr/gossip/scan"
 	"github.com/mitchr/gossip/scan/msg"
+	"github.com/mitchr/gossip/util"
 	"github.com/pires/go-proxyproto"
 	_ "modernc.org/sqlite"
 )
@@ -34,10 +36,10 @@ type Server struct {
 	created     time.Time
 
 	// nick to underlying client
-	clients *safeMap[string, *client.Client]
+	clients *util.SafeMap[string, *client.Client]
 
 	// ChanType + name to channel
-	channels *safeMap[string, *channel.Channel]
+	channels *util.SafeMap[string, *channel.Channel]
 
 	joinLock sync.Mutex
 
@@ -58,8 +60,8 @@ func New(c *Config) (*Server, error) {
 	s := &Server{
 		Config:   c,
 		created:  time.Now(),
-		clients:  NewSafeMap[string, *client.Client](),
-		channels: NewSafeMap[string, *channel.Channel](),
+		clients:  util.NewSafeMap[string, *client.Client](),
+		channels: util.NewSafeMap[string, *channel.Channel](),
 		// keep this list sorted alphabetically
 		supportedCaps: []cap.Cap{
 			cap.AccountNotify,
@@ -325,57 +327,59 @@ func (s *Server) getMessage(c *client.Client, ctx context.Context, errs chan<- e
 }
 
 func (s *Server) getClient(c string) (*client.Client, bool) {
-	return s.clients.get(strings.ToLower(c))
+	return s.clients.Get(strings.ToLower(c))
 }
 func (s *Server) setClient(v *client.Client) {
-	s.clients.put(strings.ToLower(v.Nick), v)
+	s.clients.Put(strings.ToLower(v.Nick), v)
 }
 func (s *Server) deleteClient(k string) {
-	s.clients.del(strings.ToLower(k))
+	s.clients.Del(strings.ToLower(k))
 }
 func (s *Server) clientLen() int {
-	return s.clients.len()
+	return s.clients.Len()
 }
 
 func (s *Server) getChannel(c string) (*channel.Channel, bool) {
-	return s.channels.get(strings.ToLower(c))
+	return s.channels.Get(strings.ToLower(c))
 }
 func (s *Server) setChannel(v *channel.Channel) {
-	s.channels.put(strings.ToLower(v.String()), v)
+	s.channels.Put(strings.ToLower(v.String()), v)
 }
 func (s *Server) deleteChannel(k string) {
-	s.channels.del(strings.ToLower(k))
+	s.channels.Del(strings.ToLower(k))
 }
 func (s *Server) channelLen() int {
-	return s.channels.len()
+	return s.channels.Len()
 }
 
-func (s *Server) channelsOf(c *client.Client) []*channel.Channel {
-	l := []*channel.Channel{}
-
-	for _, v := range s.channels.all() {
-		if _, ok := v.GetMember(c.Nick); ok {
-			l = append(l, v)
-		}
-	}
-	return l
-}
-
-func (s *Server) getChannelsClientInvitedTo(c *client.Client) []*channel.Channel {
-	l := []*channel.Channel{}
-
-	for _, v := range s.channels.all() {
-		for _, in := range v.Invited {
-			if strings.ToLower(c.Nick) == strings.ToLower(in) {
-				l = append(l, v)
+func (s *Server) channelsOf(c *client.Client) iter.Seq[*channel.Channel] {
+	return func(yield func(*channel.Channel) bool) {
+		for _, v := range s.channels.All() {
+			if _, ok := v.GetMember(c.Nick); ok {
+				if !yield(v) {
+					return
+				}
 			}
 		}
 	}
-	return l
+}
+
+func (s *Server) getChannelsClientInvitedTo(c *client.Client) iter.Seq[*channel.Channel] {
+	return func(yield func(*channel.Channel) bool) {
+		for _, v := range s.channels.All() {
+			for _, in := range v.Invited {
+				if strings.ToLower(c.Nick) == strings.ToLower(in) {
+					if !yield(v) {
+						return
+					}
+				}
+			}
+		}
+	}
 }
 
 func (s *Server) haveChanInCommon(c1, c2 *client.Client) bool {
-	for _, ch := range s.channels.all() {
+	for _, ch := range s.channels.All() {
 		_, c1Belongs := ch.GetMember(c1.Nick)
 		_, c2Belongs := ch.GetMember(c2.Nick)
 		if c1Belongs && c2Belongs {

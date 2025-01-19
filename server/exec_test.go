@@ -264,9 +264,9 @@ func TestQUIT(t *testing.T) {
 		c2, r2 := s.connectAndRegister("dan")
 		defer c2.Close()
 
-		s.channels.m["#l"] = channel.New("l", '#')
-		s.channels.m["#l"].SetMember(&channel.Member{Client: s.clients.m["bob"], Prefix: channel.Operator})
-		s.channels.m["#l"].SetMember(&channel.Member{Client: s.clients.m["dan"]})
+		s.channels.Put("#l", channel.New("l", '#'))
+		s.channels.GetWithoutCheck("#l").SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("bob"), Prefix: channel.Operator})
+		s.channels.GetWithoutCheck("#l").SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("dan")})
 
 		bob, _ := s.getClient("bob")
 
@@ -438,11 +438,11 @@ func TestChannelKeys(t *testing.T) {
 	defer s.Close()
 	go s.Serve()
 
-	s.channels.m["#1"] = channel.New("1", channel.Remote)
-	s.channels.m["#1"].Key = "Key1"
-	s.channels.m["#2"] = channel.New("2", channel.Remote)
-	s.channels.m["#2"].Key = "Key2"
-	s.channels.m["#3"] = channel.New("3", channel.Remote)
+	s.channels.Put("#1", channel.New("1", channel.Remote))
+	s.channels.GetWithoutCheck("#1").Key = "Key1"
+	s.channels.Put("#2", channel.New("2", channel.Remote))
+	s.channels.GetWithoutCheck("#2").Key = "Key2"
+	s.channels.Put("#3", channel.New("3", channel.Remote))
 
 	c, r := s.connectAndRegister("alice")
 	defer c.Close()
@@ -483,8 +483,8 @@ func TestTOPIC(t *testing.T) {
 	c, r := s.connectAndRegister("alice")
 	defer c.Close()
 
-	s.channels.m["&test"] = channel.New("test", '&')
-	s.channels.m["&test"].SetMember(&channel.Member{Client: s.clients.m["alice"], Prefix: channel.Operator})
+	s.channels.Put("&test", channel.New("test", '&'))
+	s.channels.GetWithoutCheck("&test").SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("alice"), Prefix: channel.Operator})
 
 	c.Write([]byte("TOPIC &test\r\n"))
 	c.Write([]byte("TOPIC &test :This is a test\r\n"))
@@ -543,8 +543,8 @@ func TestKICK(t *testing.T) {
 
 	local := channel.New("local", '#')
 	s.setChannel(local)
-	local.SetMember(&channel.Member{Client: s.clients.m["alice"], Prefix: channel.Operator})
-	local.SetMember(&channel.Member{Client: s.clients.m["bob"]})
+	local.SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("alice"), Prefix: channel.Operator})
+	local.SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("bob")})
 	c1.Write([]byte("KICK #local bob\r\n"))
 
 	// check received correct response
@@ -567,7 +567,7 @@ func TestKICK(t *testing.T) {
 
 	t.Run("NoSuchChannel", func(t *testing.T) {
 		testChannel := channel.New("test", channel.Remote)
-		testChannel.SetMember(&channel.Member{Client: s.clients.m["bob"]})
+		testChannel.SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("bob")})
 		s.setChannel(testChannel)
 		c1.Write([]byte("KICK #test bob\r\n"))
 		resp, _ := r1.ReadBytes('\n')
@@ -576,7 +576,7 @@ func TestKICK(t *testing.T) {
 	})
 
 	t.Run("NoPrivileges", func(t *testing.T) {
-		s.channels.m["#test"].SetMember(&channel.Member{Client: s.clients.m["alice"]})
+		s.channels.GetWithoutCheck("#test").SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("alice")})
 		c1.Write([]byte("KICK #test bob\r\n"))
 		resp, _ := r1.ReadBytes('\n')
 
@@ -831,7 +831,7 @@ func TestMODEChannel(t *testing.T) {
 
 	local := channel.New("local", '#')
 	s.setChannel(local)
-	local.SetMember(&channel.Member{Client: s.clients.m["alice"], Prefix: channel.Operator})
+	local.SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("alice"), Prefix: channel.Operator})
 
 	t.Run("TestUserNotInChan", func(t *testing.T) {
 		c1.Write([]byte("MODE #local +o bob\r\n"))
@@ -839,7 +839,7 @@ func TestMODEChannel(t *testing.T) {
 		assertResponse(resp, fmt.Sprintf(":%s 441 alice bob #local :They aren't on that channel\r\n", s.Name), t)
 	})
 
-	bob := &channel.Member{Client: s.clients.m["bob"]}
+	bob := &channel.Member{Client: s.clients.GetWithoutCheck("bob")}
 	local.SetMember(bob)
 
 	c1.Write([]byte("MODE #local +ko pass bob\r\n"))
@@ -899,7 +899,7 @@ func TestMODEChannel(t *testing.T) {
 	})
 
 	t.Run("TestRPLBANLIST", func(t *testing.T) {
-		s.clients.m["alice"].FillGrants()
+		s.clients.GetWithoutCheck("alice").FillGrants()
 
 		c1.Write([]byte("MODE #local +b abc\r\nMODE #local +b def\r\nMODE #local +b ghi\r\n"))
 		readLines(r1, 3)
@@ -927,7 +927,7 @@ func TestMODEChannel(t *testing.T) {
 	})
 
 	t.Run("TestRPLEXCEPTLIST", func(t *testing.T) {
-		s.clients.m["alice"].FillGrants()
+		s.clients.GetWithoutCheck("alice").FillGrants()
 
 		c1.Write([]byte("MODE #local +e abc\r\nMODE #local +e def\r\nMODE #local +e ghi\r\n"))
 		r1.ReadBytes('\n')
@@ -946,7 +946,7 @@ func TestMODEChannel(t *testing.T) {
 	})
 
 	t.Run("TestRPLINVITELIST", func(t *testing.T) {
-		s.clients.m["alice"].FillGrants()
+		s.clients.GetWithoutCheck("alice").FillGrants()
 
 		c1.Write([]byte("MODE #local +I abc\r\nMODE #local +I def\r\nMODE #local +I ghi\r\n"))
 		r1.ReadBytes('\n')
@@ -1513,8 +1513,8 @@ func TestPRIVMSG(t *testing.T) {
 
 	local := channel.New("local", '#')
 	s.setChannel(local)
-	local.SetMember(&channel.Member{Client: s.clients.m["alice"], Prefix: channel.Operator})
-	local.SetMember(&channel.Member{Client: s.clients.m["bob"]})
+	local.SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("alice"), Prefix: channel.Operator})
+	local.SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("bob")})
 
 	t.Run("TestNoTextToSend", func(t *testing.T) {
 		c1.Write([]byte("PRIVMSG bob\r\n"))
@@ -1552,7 +1552,7 @@ func TestPRIVMSG(t *testing.T) {
 		c3, _ := s.connectAndRegister("c")
 		defer c3.Close()
 
-		local.SetMember(&channel.Member{Client: s.clients.m["c"]})
+		local.SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("c")})
 
 		c3.Write([]byte("PRIVMSG #local,bob :From c\r\n"))
 		chanResp1, _ := r1.ReadBytes('\n')
@@ -1634,7 +1634,7 @@ func TestPONG(t *testing.T) {
 	defer s.Close()
 
 	c := &client.Client{PONG: make(chan struct{}, 1)}
-	s.clients.m["c"] = c
+	s.clients.Put("c", c)
 
 	PONG(s, c, nil)
 

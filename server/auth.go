@@ -118,8 +118,7 @@ func (s *Server) accountNotify(c *client.Client) {
 
 	// keep track of all clients in the same channel with c
 	clients := make(map[*client.Client]bool)
-	chans := s.channelsOf(c)
-	for _, v := range chans {
+	for v := range s.channelsOf(c) {
 		for member := range v.AllExcept(c) {
 			if clients[member.Client] || !member.Caps[cap.AccountNotify.Name] {
 				return

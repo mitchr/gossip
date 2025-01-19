@@ -196,8 +196,8 @@ func TestCaseInsensitivity(t *testing.T) {
 	})
 
 	t.Run("TestChanCaseInsensitive", func(t *testing.T) {
-		s.channels.m["#test"] = channel.New("test", '#')
-		s.channels.m["#test"].SetMember(&channel.Member{Client: s.clients.m["alice"]})
+		s.channels.Put("#test", channel.New("test", '#'))
+		s.channels.GetWithoutCheck("#test").SetMember(&channel.Member{Client: s.clients.GetWithoutCheck("alice")})
 
 		c2.Write([]byte("JOIN #tEsT\r\n"))
 		r1.ReadBytes('\n')
@@ -231,7 +231,7 @@ func TestUnicodeNICK(t *testing.T) {
 	c.Write([]byte("NICK 🛩️\r\nUSER airplane 0 0 :A\r\n"))
 	resp, _ := r.ReadBytes('\n')
 
-	airplane := s.clients.m["🛩️"].String()
+	airplane := s.clients.GetWithoutCheck("🛩️").String()
 	assertResponse(resp, fmt.Sprintf(":%s 001 🛩️ :Welcome to the  IRC Network %s\r\n", s.Name, airplane), t)
 }
 

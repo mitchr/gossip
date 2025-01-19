@@ -2,8 +2,10 @@ package server
 
 import (
 	"errors"
+	"iter"
 	"net"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -117,7 +119,7 @@ func NICK(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	if c.Nick != "" {
 		// give back NICK to the caller and notify all the channels this
 		// user is part of that their nick changed
-		for _, v := range s.channelsOf(c) {
+		for v := range s.channelsOf(c) {
 			for member := range v.AllExcept(c) {
 				member.WriteMessage(msg.New(nil, c.String(), "", "", "NICK", []string{nick}, false))
 			}
@@ -232,7 +234,8 @@ func QUIT(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 	// send QUIT to all channels that client is connected to, and
 	// remove that client from the channel
-	for _, v := range s.channelsOf(c) {
+	// TODO: have to collect here to be able to mutate channels; try this https://pkg.go.dev/iter#hdr-Mutation
+	for _, v := range slices.Collect(s.channelsOf(c)) {
 		// as part of the JOIN contract, only members joined to the
 		// quitting clients channels receive their quit message, not the
 		// client themselves. isntead, they receive an error message from
@@ -320,8 +323,7 @@ func SETNAME(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		return nil
 	}
 
-	chans := s.channelsOf(c)
-	for _, v := range chans {
+	for v := range s.channelsOf(c) {
 		for member := range v.AllExcept(c) {
 			if !member.Caps[cap.Setname.Name] {
 				continue
@@ -345,7 +347,8 @@ func JOIN(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 	// when 'JOIN 0', PART from every channel client is a member of
 	if m.Params[0] == "0" {
-		for _, v := range s.channelsOf(c) {
+		// TODO: have to collect here to be able to mutate channels; try this https://pkg.go.dev/iter#hdr-Mutation
+		for _, v := range slices.Collect(s.channelsOf(c)) {
 			PART(s, c, &msg.Message{Params: []string{v.String()}})
 		}
 		return nil
@@ -512,9 +515,8 @@ func TOPIC(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 func INVITE(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	if len(m.Params) < 2 {
-		chans := s.getChannelsClientInvitedTo(c)
 		var buff msg.Buffer
-		for _, v := range chans {
+		for v := range s.getChannelsClientInvitedTo(c) {
 			buff.AddMsg(prepMessage(RPL_INVITELIST, s.Name, c.Id(), v))
 		}
 		buff.AddMsg(prepMessage(RPL_ENDOFINVITELIST, s.Name, c.Id()))
@@ -661,7 +663,7 @@ func LIST(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 	if len(m.Params) == 0 {
 		// reply with all channels that aren't secret
-		for _, v := range s.channels.all() {
+		for _, v := range s.channels.All() {
 			if listReply := s.sendListReply(v, c); listReply != nil {
 				buff.AddMsg(listReply)
 			}
@@ -684,7 +686,7 @@ func LIST(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		elist = chans
 		chans = make([]string, s.channelLen())
 		i := 0
-		for _, v := range s.channels.all() {
+		for _, v := range s.channels.All() {
 			chans[i] = v.String()
 			i++
 		}
@@ -813,7 +815,7 @@ func LUSERS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	clientSize := s.clientLen()
 	max := s.max.Get()
 
-	for _, v := range s.clients.all() {
+	for _, v := range s.clients.All() {
 		if v.Is(client.Invisible) {
 			invis++
 			continue
@@ -1034,7 +1036,7 @@ func WHO(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 	// no exact client matches, so use mask to match against all visible clients
 	onlyOps := len(m.Params) > 1 && m.Params[1] == "o"
-	for _, v := range s.clients.all() {
+	for _, v := range s.clients.All() {
 		if onlyOps && !v.Is(client.Op) { // skip this client if they are not an op
 			continue
 		}
@@ -1097,10 +1099,12 @@ func constructSpcrplResponse(params string, c *client.Client, s *Server) string 
 			}
 		case 'c':
 			channel := "*"
-			chans := s.channelsOf(c)
-			if len(chans) > 0 {
-				chanRef = chans[0]
-				channel = chans[0].String()
+			next, stop := iter.Pull(s.channelsOf(c))
+			defer stop()
+			ch, exists := next()
+			if exists {
+				chanRef = ch
+				channel = ch.String()
 			}
 			resp[i] = channel
 		case 'u':
@@ -1173,7 +1177,7 @@ func WHOIS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 		// this is a mask param
 		if strings.ContainsAny(m, "*?") {
-			for _, v := range s.clients.all() {
+			for _, v := range s.clients.All() {
 				if wild.Match(m, v.Nick) {
 					buff.AddMsg(s.sendWHOIS(c, v))
 				}
@@ -1211,7 +1215,7 @@ func (s *Server) sendWHOIS(c *client.Client, v *client.Client) msg.Buffer {
 	buff.AddMsg(prepMessage(RPL_WHOISIDLE, s.Name, c.Id(), v.Nick, time.Since(v.IdleTime()).Round(time.Second).Seconds(), v.JoinTime))
 
 	chans := []string{}
-	for _, k := range s.channels.all() {
+	for _, k := range s.channels.All() {
 		_, senderBelongs := k.GetMember(c.Nick)
 		member, clientBelongs := k.GetMember(v.Nick)
 
@@ -1395,7 +1399,7 @@ func PONG(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 func ERROR(s *Server, c *client.Client, m *msg.Message) msg.Msg { return nil }
 
 func AWAY(s *Server, c *client.Client, m *msg.Message) msg.Msg {
-	defer s.awayNotify(c, s.channelsOf(c)...)
+	defer s.awayNotify(c, slices.Collect(s.channelsOf(c))...)
 
 	// remove away
 	if len(m.Params) == 0 || m.Params[0] == "" {
@@ -1475,7 +1479,7 @@ func WALLOPS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	m.User = c.User
 	m.Host = c.Host
 
-	for _, v := range s.clients.all() {
+	for _, v := range s.clients.All() {
 		if v.Is(client.Wallops) {
 			v.WriteMessage(m)
 		}
