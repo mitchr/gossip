@@ -1262,15 +1262,18 @@ func WHOWAS(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 
 	nicks := strings.Split(m.Params[0], ",")
 	info := s.whowasHistory.search(nicks, count)
-	if len(info) == 0 {
-		buff.AddMsg(prepMessage(ERR_WASNOSUCHNICK, s.Name, c.Id(), m.Params[0]))
-		buff.AddMsg(prepMessage(RPL_ENDOFWHOWAS, s.Name, c.Id(), m.Params[0]))
-		return buff
+
+	searchCount := 0
+	for v := range info {
+		buff.AddMsg(prepMessage(RPL_WHOWASUSER, s.Name, c.Id(), v.nick, v.user, v.host, v.realname))
+		searchCount++
 	}
 
-	for _, v := range info {
-		buff.AddMsg(prepMessage(RPL_WHOWASUSER, s.Name, c.Id(), v.nick, v.user, v.host, v.realname))
+	// search was empty
+	if searchCount == 0 {
+		buff.AddMsg(prepMessage(ERR_WASNOSUCHNICK, s.Name, c.Id(), m.Params[0]))
 	}
+
 	buff.AddMsg(prepMessage(RPL_ENDOFWHOWAS, s.Name, c.Id(), m.Params[0]))
 	return buff
 }

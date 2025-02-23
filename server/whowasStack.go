@@ -1,6 +1,9 @@
 package server
 
-import "sync"
+import (
+	"iter"
+	"sync"
+)
 
 // whowasStack keeps track of WHOWAS information
 type whowasStack struct {
@@ -34,23 +37,23 @@ func (l *whowasStack) push(nick, user, host, realname string) {
 // search searches the stack for any occurence of any nick in nicks,
 // starting with the most recent entries first. If count > 1, up to a
 // count number of entries will be returned.
-func (l *whowasStack) search(nicks []string, count int) []*whowasInfo {
-	matches := make([]*whowasInfo, 0, count)
+func (l *whowasStack) search(nicks []string, count int) iter.Seq[*whowasInfo] {
+	return func(yield func(*whowasInfo) bool) {
+		l.m.RLock()
+		defer l.m.RUnlock()
 
-	l.m.RLock()
-	defer l.m.RUnlock()
+		i := 1
+		for current := l.head; current != nil && i <= count; current = current.next {
+			for _, n := range nicks {
+				if current.data.nick != n {
+					continue
+				}
 
-	i := 1
-	current := l.head
-	for current != nil && i <= count {
-		for _, n := range nicks {
-			if current.data.nick == n {
-				matches = append(matches, &current.data)
 				i++
+				if !yield(&current.data) {
+					return
+				}
 			}
 		}
-		current = current.next
 	}
-
-	return matches
 }
