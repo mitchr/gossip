@@ -87,3 +87,18 @@ func TestMONITOR(t *testing.T) {
 		assertResponse(monend, prepMessage(RPL_ENDOFMONLIST, s.Name, "alice").String(), t)
 	})
 }
+
+func BenchmarkList(b *testing.B) {
+	m := monitor{m: make(map[string]map[string]bool)}
+	m.observe("a", "a")
+	m.observe("a", "b")
+	m.observe("a", "c")
+	m.observe("a", "d")
+	// l := "abcdefghijklmnopqrstuvwxyz"
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		for range m.list("a") {
+		}
+	}
+}

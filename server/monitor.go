@@ -1,6 +1,8 @@
 package server
 
 import (
+	"iter"
+	"slices"
 	"strings"
 	"sync"
 
@@ -51,16 +53,18 @@ func (m *monitor) unobserve(client, o string) {
 	delete(m.m[client], o)
 }
 
-func (m *monitor) list(c string) []string {
+func (m *monitor) list(c string) iter.Seq[string] {
 	c = strings.ToLower(c)
 
-	list := []string{}
-	for client := range m.m {
-		if m.getObserversOf(client)[c] {
-			list = append(list, client)
+	return func(yield func(string) bool) {
+		for client := range m.m {
+			if m.getObserversOf(client)[c] {
+				if !yield(client) {
+					return
+				}
+			}
 		}
 	}
-	return list
 }
 
 // remove c from the observers list of all clients
@@ -107,7 +111,7 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 	case "C":
 		s.monitor.clear(c.Nick)
 	case "L":
-		l := s.monitor.list(c.Nick)
+		l := slices.Collect[string](s.monitor.list(c.Nick))
 		if len(l) != 0 {
 			// TODO: split this into multiple RPL_MONLIST if they go over the line length limit
 			s.writeReply(c, RPL_MONLIST, strings.Join(l, ","))
@@ -118,7 +122,7 @@ func MONITOR(s *Server, c *client.Client, m *msg.Message) msg.Msg {
 		on := []string{}
 		off := []string{}
 
-		for _, v := range l {
+		for v := range l {
 			if k, _ := s.clients.Get(v); k != nil {
 				on = append(on, k.String())
 			} else {
